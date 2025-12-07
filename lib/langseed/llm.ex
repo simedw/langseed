@@ -3,7 +3,10 @@ defmodule Langseed.LLM do
   LLM integration for Chinese word analysis using Gemini.
   """
 
+  alias Langseed.Analytics
+
   @max_retries 3
+  @model "gemini-2.5-pro"
 
   @doc """
   Analyzes a Chinese word within its context sentence to extract
@@ -13,21 +16,21 @@ defmodule Langseed.LLM do
 
   Returns {:ok, %{pinyin: ..., meaning: ..., part_of_speech: ..., explanation: ...}} or {:error, reason}
   """
-  def analyze_word(word, context_sentence \\ nil, known_words \\ MapSet.new()) do
+  def analyze_word(user_id, word, context_sentence \\ nil, known_words \\ MapSet.new()) do
     known_chars = extract_known_chars(known_words)
 
-    analyze_with_retry(word, context_sentence, known_chars, @max_retries, [])
+    analyze_with_retry(user_id, word, context_sentence, known_chars, @max_retries, [])
   end
 
-  defp analyze_with_retry(_word, _context, _known_chars, 0, illegal_chars) do
+  defp analyze_with_retry(_user_id, _word, _context, _known_chars, 0, illegal_chars) do
     {:error,
      "Failed after #{@max_retries} retries. Could not avoid characters: #{Enum.join(illegal_chars, ", ")}"}
   end
 
-  defp analyze_with_retry(word, context_sentence, known_chars, retries_left, previous_illegal) do
+  defp analyze_with_retry(user_id, word, context_sentence, known_chars, retries_left, previous_illegal) do
     prompt = build_prompt(word, context_sentence, known_chars, previous_illegal)
 
-    case call_gemini(prompt) do
+    case call_gemini(prompt, user_id, "analyze_word") do
       {:ok, response} ->
         case parse_response(response) do
           {:ok, analysis} ->
@@ -59,6 +62,7 @@ defmodule Langseed.LLM do
               # No valid explanations but retries left - try again
               retries_left > 0 ->
                 analyze_with_retry(
+                  user_id,
                   word,
                   context_sentence,
                   known_chars,
@@ -217,9 +221,12 @@ defmodule Langseed.LLM do
     """
   end
 
-  defp call_gemini(prompt) do
-    case ReqLLM.generate_text("google:gemini-2.5-pro", prompt) do
+  defp call_gemini(prompt, user_id, query_type) do
+    case ReqLLM.generate_text("google:#{@model}", prompt) do
       {:ok, response} ->
+        # Log usage to database
+        log_usage(response, user_id, query_type)
+
         text = ReqLLM.Response.text(response)
         {:ok, text}
 
@@ -227,6 +234,28 @@ defmodule Langseed.LLM do
         {:error, "Request failed: #{inspect(reason)}"}
     end
   end
+
+  defp log_usage(response, user_id, query_type) do
+    # Extract token usage from response if available
+    usage = get_token_usage(response)
+
+    Analytics.log_query(%{
+      user_id: user_id,
+      query_type: query_type,
+      model: @model,
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens
+    })
+  end
+
+  defp get_token_usage(%{usage: usage}) when is_map(usage) do
+    %{
+      input_tokens: Map.get(usage, :input_tokens) || Map.get(usage, :prompt_tokens),
+      output_tokens: Map.get(usage, :output_tokens) || Map.get(usage, :completion_tokens)
+    }
+  end
+
+  defp get_token_usage(_), do: %{input_tokens: nil, output_tokens: nil}
 
   defp parse_response(nil), do: {:error, "Empty response from API"}
 
@@ -308,23 +337,23 @@ defmodule Langseed.LLM do
   Generates a Yes/No question about the target word using only known vocabulary.
   Returns {:ok, %{question: ..., answer: true/false}} or {:error, reason}
   """
-  def generate_yes_no_question(concept, known_words) do
+  def generate_yes_no_question(user_id, concept, known_words) do
     known_chars = extract_known_chars(known_words)
     # Add characters from the target word to allowed set
     target_chars = concept.word |> String.graphemes() |> MapSet.new()
     allowed_chars = MapSet.union(known_chars, target_chars)
 
-    generate_yes_no_with_retry(concept, known_chars, allowed_chars, [], 3)
+    generate_yes_no_with_retry(user_id, concept, known_chars, allowed_chars, [], 3)
   end
 
-  defp generate_yes_no_with_retry(_concept, _known_chars, _allowed_chars, _previous_illegal, 0) do
+  defp generate_yes_no_with_retry(_user_id, _concept, _known_chars, _allowed_chars, _previous_illegal, 0) do
     {:error, "Failed to generate valid question after 3 attempts"}
   end
 
-  defp generate_yes_no_with_retry(concept, known_chars, allowed_chars, previous_illegal, attempts) do
+  defp generate_yes_no_with_retry(user_id, concept, known_chars, allowed_chars, previous_illegal, attempts) do
     prompt = build_yes_no_prompt(concept, known_chars, previous_illegal)
 
-    case call_gemini(prompt) do
+    case call_gemini(prompt, user_id, "yes_no_question") do
       {:ok, response} ->
         case parse_yes_no_response(response) do
           {:ok, result} ->
@@ -335,6 +364,7 @@ defmodule Langseed.LLM do
               {:ok, result}
             else
               generate_yes_no_with_retry(
+                user_id,
                 concept,
                 known_chars,
                 allowed_chars,
@@ -406,7 +436,7 @@ defmodule Langseed.LLM do
   Generates a fill-in-the-blank question with multiple choice options.
   Returns {:ok, %{sentence: ..., options: [...], correct_index: 0-3}} or {:error, reason}
   """
-  def generate_fill_blank_question(concept, known_words, distractor_words) do
+  def generate_fill_blank_question(user_id, concept, known_words, distractor_words) do
     known_chars = extract_known_chars(known_words)
     # Add characters from the target word and distractors to allowed set
     target_chars = concept.word |> String.graphemes() |> MapSet.new()
@@ -421,10 +451,11 @@ defmodule Langseed.LLM do
       |> MapSet.union(target_chars)
       |> MapSet.union(distractor_chars)
 
-    generate_fill_blank_with_retry(concept, known_chars, allowed_chars, distractor_words, [], 3)
+    generate_fill_blank_with_retry(user_id, concept, known_chars, allowed_chars, distractor_words, [], 3)
   end
 
   defp generate_fill_blank_with_retry(
+         _user_id,
          _concept,
          _known_chars,
          _allowed_chars,
@@ -436,6 +467,7 @@ defmodule Langseed.LLM do
   end
 
   defp generate_fill_blank_with_retry(
+         user_id,
          concept,
          known_chars,
          allowed_chars,
@@ -445,7 +477,7 @@ defmodule Langseed.LLM do
        ) do
     prompt = build_fill_blank_prompt(concept, known_chars, distractor_words, previous_illegal)
 
-    case call_gemini(prompt) do
+    case call_gemini(prompt, user_id, "fill_blank_question") do
       {:ok, response} ->
         case parse_fill_blank_response(response) do
           {:ok, result} ->
@@ -457,6 +489,7 @@ defmodule Langseed.LLM do
               {:ok, result}
             else
               generate_fill_blank_with_retry(
+                user_id,
                 concept,
                 known_chars,
                 allowed_chars,
@@ -557,7 +590,7 @@ defmodule Langseed.LLM do
   Evaluates a sentence written by the user using the target word.
   Returns {:ok, %{correct: true/false, feedback: "..."}} or {:error, reason}
   """
-  def evaluate_sentence(concept, user_sentence, known_words) do
+  def evaluate_sentence(user_id, concept, user_sentence, known_words) do
     known_chars = extract_known_chars(known_words)
     known_chars_list = known_chars |> MapSet.to_list() |> Enum.join("")
 
@@ -580,7 +613,7 @@ defmodule Langseed.LLM do
     Use ONLY known characters in your feedback, or use emojis.
     """
 
-    case call_gemini(prompt) do
+    case call_gemini(prompt, user_id, "evaluate_sentence") do
       {:ok, response} -> parse_evaluation_response(response)
       {:error, reason} -> {:error, reason}
     end
@@ -615,7 +648,7 @@ defmodule Langseed.LLM do
   Regenerates explanations for a word using only known vocabulary.
   Returns {:ok, [explanations]} or {:error, reason}
   """
-  def regenerate_explanation(concept, known_words) do
+  def regenerate_explanation(user_id, concept, known_words) do
     known_chars = extract_known_chars(known_words)
     known_chars_list = known_chars |> MapSet.to_list() |> Enum.join("")
     previous = Enum.join(concept.explanations || [], ", ")
@@ -641,7 +674,7 @@ defmodule Langseed.LLM do
     {"explanations": ["explanation1", "explanation2", "explanation3"]}
     """
 
-    case call_gemini(prompt) do
+    case call_gemini(prompt, user_id, "regenerate_explanation") do
       {:ok, response} ->
         cleaned =
           response

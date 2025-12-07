@@ -96,7 +96,7 @@ defmodule Langseed.Practice do
   def generate_question(nil, _concept), do: {:error, "Authentication required"}
 
   defp generate_yes_no(user, concept, known_words) do
-    case LLM.generate_yes_no_question(concept, known_words) do
+    case LLM.generate_yes_no_question(user.id, concept, known_words) do
       {:ok, data} ->
         attrs = %{
           concept_id: concept.id,
@@ -143,7 +143,7 @@ defmodule Langseed.Practice do
         distractors
       end
 
-    case LLM.generate_fill_blank_question(concept, known_words, distractors) do
+    case LLM.generate_fill_blank_question(user.id, concept, known_words, distractors) do
       {:ok, data} ->
         attrs = %{
           concept_id: concept.id,
@@ -217,7 +217,7 @@ defmodule Langseed.Practice do
   """
   def evaluate_sentence(%User{} = user, concept, user_sentence) do
     known_words = Vocabulary.known_words(user)
-    LLM.evaluate_sentence(concept, user_sentence, known_words)
+    LLM.evaluate_sentence(user.id, concept, user_sentence, known_words)
   end
 
   def evaluate_sentence(nil, _concept, _user_sentence), do: {:error, "Authentication required"}
@@ -228,7 +228,7 @@ defmodule Langseed.Practice do
   def regenerate_explanation(%User{} = user, concept) do
     known_words = Vocabulary.known_words(user)
 
-    case LLM.regenerate_explanation(concept, known_words) do
+    case LLM.regenerate_explanation(user.id, concept, known_words) do
       {:ok, new_explanations} ->
         Vocabulary.update_concept(concept, %{explanations: new_explanations})
 

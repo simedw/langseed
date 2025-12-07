@@ -285,6 +285,8 @@ defmodule LangseedWeb.TextAnalysisLive do
   defp add_words_with_llm(user, words, context) do
     # Get current known words to pass to LLM for explanation generation
     known_words = Vocabulary.known_words(user)
+    # Capture user_id for use in async tasks
+    user_id = if user, do: user.id, else: nil
     # Sanitize context once
     safe_context = ensure_valid_utf8(context)
 
@@ -298,7 +300,7 @@ defmodule LangseedWeb.TextAnalysisLive do
           # Extra safety: ensure sentence is valid UTF-8 before DB insert
           safe_sentence = ensure_valid_utf8(sentence)
 
-          case LLM.analyze_word(word, safe_sentence, known_words) do
+          case LLM.analyze_word(user_id, word, safe_sentence, known_words) do
             {:ok, analysis} ->
               attrs = %{
                 word: ensure_valid_utf8(word),
