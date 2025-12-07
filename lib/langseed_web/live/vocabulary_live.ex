@@ -117,7 +117,10 @@ defmodule LangseedWeb.VocabularyLive do
         <div class="card-body p-5">
           <div class="flex items-start justify-between">
             <div>
-              <span class="text-4xl font-bold">{@concept.word}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-4xl font-bold">{@concept.word}</span>
+                <.speak_button text={@concept.word} />
+              </div>
               <p class="text-xl text-primary mt-1">{@concept.pinyin}</p>
               <span class="badge badge-sm badge-ghost">{@concept.part_of_speech}</span>
             </div>
@@ -129,11 +132,11 @@ defmodule LangseedWeb.VocabularyLive do
             </button>
           </div>
 
-          <%= if @concept.explanation do %>
-            <div class="mt-4 p-3 bg-base-200 rounded-lg">
-              <p class="text-xl">
-                {@concept.explanation}
-              </p>
+          <%= if @concept.explanations && length(@concept.explanations) > 0 do %>
+            <div class="mt-4 p-3 bg-base-200 rounded-lg space-y-2">
+              <%= for explanation <- @concept.explanations do %>
+                <p class="text-lg">{explanation}</p>
+              <% end %>
               <%= if @concept.explanation_quality do %>
                 <div class="flex items-center gap-1 mt-2 text-sm opacity-60">
                   <span>解释质量:</span>
@@ -234,5 +237,20 @@ defmodule LangseedWeb.VocabularyLive do
         b = round(8 + (94 - 8) * ratio)
         "rgb(#{r}, #{g}, #{b})"
     end
+  end
+
+  defp speak_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      phx-hook="Speak"
+      id={"speak-#{:erlang.phash2(@text)}"}
+      data-text={@text}
+      class="btn btn-ghost btn-circle btn-sm"
+      title="播放发音"
+    >
+      <.icon name="hero-speaker-wave" class="size-5" />
+    </button>
+    """
   end
 end

@@ -25,11 +25,39 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/langseed"
 import topbar from "../vendor/topbar"
 
+// Text-to-speech hook for Chinese pronunciation
+const Hooks = {
+  Speak: {
+    mounted() {
+      this.el.addEventListener("click", () => {
+        const text = this.el.dataset.text
+        if (text && window.speechSynthesis) {
+          // Cancel any ongoing speech
+          window.speechSynthesis.cancel()
+          
+          const utterance = new SpeechSynthesisUtterance(text)
+          utterance.lang = "zh-CN"
+          utterance.rate = 0.8 // Slightly slower for learning
+          
+          // Try to find a Chinese voice
+          const voices = window.speechSynthesis.getVoices()
+          const chineseVoice = voices.find(v => v.lang.startsWith("zh"))
+          if (chineseVoice) {
+            utterance.voice = chineseVoice
+          }
+          
+          window.speechSynthesis.speak(utterance)
+        }
+      })
+    }
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, ...Hooks},
 })
 
 // Show progress bar on live navigation and form submits

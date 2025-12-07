@@ -9,7 +9,8 @@ defmodule Langseed.Vocabulary.Concept do
     field :pinyin, :string
     field :meaning, :string
     field :part_of_speech, :string
-    field :explanation, :string
+    # Multiple explanations using different approaches
+    field :explanations, {:array, :string}, default: []
     field :example_sentence, :string
     field :understanding, :integer, default: 0
     # AI's satisfaction with the explanation (1-5 scale)
@@ -28,7 +29,7 @@ defmodule Langseed.Vocabulary.Concept do
       :pinyin,
       :meaning,
       :part_of_speech,
-      :explanation,
+      :explanations,
       :example_sentence,
       :understanding,
       :explanation_quality,

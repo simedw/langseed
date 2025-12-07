@@ -80,6 +80,16 @@ defmodule Langseed.Vocabulary do
   end
 
   @doc """
+  Returns a map of word -> understanding level for all known words.
+  """
+  def known_words_with_understanding do
+    Concept
+    |> select([c], {c.word, c.understanding})
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  @doc """
   Returns true if a word exists in vocabulary.
   """
   def word_known?(word) do

@@ -60,6 +60,19 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Configure Oban for background jobs
+config :langseed, Oban,
+  repo: Langseed.Repo,
+  queues: [default: 10, questions: 5],
+  plugins: [
+    Oban.Plugins.Pruner,
+    {Oban.Plugins.Cron,
+     crontab: [
+       # Generate questions every 2 minutes
+       {"*/2 * * * *", Langseed.Workers.QuestionGenerator}
+     ]}
+  ]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
