@@ -40,6 +40,7 @@ defmodule Langseed.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:bcrypt_elixir, "~> 3.0"},
       {:phoenix, "~> 1.8.2"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},
@@ -68,7 +69,9 @@ defmodule Langseed.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:oban, "~> 2.18"}
+      {:oban, "~> 2.18"},
+      {:ueberauth, "~> 0.10"},
+      {:ueberauth_google, "~> 0.12"}
     ]
   end
 

@@ -36,6 +36,7 @@ defmodule Langseed.LLM do
               analysis.explanations
               |> Enum.reduce({[], []}, fn explanation, {valid, illegal_acc} ->
                 illegal = find_illegal_chars(explanation, known_chars)
+
                 if Enum.empty?(illegal) do
                   {[explanation | valid], illegal_acc}
                 else
@@ -57,11 +58,18 @@ defmodule Langseed.LLM do
 
               # No valid explanations but retries left - try again
               retries_left > 0 ->
-                analyze_with_retry(word, context_sentence, known_chars, retries_left - 1, all_illegal)
+                analyze_with_retry(
+                  word,
+                  context_sentence,
+                  known_chars,
+                  retries_left - 1,
+                  all_illegal
+                )
 
               # No valid explanations and no retries - fail
               true ->
-                {:error, "Failed after #{@max_retries} retries. Could not avoid characters: #{Enum.join(all_illegal, ", ")}"}
+                {:error,
+                 "Failed after #{@max_retries} retries. Could not avoid characters: #{Enum.join(all_illegal, ", ")}"}
             end
 
           {:error, reason} ->
@@ -91,6 +99,7 @@ defmodule Langseed.LLM do
   end
 
   defp ensure_valid_utf8(nil), do: nil
+
   defp ensure_valid_utf8(str) when is_binary(str) do
     if String.valid?(str) do
       str
@@ -325,7 +334,13 @@ defmodule Langseed.LLM do
             if Enum.empty?(illegal) do
               {:ok, result}
             else
-              generate_yes_no_with_retry(concept, known_chars, allowed_chars, illegal, attempts - 1)
+              generate_yes_no_with_retry(
+                concept,
+                known_chars,
+                allowed_chars,
+                illegal,
+                attempts - 1
+              )
             end
 
           {:error, reason} ->
@@ -409,11 +424,25 @@ defmodule Langseed.LLM do
     generate_fill_blank_with_retry(concept, known_chars, allowed_chars, distractor_words, [], 3)
   end
 
-  defp generate_fill_blank_with_retry(_concept, _known_chars, _allowed_chars, _distractors, _previous_illegal, 0) do
+  defp generate_fill_blank_with_retry(
+         _concept,
+         _known_chars,
+         _allowed_chars,
+         _distractors,
+         _previous_illegal,
+         0
+       ) do
     {:error, "Failed to generate valid fill-blank question after 3 attempts"}
   end
 
-  defp generate_fill_blank_with_retry(concept, known_chars, allowed_chars, distractor_words, previous_illegal, attempts) do
+  defp generate_fill_blank_with_retry(
+         concept,
+         known_chars,
+         allowed_chars,
+         distractor_words,
+         previous_illegal,
+         attempts
+       ) do
     prompt = build_fill_blank_prompt(concept, known_chars, distractor_words, previous_illegal)
 
     case call_gemini(prompt) do
@@ -427,7 +456,14 @@ defmodule Langseed.LLM do
             if Enum.empty?(illegal) do
               {:ok, result}
             else
-              generate_fill_blank_with_retry(concept, known_chars, allowed_chars, distractor_words, illegal, attempts - 1)
+              generate_fill_blank_with_retry(
+                concept,
+                known_chars,
+                allowed_chars,
+                distractor_words,
+                illegal,
+                attempts - 1
+              )
             end
 
           {:error, reason} ->

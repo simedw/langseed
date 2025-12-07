@@ -13,13 +13,23 @@ defmodule Langseed.Practice.Question do
     field :used, :boolean, default: false
 
     belongs_to :concept, Langseed.Vocabulary.Concept
+    belongs_to :user, Langseed.Accounts.User
 
     timestamps(type: :utc_datetime)
   end
 
   def changeset(question, attrs) do
     question
-    |> cast(attrs, [:concept_id, :question_type, :question_text, :correct_answer, :options, :explanation, :used])
+    |> cast(attrs, [
+      :concept_id,
+      :question_type,
+      :question_text,
+      :correct_answer,
+      :options,
+      :explanation,
+      :used,
+      :user_id
+    ])
     |> validate_required([:concept_id, :question_type, :question_text])
     |> validate_inclusion(:question_type, @question_types)
     |> foreign_key_constraint(:concept_id)

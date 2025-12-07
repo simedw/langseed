@@ -6,38 +6,51 @@ defmodule Langseed.Vocabulary do
   import Ecto.Query, warn: false
   alias Langseed.Repo
   alias Langseed.Vocabulary.Concept
+  alias Langseed.Accounts.User
 
   @doc """
-  Returns the list of concepts sorted by understanding (descending).
+  Returns the list of concepts for a user, sorted by understanding (descending).
   """
-  def list_concepts do
+  def list_concepts(%User{} = user) do
     Concept
+    |> where(user_id: ^user.id)
     |> order_by(desc: :understanding, asc: :word)
     |> Repo.all()
   end
 
-  @doc """
-  Gets a single concept.
-
-  Raises `Ecto.NoResultsError` if the Concept does not exist.
-  """
-  def get_concept!(id), do: Repo.get!(Concept, id)
+  # No user = no data
+  def list_concepts(nil), do: []
 
   @doc """
-  Gets a concept by word.
+  Gets a single concept for a user.
   """
-  def get_concept_by_word(word) do
-    Repo.get_by(Concept, word: word)
+  def get_concept!(%User{} = user, id) do
+    Concept
+    |> where(user_id: ^user.id, id: ^id)
+    |> Repo.one!()
   end
 
+  def get_concept!(nil, _id), do: raise("Authentication required")
+
   @doc """
-  Creates a concept.
+  Gets a concept by word for a user.
   """
-  def create_concept(attrs \\ %{}) do
+  def get_concept_by_word(%User{} = user, word) do
+    Repo.get_by(Concept, word: word, user_id: user.id)
+  end
+
+  def get_concept_by_word(nil, _word), do: nil
+
+  @doc """
+  Creates a concept for a user.
+  """
+  def create_concept(%User{} = user, attrs) do
     %Concept{}
-    |> Concept.changeset(attrs)
+    |> Concept.changeset(Map.put(attrs, :user_id, user.id))
     |> Repo.insert()
   end
+
+  def create_concept(nil, _attrs), do: {:error, "Authentication required"}
 
   @doc """
   Updates a concept.
@@ -70,38 +83,37 @@ defmodule Langseed.Vocabulary do
   end
 
   @doc """
-  Returns a MapSet of all known words for quick lookup.
+  Returns a MapSet of all known words for a user.
   """
-  def known_words do
+  def known_words(%User{} = user) do
     Concept
+    |> where(user_id: ^user.id)
     |> select([c], c.word)
     |> Repo.all()
     |> MapSet.new()
   end
 
+  def known_words(nil), do: MapSet.new()
+
   @doc """
-  Returns a map of word -> understanding level for all known words.
+  Returns a map of word -> understanding level for a user.
   """
-  def known_words_with_understanding do
+  def known_words_with_understanding(%User{} = user) do
     Concept
+    |> where(user_id: ^user.id)
     |> select([c], {c.word, c.understanding})
     |> Repo.all()
     |> Map.new()
   end
 
-  @doc """
-  Returns true if a word exists in vocabulary.
-  """
-  def word_known?(word) do
-    Repo.exists?(from c in Concept, where: c.word == ^word)
-  end
+  def known_words_with_understanding(nil), do: %{}
 
   @doc """
-  Creates multiple concepts at once.
+  Returns true if a word exists in vocabulary for a user.
   """
-  def create_concepts(concepts_attrs) when is_list(concepts_attrs) do
-    Enum.map(concepts_attrs, fn attrs ->
-      create_concept(attrs)
-    end)
+  def word_known?(%User{} = user, word) do
+    Repo.exists?(from c in Concept, where: c.word == ^word and c.user_id == ^user.id)
   end
+
+  def word_known?(nil, _word), do: false
 end

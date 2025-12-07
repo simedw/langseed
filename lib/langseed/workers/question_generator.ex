@@ -6,53 +6,46 @@ defmodule Langseed.Workers.QuestionGenerator do
 
   use Oban.Worker, queue: :questions, max_attempts: 3
 
-  import Ecto.Query
   alias Langseed.Repo
   alias Langseed.Practice
-  alias Langseed.Practice.Question
-  alias Langseed.Vocabulary.Concept
+  alias Langseed.Accounts.User
 
   @target_questions_per_word 4
 
   @impl Oban.Worker
+  def perform(%Oban.Job{args: %{"user_id" => user_id}}) when not is_nil(user_id) do
+    user = Repo.get!(User, user_id)
+    generate_missing_questions_for_user(user)
+    :ok
+  end
+
   def perform(%Oban.Job{}) do
-    generate_missing_questions()
+    # Generate for all users
+    generate_missing_questions_all_users()
     :ok
   end
 
   @doc """
-  Generates questions for all concepts that need them.
-  Called by the cron job every 5 minutes.
+  Generates questions for all users that have concepts needing questions.
+  Called by the cron job.
   """
-  def generate_missing_questions do
-    concepts_needing_questions()
-    |> Enum.each(&generate_questions_for_concept/1)
+  def generate_missing_questions_all_users do
+    User
+    |> Repo.all()
+    |> Enum.each(&generate_missing_questions_for_user/1)
   end
 
   @doc """
-  Returns concepts that have fewer than @target_questions_per_word unused questions.
-  Only considers concepts with understanding between 1-60%.
+  Generates questions for a specific user's concepts that need them.
   """
-  def concepts_needing_questions do
-    # Get count of unused questions per concept
-    subquery =
-      from q in Question,
-        where: q.used == false,
-        group_by: q.concept_id,
-        select: %{concept_id: q.concept_id, count: count(q.id)}
-
-    # Find concepts with understanding 1-60% that need more questions
-    from(c in Concept,
-      left_join: sq in subquery(subquery),
-      on: c.id == sq.concept_id,
-      where: c.understanding >= 1 and c.understanding <= 60,
-      where: is_nil(sq.count) or sq.count < ^@target_questions_per_word,
-      select: {c, coalesce(sq.count, 0)}
-    )
-    |> Repo.all()
+  def generate_missing_questions_for_user(%User{} = user) do
+    Practice.get_concepts_needing_questions(user, @target_questions_per_word)
+    |> Enum.each(fn {concept, current_count} ->
+      generate_questions_for_concept(user, concept, current_count)
+    end)
   end
 
-  defp generate_questions_for_concept({concept, current_count}) do
+  defp generate_questions_for_concept(user, concept, current_count) do
     needed = @target_questions_per_word - current_count
 
     if needed > 0 do
@@ -60,7 +53,7 @@ defmodule Langseed.Workers.QuestionGenerator do
         # Add some delay between API calls to avoid rate limiting
         Process.sleep(500)
 
-        case Practice.generate_question(concept) do
+        case Practice.generate_question(user, concept) do
           {:ok, _question} ->
             :ok
 
@@ -74,8 +67,16 @@ defmodule Langseed.Workers.QuestionGenerator do
   end
 
   @doc """
-  Enqueues a job to generate questions immediately.
-  Useful when new words are added.
+  Enqueues a job to generate questions for a specific user.
+  """
+  def enqueue(%User{} = user) do
+    %{user_id: user.id}
+    |> __MODULE__.new()
+    |> Oban.insert()
+  end
+
+  @doc """
+  Enqueues a job to generate questions for all users.
   """
   def enqueue do
     %{}

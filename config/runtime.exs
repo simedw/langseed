@@ -20,6 +20,13 @@ import Config
 # req_llm expects google_api_key or GOOGLE_API_KEY env var
 config :req_llm, google_api_key: System.get_env("GOOGLE_AI_API_KEY")
 
+# Configure Google OAuth credentials
+if System.get_env("GOOGLE_CLIENT_ID") do
+  config :ueberauth, Ueberauth.Strategy.Google.OAuth,
+    client_id: System.get_env("GOOGLE_CLIENT_ID"),
+    client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+end
+
 if System.get_env("PHX_SERVER") do
   config :langseed, LangseedWeb.Endpoint, server: true
 end

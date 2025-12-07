@@ -1,6 +1,8 @@
 defmodule LangseedWeb.Router do
   use LangseedWeb, :router
 
+  import LangseedWeb.UserAuth
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,6 +10,7 @@ defmodule LangseedWeb.Router do
     plug :put_root_layout, html: {LangseedWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_scope_for_user
   end
 
   pipeline :api do
@@ -17,7 +20,10 @@ defmodule LangseedWeb.Router do
   scope "/", LangseedWeb do
     pipe_through :browser
 
-    live_session :default, layout: {LangseedWeb.Layouts, :app} do
+    # All app routes require authentication
+    live_session :authenticated,
+      layout: {LangseedWeb.Layouts, :app},
+      on_mount: [{LangseedWeb.UserAuth, :require_authenticated_user}] do
       live "/", VocabularyLive
       live "/analyze", TextAnalysisLive
       live "/texts", TextsLive
@@ -45,5 +51,21 @@ defmodule LangseedWeb.Router do
       live_dashboard "/dashboard", metrics: LangseedWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
+  end
+
+  ## Authentication routes
+
+  # OAuth routes
+  scope "/auth", LangseedWeb do
+    pipe_through [:browser]
+
+    get "/:provider", AuthController, :request
+    get "/:provider/callback", AuthController, :callback
+  end
+
+  scope "/", LangseedWeb do
+    pipe_through [:browser]
+
+    delete "/users/log-out", UserSessionController, :delete
   end
 end

@@ -6,13 +6,15 @@ defmodule Langseed.Library.Text do
     field :title, :string
     field :content, :string
 
+    belongs_to :user, Langseed.Accounts.User
+
     timestamps(type: :utc_datetime)
   end
 
   @doc false
   def changeset(text, attrs) do
     text
-    |> cast(attrs, [:title, :content])
+    |> cast(attrs, [:title, :content, :user_id])
     |> validate_required([:content])
     |> maybe_generate_title()
   end

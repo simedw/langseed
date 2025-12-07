@@ -5,7 +5,8 @@ defmodule LangseedWeb.VocabularyLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    concepts = Vocabulary.list_concepts()
+    user = get_current_user(socket)
+    concepts = Vocabulary.list_concepts(user)
 
     {:ok,
      assign(socket,
@@ -19,7 +20,8 @@ defmodule LangseedWeb.VocabularyLive do
 
   @impl true
   def handle_event("expand", %{"id" => id}, socket) do
-    concept = Vocabulary.get_concept!(id)
+    user = get_current_user(socket)
+    concept = Vocabulary.get_concept!(user, id)
     {:noreply, assign(socket, expanded_id: id, expanded_concept: concept)}
   end
 
@@ -30,10 +32,11 @@ defmodule LangseedWeb.VocabularyLive do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    concept = Vocabulary.get_concept!(id)
+    user = get_current_user(socket)
+    concept = Vocabulary.get_concept!(user, id)
     {:ok, _} = Vocabulary.delete_concept(concept)
 
-    concepts = Vocabulary.list_concepts()
+    concepts = Vocabulary.list_concepts(user)
 
     {:noreply,
      socket
@@ -48,13 +51,21 @@ defmodule LangseedWeb.VocabularyLive do
 
   @impl true
   def handle_event("update_understanding", %{"id" => id, "value" => value}, socket) do
-    concept = Vocabulary.get_concept!(id)
+    user = get_current_user(socket)
+    concept = Vocabulary.get_concept!(user, id)
     level = String.to_integer(value)
     {:ok, updated_concept} = Vocabulary.update_understanding(concept, level)
 
-    concepts = Vocabulary.list_concepts()
+    concepts = Vocabulary.list_concepts(user)
 
     {:noreply, assign(socket, concepts: concepts, expanded_concept: updated_concept)}
+  end
+
+  defp get_current_user(socket) do
+    case socket.assigns[:current_scope] do
+      %{user: user} -> user
+      _ -> nil
+    end
   end
 
   @impl true

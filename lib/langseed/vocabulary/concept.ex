@@ -18,6 +18,8 @@ defmodule Langseed.Vocabulary.Concept do
     # Words the AI wishes it had to make a better explanation
     field :desired_words, {:array, :string}, default: []
 
+    belongs_to :user, Langseed.Accounts.User
+
     timestamps(type: :utc_datetime)
   end
 
@@ -33,7 +35,8 @@ defmodule Langseed.Vocabulary.Concept do
       :example_sentence,
       :understanding,
       :explanation_quality,
-      :desired_words
+      :desired_words,
+      :user_id
     ])
     |> validate_required([:word, :pinyin, :meaning, :part_of_speech])
     |> validate_inclusion(:part_of_speech, @parts_of_speech)

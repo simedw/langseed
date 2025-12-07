@@ -20,19 +20,38 @@ defmodule LangseedWeb.PracticeLive do
      |> load_next_concept()}
   end
 
+  defp get_current_user(socket) do
+    case socket.assigns[:current_scope] do
+      %{user: user} -> user
+      _ -> nil
+    end
+  end
+
   defp load_next_concept(socket) do
-    case Practice.get_next_concept() do
+    user = get_current_user(socket)
+
+    case Practice.get_next_concept(user) do
       nil ->
         assign(socket, mode: :no_words, current_concept: nil)
 
       concept ->
         mode = if concept.understanding == 0, do: :definition, else: :loading_quiz
-        socket = assign(socket, current_concept: concept, mode: mode, question: nil, feedback: nil, user_answer: nil)
+
+        socket =
+          assign(socket,
+            current_concept: concept,
+            mode: mode,
+            question: nil,
+            feedback: nil,
+            user_answer: nil
+          )
 
         if mode == :loading_quiz do
           socket
           |> assign(loading: true)
-          |> start_async(:generate_question, fn -> Practice.get_or_generate_question(concept) end)
+          |> start_async(:generate_question, fn ->
+            Practice.get_or_generate_question(user, concept)
+          end)
         else
           socket
         end
@@ -111,12 +130,15 @@ defmodule LangseedWeb.PracticeLive do
 
   @impl true
   def handle_event("new_explanation", _, socket) do
+    user = get_current_user(socket)
     concept = socket.assigns.current_concept
 
     {:noreply,
      socket
      |> assign(loading: true)
-     |> start_async(:regenerate_explanation, fn -> Practice.regenerate_explanation(concept) end)}
+     |> start_async(:regenerate_explanation, fn ->
+       Practice.regenerate_explanation(user, concept)
+     end)}
   end
 
   @impl true
@@ -171,6 +193,7 @@ defmodule LangseedWeb.PracticeLive do
 
   @impl true
   def handle_event("submit_sentence", _, socket) do
+    user = get_current_user(socket)
     sentence = socket.assigns.sentence_input
     concept = socket.assigns.current_concept
 
@@ -180,7 +203,9 @@ defmodule LangseedWeb.PracticeLive do
       {:noreply,
        socket
        |> assign(loading: true)
-       |> start_async(:evaluate_sentence, fn -> Practice.evaluate_sentence(concept, sentence) end)}
+       |> start_async(:evaluate_sentence, fn ->
+         Practice.evaluate_sentence(user, concept, sentence)
+       end)}
     end
   end
 
@@ -207,16 +232,12 @@ defmodule LangseedWeb.PracticeLive do
         <%= case @mode do %>
           <% :no_words -> %>
             <.no_words_card />
-
           <% :loading -> %>
             <.loading_card />
-
           <% :loading_quiz -> %>
             <.loading_card message="生成问题中..." />
-
           <% :definition -> %>
             <.definition_card concept={@current_concept} loading={@loading} />
-
           <% :quiz -> %>
             <.quiz_card
               concept={@current_concept}
@@ -224,7 +245,6 @@ defmodule LangseedWeb.PracticeLive do
               feedback={@feedback}
               user_answer={@user_answer}
             />
-
           <% :sentence_writing -> %>
             <.sentence_card
               concept={@current_concept}
@@ -338,7 +358,11 @@ defmodule LangseedWeb.PracticeLive do
           <% "yes_no" -> %>
             <.yes_no_question question={@question} feedback={@feedback} user_answer={@user_answer} />
           <% "fill_blank" -> %>
-            <.fill_blank_question question={@question} feedback={@feedback} user_answer={@user_answer} />
+            <.fill_blank_question
+              question={@question}
+              feedback={@feedback}
+              user_answer={@user_answer}
+            />
         <% end %>
 
         <%= if @feedback do %>
@@ -369,9 +393,9 @@ defmodule LangseedWeb.PracticeLive do
 
       <%= if @feedback do %>
         <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-error"} mb-4"}>
-          <span class="text-2xl"><%= if @feedback.correct, do: "✅", else: "❌" %></span>
+          <span class="text-2xl">{if @feedback.correct, do: "✅", else: "❌"}</span>
           <div>
-            <p class="font-bold"><%= if @feedback.correct, do: "正确！", else: "错误" %></p>
+            <p class="font-bold">{if @feedback.correct, do: "正确！", else: "错误"}</p>
             <%= if @feedback.explanation && @feedback.explanation != "" do %>
               <p class="text-sm">{@feedback.explanation}</p>
             <% end %>
@@ -413,11 +437,20 @@ defmodule LangseedWeb.PracticeLive do
             class={[
               "btn btn-lg",
               cond do
-                @feedback && @feedback.correct && @user_answer == index -> "btn-success"
-                @feedback && !@feedback.correct && @user_answer == index -> "btn-error"
-                @feedback && @question.correct_answer == Integer.to_string(index) -> "btn-success btn-outline"
-                @feedback -> "btn-ghost"
-                true -> "btn-outline"
+                @feedback && @feedback.correct && @user_answer == index ->
+                  "btn-success"
+
+                @feedback && !@feedback.correct && @user_answer == index ->
+                  "btn-error"
+
+                @feedback && @question.correct_answer == Integer.to_string(index) ->
+                  "btn-success btn-outline"
+
+                @feedback ->
+                  "btn-ghost"
+
+                true ->
+                  "btn-outline"
               end
             ]}
             phx-click="answer_fill_blank"
@@ -431,9 +464,9 @@ defmodule LangseedWeb.PracticeLive do
 
       <%= if @feedback do %>
         <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-error"} mt-4"}>
-          <span class="text-2xl"><%= if @feedback.correct, do: "✅", else: "❌" %></span>
+          <span class="text-2xl">{if @feedback.correct, do: "✅", else: "❌"}</span>
           <p class="font-bold">
-            <%= if @feedback.correct, do: "正确！", else: "正确答案: #{@feedback.correct_answer}" %>
+            {if @feedback.correct, do: "正确！", else: "正确答案: #{@feedback.correct_answer}"}
           </p>
         </div>
       <% end %>
@@ -462,7 +495,7 @@ defmodule LangseedWeb.PracticeLive do
         <%= if @feedback do %>
           <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-warning"} mb-4"}>
             <div>
-              <p class="font-bold"><%= if @feedback.correct, do: "很好！👍", else: "需要改进" %></p>
+              <p class="font-bold">{if @feedback.correct, do: "很好！👍", else: "需要改进"}</p>
               <p>{@feedback.feedback}</p>
               <%= if @feedback.improved do %>
                 <p class="text-sm mt-2 opacity-70">建议: {@feedback.improved}</p>

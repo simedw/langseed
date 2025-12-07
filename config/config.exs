@@ -7,6 +7,19 @@
 # General application configuration
 import Config
 
+config :langseed, :scopes,
+  user: [
+    default: true,
+    module: Langseed.Accounts.Scope,
+    assign_key: :current_scope,
+    access_path: [:user, :id],
+    schema_key: :user_id,
+    schema_type: :id,
+    schema_table: :users,
+    test_data_fixture: Langseed.AccountsFixtures,
+    test_setup_helper: :register_and_log_in_user
+  ]
+
 config :langseed,
   ecto_repos: [Langseed.Repo],
   generators: [timestamp_type: :utc_datetime]
@@ -71,6 +84,12 @@ config :langseed, Oban,
        # Generate questions every 2 minutes
        {"*/2 * * * *", Langseed.Workers.QuestionGenerator}
      ]}
+  ]
+
+# Configure Ueberauth for OAuth
+config :ueberauth, Ueberauth,
+  providers: [
+    google: {Ueberauth.Strategy.Google, [default_scope: "email profile"]}
   ]
 
 # Import environment specific config. This must remain at the bottom

@@ -7,6 +7,8 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    user = get_current_user(socket)
+
     {:ok,
      assign(socket,
        page_title: "Analyze",
@@ -14,21 +16,23 @@ defmodule LangseedWeb.TextAnalysisLive do
        segments: [],
        selected_words: MapSet.new(),
        # Map of word -> understanding level
-       known_words: Vocabulary.known_words_with_understanding(),
+       known_words: Vocabulary.known_words_with_understanding(user),
        analyzing: false,
        adding: false,
        expanded_concept: nil,
        current_text_id: nil,
-       recent_texts: Library.list_recent_texts(5),
+       recent_texts: Library.list_recent_texts(user, 5),
        show_load_menu: false
      )}
   end
 
   @impl true
   def handle_params(params, _uri, socket) do
+    user = get_current_user(socket)
+
     case params do
       %{"text_id" => text_id} ->
-        case Library.get_text(text_id) do
+        case Library.get_text(user, text_id) do
           nil ->
             {:noreply, put_flash(socket, :error, "文本不存在")}
 
@@ -41,7 +45,7 @@ defmodule LangseedWeb.TextAnalysisLive do
                input_text: text.content,
                segments: segments,
                current_text_id: text.id,
-               known_words: Vocabulary.known_words_with_understanding(),
+               known_words: Vocabulary.known_words_with_understanding(user),
                selected_words: MapSet.new()
              )}
         end
@@ -53,6 +57,7 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   @impl true
   def handle_event("update_text", params, socket) do
+    user = get_current_user(socket)
     # phx-change on standalone element sends name => value
     text = params["text"] || ""
 
@@ -61,7 +66,7 @@ defmodule LangseedWeb.TextAnalysisLive do
       {:noreply, assign(socket, input_text: text, segments: [], selected_words: MapSet.new())}
     else
       segments = segment_text(text)
-      known_words = Vocabulary.known_words_with_understanding()
+      known_words = Vocabulary.known_words_with_understanding(user)
 
       {:noreply,
        assign(socket,
@@ -70,6 +75,13 @@ defmodule LangseedWeb.TextAnalysisLive do
          known_words: known_words,
          selected_words: MapSet.new()
        )}
+    end
+  end
+
+  defp get_current_user(socket) do
+    case socket.assigns[:current_scope] do
+      %{user: user} -> user
+      _ -> nil
     end
   end
 
@@ -104,7 +116,9 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   @impl true
   def handle_event("show_concept", %{"word" => word}, socket) do
-    case Vocabulary.get_concept_by_word(word) do
+    user = get_current_user(socket)
+
+    case Vocabulary.get_concept_by_word(user, word) do
       nil -> {:noreply, socket}
       concept -> {:noreply, assign(socket, expanded_concept: concept)}
     end
@@ -117,6 +131,7 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   @impl true
   def handle_event("save_text", _, socket) do
+    user = get_current_user(socket)
     text = socket.assigns.input_text
 
     if String.trim(text) == "" do
@@ -125,13 +140,13 @@ defmodule LangseedWeb.TextAnalysisLive do
       case socket.assigns.current_text_id do
         nil ->
           # Create new text
-          case Library.create_text(%{content: text}) do
+          case Library.create_text(user, %{content: text}) do
             {:ok, saved_text} ->
               {:noreply,
                socket
                |> assign(
                  current_text_id: saved_text.id,
-                 recent_texts: Library.list_recent_texts(5)
+                 recent_texts: Library.list_recent_texts(user, 5)
                )
                |> put_flash(:info, "已保存: #{saved_text.title}")}
 
@@ -141,13 +156,13 @@ defmodule LangseedWeb.TextAnalysisLive do
 
         text_id ->
           # Update existing text
-          text_record = Library.get_text!(text_id)
+          text_record = Library.get_text!(user, text_id)
 
           case Library.update_text(text_record, %{content: text}) do
             {:ok, _} ->
               {:noreply,
                socket
-               |> assign(recent_texts: Library.list_recent_texts(5))
+               |> assign(recent_texts: Library.list_recent_texts(user, 5))
                |> put_flash(:info, "已更新")}
 
             {:error, _} ->
@@ -181,6 +196,7 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   @impl true
   def handle_event("add_selected", _, socket) do
+    user = get_current_user(socket)
     selected = socket.assigns.selected_words |> MapSet.to_list()
     context = socket.assigns.input_text
 
@@ -190,13 +206,14 @@ defmodule LangseedWeb.TextAnalysisLive do
       {:noreply,
        socket
        |> assign(adding: true)
-       |> start_async(:add_words, fn -> add_words_with_llm(selected, context) end)}
+       |> start_async(:add_words, fn -> add_words_with_llm(user, selected, context) end)}
     end
   end
 
   @impl true
   def handle_async(:add_words, {:ok, {added, failed}}, socket) do
-    known_words = Vocabulary.known_words_with_understanding()
+    user = get_current_user(socket)
+    known_words = Vocabulary.known_words_with_understanding(user)
 
     # Trigger background question generation for new words
     if length(added) > 0 do
@@ -265,9 +282,9 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   defp get_word({_, word}), do: word
 
-  defp add_words_with_llm(words, context) do
+  defp add_words_with_llm(user, words, context) do
     # Get current known words to pass to LLM for explanation generation
-    known_words = Vocabulary.known_words()
+    known_words = Vocabulary.known_words(user)
     # Sanitize context once
     safe_context = ensure_valid_utf8(context)
 
@@ -295,7 +312,7 @@ defmodule LangseedWeb.TextAnalysisLive do
                 understanding: 0
               }
 
-              case Vocabulary.create_concept(attrs) do
+              case Vocabulary.create_concept(user, attrs) do
                 {:ok, _concept} -> {:ok, word}
                 {:error, _} -> {:error, word}
               end
@@ -314,7 +331,7 @@ defmodule LangseedWeb.TextAnalysisLive do
                 understanding: 0
               }
 
-              case Vocabulary.create_concept(attrs) do
+              case Vocabulary.create_concept(user, attrs) do
                 {:ok, _concept} -> {:ok, word}
                 {:error, _} -> {:error, word}
               end
@@ -455,10 +472,16 @@ defmodule LangseedWeb.TextAnalysisLive do
             <div class="flex items-center justify-between mb-3">
               <div class="flex gap-3 text-sm">
                 <span class="flex items-center gap-1">
-                  <span class="inline-block w-3 h-3 rounded" style="background: linear-gradient(to right, #ef4444, #eab308, #22c55e)"></span> 知道: {known_count}
+                  <span
+                    class="inline-block w-3 h-3 rounded"
+                    style="background: linear-gradient(to right, #ef4444, #eab308, #22c55e)"
+                  >
+                  </span>
+                  知道: {known_count}
                 </span>
                 <span class="flex items-center gap-1">
-                  <span class="inline-block w-3 h-3 rounded bg-base-content"></span> 不知道: {unknown_count}
+                  <span class="inline-block w-3 h-3 rounded bg-base-content"></span>
+                  不知道: {unknown_count}
                 </span>
               </div>
               <%= if unknown_count > 0 do %>
@@ -472,11 +495,13 @@ defmodule LangseedWeb.TextAnalysisLive do
             </div>
 
             <div class="text-3xl leading-relaxed">
-              <%= for segment <- @segments do %><.segment_inline
+              <%= for segment <- @segments do %>
+                <.segment_inline
                   segment={segment}
                   known_words={@known_words}
                   selected_words={@selected_words}
-                /><% end %>
+                />
+              <% end %>
             </div>
           </div>
 
@@ -610,7 +635,9 @@ defmodule LangseedWeb.TextAnalysisLive do
     understanding = Map.get(assigns.known_words, word)
     known = understanding != nil
     selected = MapSet.member?(assigns.selected_words, word)
-    assigns = assign(assigns, word: word, known: known, selected: selected, understanding: understanding)
+
+    assigns =
+      assign(assigns, word: word, known: known, selected: selected, understanding: understanding)
 
     ~H"""
     <%= if @known do %>
