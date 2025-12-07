@@ -318,10 +318,10 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   # Extract the sentence containing the word from the full text
   defp extract_sentence(text, word) do
-    # Split by common Chinese sentence endings
+    # Split by common Chinese sentence endings (Elixir strings are UTF-8 by default)
     sentences =
       text
-      |> String.split(~r/[。！？\n]+/u, trim: true)
+      |> String.split(~r/[。！？\n]+/, trim: true)
       |> Enum.map(&String.trim/1)
       |> Enum.reject(&(&1 == ""))
 
