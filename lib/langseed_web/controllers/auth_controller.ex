@@ -3,6 +3,7 @@ defmodule LangseedWeb.AuthController do
   plug Ueberauth
 
   alias Langseed.Accounts
+  alias Langseed.Vocabulary.Seeds
   alias LangseedWeb.UserAuth
 
   def callback(%{assigns: %{ueberauth_failure: _fails}} = conn, _params) do
@@ -20,8 +21,11 @@ defmodule LangseedWeb.AuthController do
         # Create new user
         case Accounts.register_user_oauth(%{email: email, name: name}) do
           {:ok, user} ->
+            # Add seed vocabulary for new user
+            {:ok, word_count} = Seeds.create_for_user(user)
+
             conn
-            |> put_flash(:info, "Welcome, #{name}!")
+            |> put_flash(:info, "欢迎 #{name}! 你有 #{word_count} 个基础词汇开始学习。")
             |> UserAuth.log_in_user(user)
 
           {:error, _reason} ->
@@ -33,7 +37,7 @@ defmodule LangseedWeb.AuthController do
       user ->
         # Existing user
         conn
-        |> put_flash(:info, "Welcome back, #{user.email}!")
+        |> put_flash(:info, "欢迎回来, #{name || user.email}!")
         |> UserAuth.log_in_user(user)
     end
   end
