@@ -69,6 +69,50 @@ defmodule LangseedWeb.SharedComponents do
   end
 
   @doc """
+  Renders a section displaying desired words that can be added to vocabulary.
+  Each word is clickable and will trigger an "add_desired_word" event.
+  """
+  attr :words, :list, required: true
+  attr :context, :string, default: nil
+  attr :importing_words, :list, default: []
+
+  def desired_words_section(assigns) do
+    ~H"""
+    <div class="mt-3 p-3 bg-info/10 rounded-lg">
+      <p class="text-xs opacity-60 mb-2">💡 学这些词可以改进解释:</p>
+      <div class="flex flex-wrap gap-1">
+        <%= for word <- @words do %>
+          <% is_importing = word in @importing_words %>
+          <button
+            type="button"
+            class={[
+              "badge badge-sm transition-colors",
+              if(is_importing,
+                do: "badge-info animate-pulse cursor-wait",
+                else:
+                  "badge-info badge-outline hover:badge-info hover:text-info-content cursor-pointer"
+              )
+            ]}
+            phx-click={unless is_importing, do: "add_desired_word"}
+            phx-value-word={word}
+            phx-value-context={@context || ""}
+            disabled={is_importing}
+            title={if is_importing, do: "添加中...", else: "点击添加到词汇"}
+          >
+            <%= if is_importing do %>
+              <span class="loading loading-spinner loading-xs mr-1"></span>
+            <% else %>
+              <span class="mr-1">+</span>
+            <% end %>
+            {word}
+          </button>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Renders a concept card modal.
 
   ## Options
@@ -82,6 +126,7 @@ defmodule LangseedWeb.SharedComponents do
   attr :show_example_sentence, :boolean, default: false
   attr :show_understanding_slider, :boolean, default: false
   attr :show_delete_button, :boolean, default: false
+  attr :importing_words, :list, default: []
 
   def concept_card(assigns) do
     ~H"""
@@ -123,14 +168,11 @@ defmodule LangseedWeb.SharedComponents do
           <% end %>
 
           <%= if @show_desired_words && @concept.desired_words && length(@concept.desired_words) > 0 do %>
-            <div class="mt-3 p-3 bg-info/10 rounded-lg">
-              <p class="text-xs opacity-60 mb-2">💡 学这些词可以改进解释:</p>
-              <div class="flex flex-wrap gap-1">
-                <%= for word <- @concept.desired_words do %>
-                  <span class="badge badge-sm badge-info badge-outline">{word}</span>
-                <% end %>
-              </div>
-            </div>
+            <.desired_words_section
+              words={@concept.desired_words}
+              context={@concept.example_sentence}
+              importing_words={@importing_words}
+            />
           <% end %>
 
           <%= if @show_example_sentence && @concept.example_sentence do %>

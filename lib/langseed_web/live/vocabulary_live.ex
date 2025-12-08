@@ -2,6 +2,7 @@ defmodule LangseedWeb.VocabularyLive do
   use LangseedWeb, :live_view
 
   alias Langseed.Vocabulary
+  alias Langseed.Services.WordImporter
 
   @impl true
   def mount(_params, _session, socket) do
@@ -14,7 +15,8 @@ defmodule LangseedWeb.VocabularyLive do
        concepts: concepts,
        concept_count: length(concepts),
        expanded_id: nil,
-       expanded_concept: nil
+       expanded_concept: nil,
+       importing_words: []
      )}
   end
 
@@ -62,6 +64,64 @@ defmodule LangseedWeb.VocabularyLive do
   end
 
   @impl true
+  def handle_event("add_desired_word", %{"word" => word, "context" => context}, socket) do
+    user = current_user(socket)
+
+    # Check if word already exists
+    if Vocabulary.word_known?(user, word) do
+      {:noreply, put_flash(socket, :info, "#{word} 已经在你的词汇表里了")}
+    else
+      # Import the word asynchronously
+      {:noreply,
+       socket
+       |> assign(importing_words: [word | socket.assigns.importing_words])
+       |> start_async({:import_word, word}, fn ->
+         WordImporter.import_words(user, [word], context)
+       end)}
+    end
+  end
+
+  @impl true
+  def handle_async({:import_word, word}, {:ok, {[_], []}}, socket) do
+    user = current_user(socket)
+    concepts = Vocabulary.list_concepts(user)
+
+    # Refresh the expanded concept if it's still open (to update desired_words display)
+    expanded_concept =
+      if socket.assigns.expanded_id do
+        Vocabulary.get_concept!(user, socket.assigns.expanded_id)
+      else
+        nil
+      end
+
+    {:noreply,
+     socket
+     |> put_flash(:success, "添加了 #{word} ✓")
+     |> assign(
+       concepts: concepts,
+       concept_count: length(concepts),
+       expanded_concept: expanded_concept,
+       importing_words: List.delete(socket.assigns.importing_words, word)
+     )}
+  end
+
+  @impl true
+  def handle_async({:import_word, word}, {:ok, {[], [_]}}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:error, "添加 #{word} 失败")
+     |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
+  end
+
+  @impl true
+  def handle_async({:import_word, word}, {:exit, _reason}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:error, "添加 #{word} 失败")
+     |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="min-h-screen pb-20">
@@ -99,6 +159,7 @@ defmodule LangseedWeb.VocabularyLive do
         show_example_sentence={true}
         show_understanding_slider={true}
         show_delete_button={true}
+        importing_words={@importing_words}
       />
     <% end %>
     """

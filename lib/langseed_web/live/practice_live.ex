@@ -4,6 +4,8 @@ defmodule LangseedWeb.PracticeLive do
   import LangseedWeb.PracticeComponents
 
   alias Langseed.Practice
+  alias Langseed.Vocabulary
+  alias Langseed.Services.WordImporter
 
   @impl true
   def mount(_params, _session, socket) do
@@ -17,7 +19,8 @@ defmodule LangseedWeb.PracticeLive do
        user_answer: nil,
        feedback: nil,
        sentence_input: "",
-       loading: false
+       loading: false,
+       importing_words: []
      )
      |> load_next_concept()}
   end
@@ -112,6 +115,30 @@ defmodule LangseedWeb.PracticeLive do
   @impl true
   def handle_async(:evaluate_sentence, {:exit, _}, socket) do
     {:noreply, assign(socket, loading: false) |> put_flash(:error, "评估失败")}
+  end
+
+  @impl true
+  def handle_async({:import_word, word}, {:ok, {[_], []}}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:success, "添加了 #{word} ✓")
+     |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
+  end
+
+  @impl true
+  def handle_async({:import_word, word}, {:ok, {[], [_]}}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:error, "添加 #{word} 失败")
+     |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
+  end
+
+  @impl true
+  def handle_async({:import_word, word}, {:exit, _reason}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:error, "添加 #{word} 失败")
+     |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
   end
 
   # Definition mode handlers
@@ -217,6 +244,24 @@ defmodule LangseedWeb.PracticeLive do
     {:noreply, assign(socket, mode: :sentence_writing)}
   end
 
+  # Desired word handlers
+  @impl true
+  def handle_event("add_desired_word", %{"word" => word, "context" => context}, socket) do
+    user = current_user(socket)
+
+    # Check if word already exists
+    if Vocabulary.word_known?(user, word) do
+      {:noreply, put_flash(socket, :info, "#{word} 已经在你的词汇表里了")}
+    else
+      {:noreply,
+       socket
+       |> assign(importing_words: [word | socket.assigns.importing_words])
+       |> start_async({:import_word, word}, fn ->
+         WordImporter.import_words(user, [word], context)
+       end)}
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -232,7 +277,11 @@ defmodule LangseedWeb.PracticeLive do
           <% :loading_quiz -> %>
             <.loading_card message="生成问题中..." />
           <% :definition -> %>
-            <.definition_card concept={@current_concept} loading={@loading} />
+            <.definition_card
+              concept={@current_concept}
+              loading={@loading}
+              importing_words={@importing_words}
+            />
           <% :quiz -> %>
             <.quiz_card
               concept={@current_concept}

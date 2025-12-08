@@ -6,7 +6,7 @@ defmodule LangseedWeb.PracticeComponents do
   use Phoenix.Component
 
   import LangseedWeb.CoreComponents, only: [icon: 1]
-  import LangseedWeb.SharedComponents, only: [speak_button: 1]
+  import LangseedWeb.SharedComponents, only: [speak_button: 1, desired_words_section: 1]
 
   @doc """
   Renders a card shown when there are no words to practice.
@@ -47,6 +47,7 @@ defmodule LangseedWeb.PracticeComponents do
   """
   attr :concept, :map, required: true
   attr :loading, :boolean, default: false
+  attr :importing_words, :list, default: []
 
   def definition_card(assigns) do
     ~H"""
@@ -71,6 +72,14 @@ defmodule LangseedWeb.PracticeComponents do
             <% end %>
           </div>
         </div>
+
+        <%= if @concept.desired_words && length(@concept.desired_words) > 0 do %>
+          <.desired_words_section
+            words={@concept.desired_words}
+            context={@concept.example_sentence}
+            importing_words={@importing_words}
+          />
+        <% end %>
 
         <details class="mb-4">
           <summary class="text-xs opacity-40 cursor-pointer hover:opacity-60">
