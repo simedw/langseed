@@ -7,6 +7,8 @@ defmodule LangseedWeb.SharedComponents do
 
   import LangseedWeb.CoreComponents, only: [icon: 1]
 
+  alias Langseed.HSK
+
   @doc """
   Renders a speak button that triggers text-to-speech.
   """
@@ -130,6 +132,8 @@ defmodule LangseedWeb.SharedComponents do
   attr :importing_words, :list, default: []
 
   def concept_card(assigns) do
+    assigns = assign(assigns, :hsk_level, HSK.lookup(assigns.concept.word))
+
     ~H"""
     <div class="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto">
       <div
@@ -144,7 +148,12 @@ defmodule LangseedWeb.SharedComponents do
                 <.speak_button text={@concept.word} />
               </div>
               <p class="text-xl text-primary mt-1">{@concept.pinyin}</p>
-              <span class="badge badge-sm badge-ghost">{@concept.part_of_speech}</span>
+              <div class="flex gap-1">
+                <span class="badge badge-sm badge-ghost">{@concept.part_of_speech}</span>
+                <%= if @hsk_level do %>
+                  <span class="badge badge-sm badge-outline">HSK {@hsk_level}</span>
+                <% end %>
+              </div>
             </div>
             <button
               class="btn btn-ghost btn-sm btn-circle"

@@ -26,6 +26,9 @@ defmodule Langseed.Language do
   @doc "Finds characters in text that are not in the known_chars set"
   @callback find_unknown_chars(text :: String.t(), known_chars :: MapSet.t()) :: [String.t()]
 
+  @doc "Finds words in text that are not in the known_words set"
+  @callback find_unknown_words(text :: String.t(), known_words :: MapSet.t()) :: [String.t()]
+
   # Default implementation dispatches to Chinese
   # This can be made configurable per-user in the future
 
@@ -47,5 +50,10 @@ defmodule Langseed.Language do
   @spec find_unknown_chars(String.t(), MapSet.t()) :: [String.t()]
   def find_unknown_chars(text, known_chars) do
     Langseed.Language.Chinese.find_unknown_chars(text, known_chars)
+  end
+
+  @spec find_unknown_words(String.t(), MapSet.t()) :: [String.t()]
+  def find_unknown_words(text, known_words) do
+    Langseed.Language.Chinese.find_unknown_words(text, known_words)
   end
 end

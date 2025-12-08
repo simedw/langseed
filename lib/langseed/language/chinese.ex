@@ -73,4 +73,30 @@ defmodule Langseed.Language.Chinese do
       unknown_chinese
     end
   end
+
+  @impl true
+  @spec find_unknown_words(String.t(), MapSet.t()) :: [String.t()]
+  def find_unknown_words(text, known_words) do
+    # Segment text into words
+    segments = segment(text)
+
+    # Find unknown words (multi-character words not in vocabulary)
+    unknown_words =
+      segments
+      |> Enum.filter(fn
+        {:word, word} -> String.length(word) > 1 and not MapSet.member?(known_words, word)
+        _ -> false
+      end)
+      |> Enum.map(fn {:word, word} -> word end)
+      |> Enum.uniq()
+
+    # Find English letters (cheating!)
+    has_english = Regex.match?(~r/[a-zA-Z]/, text)
+
+    if has_english do
+      unknown_words ++ ["[英文]"]
+    else
+      unknown_words
+    end
+  end
 end

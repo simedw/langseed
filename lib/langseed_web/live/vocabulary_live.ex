@@ -3,6 +3,7 @@ defmodule LangseedWeb.VocabularyLive do
 
   alias Langseed.Vocabulary
   alias Langseed.Services.WordImporter
+  alias Langseed.HSK
 
   @impl true
   def mount(_params, _session, socket) do
@@ -182,6 +183,8 @@ defmodule LangseedWeb.VocabularyLive do
   end
 
   defp concept_chip(assigns) do
+    assigns = assign(assigns, :hsk_level, HSK.lookup(assigns.concept.word))
+
     ~H"""
     <button
       class={[
@@ -193,6 +196,11 @@ defmodule LangseedWeb.VocabularyLive do
       phx-value-id={@concept.id}
     >
       {@concept.word}
+      <%= if @hsk_level do %>
+        <span class="absolute -top-1 -left-1 text-[10px] bg-base-300 px-1 rounded opacity-70">
+          {@hsk_level}
+        </span>
+      <% end %>
       <%= if @concept.paused do %>
         <span class="absolute -top-1 -right-1 text-xs">⏸️</span>
       <% end %>

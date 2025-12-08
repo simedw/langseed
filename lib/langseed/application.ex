@@ -12,6 +12,8 @@ defmodule Langseed.Application do
       Langseed.Repo,
       {DNSCluster, query: Application.get_env(:langseed, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Langseed.PubSub},
+      # HSK level lookup service
+      Langseed.HSK,
       # Oban for background jobs
       {Oban, Application.fetch_env!(:langseed, Oban)},
       # Start to serve requests, typically the last entry

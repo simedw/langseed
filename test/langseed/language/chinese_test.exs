@@ -92,6 +92,51 @@ defmodule Langseed.Language.ChineseTest do
     end
   end
 
+  describe "find_unknown_words/2" do
+    test "finds multi-character words not in known set" do
+      # User knows 你好 and 世界 as words
+      known_words = MapSet.new(["你好", "世界"])
+      # Text uses 学生 which they don't know
+      text = "你好，学生"
+
+      unknown = Chinese.find_unknown_words(text, known_words)
+      assert "学生" in unknown
+    end
+
+    test "returns empty list when all words are known" do
+      known_words = MapSet.new(["你好", "世界"])
+      text = "你好世界"
+
+      assert Chinese.find_unknown_words(text, known_words) == []
+    end
+
+    test "ignores single-character words" do
+      # Single characters are always allowed (they're the building blocks)
+      known_words = MapSet.new(["你好"])
+      text = "你好我"
+
+      # "我" is a single character, should not be flagged
+      assert Chinese.find_unknown_words(text, known_words) == []
+    end
+
+    test "detects English letters and adds marker" do
+      known_words = MapSet.new(["你好"])
+      text = "你好 hello"
+
+      unknown = Chinese.find_unknown_words(text, known_words)
+      assert "[英文]" in unknown
+    end
+
+    test "catches combined characters forming unknown words" do
+      # User knows 学 and 生 separately but NOT 学生
+      known_words = MapSet.new(["学", "生", "你好"])
+      text = "你好学生"
+
+      unknown = Chinese.find_unknown_words(text, known_words)
+      assert "学生" in unknown
+    end
+  end
+
   describe "segment/1" do
     test "segments Chinese text into words" do
       segments = Chinese.segment("你好世界")
