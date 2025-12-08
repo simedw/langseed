@@ -9,12 +9,14 @@ defmodule LangseedWeb.VocabularyLive do
   def mount(_params, _session, socket) do
     user = current_user(socket)
     concepts = Vocabulary.list_concepts(user)
+    known_words = Vocabulary.known_words(user)
 
     {:ok,
      assign(socket,
        page_title: "词汇",
        concepts: concepts,
        concept_count: length(concepts),
+       known_words: known_words,
        expanded_id: nil,
        expanded_concept: nil,
        importing_words: []
@@ -40,6 +42,7 @@ defmodule LangseedWeb.VocabularyLive do
     {:ok, _} = Vocabulary.delete_concept(concept)
 
     concepts = Vocabulary.list_concepts(user)
+    known_words = Vocabulary.known_words(user)
 
     {:noreply,
      socket
@@ -47,6 +50,7 @@ defmodule LangseedWeb.VocabularyLive do
      |> assign(
        concepts: concepts,
        concept_count: length(concepts),
+       known_words: known_words,
        expanded_id: nil,
        expanded_concept: nil
      )}
@@ -101,6 +105,7 @@ defmodule LangseedWeb.VocabularyLive do
   def handle_async({:import_word, word}, {:ok, {[_], []}}, socket) do
     user = current_user(socket)
     concepts = Vocabulary.list_concepts(user)
+    known_words = Vocabulary.known_words(user)
 
     # Refresh the expanded concept if it's still open (to update desired_words display)
     expanded_concept =
@@ -116,6 +121,7 @@ defmodule LangseedWeb.VocabularyLive do
      |> assign(
        concepts: concepts,
        concept_count: length(concepts),
+       known_words: known_words,
        expanded_concept: expanded_concept,
        importing_words: List.delete(socket.assigns.importing_words, word)
      )}
@@ -177,6 +183,7 @@ defmodule LangseedWeb.VocabularyLive do
         show_delete_button={true}
         show_pause_button={true}
         importing_words={@importing_words}
+        known_words={@known_words}
       />
     <% end %>
     """

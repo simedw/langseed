@@ -167,5 +167,52 @@ defmodule LangseedWeb.VocabularyLiveTest do
       assert html =~ "爱"
       assert html =~ "最"
     end
+
+    test "filters out known words from desired words", %{conn: conn, user: user} do
+      # Create a known word first
+      _known_concept = concept_fixture(user, %{word: "爱"})
+
+      # Create a concept with desired words, one of which is already known
+      concept =
+        concept_fixture(user, %{
+          word: "喜欢",
+          desired_words: ["爱", "最"]
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      view
+      |> element("button[phx-value-id='#{concept.id}']")
+      |> render_click()
+
+      html = render(view)
+      # "爱" should be filtered out since it's already known
+      refute html =~ ~r/>爱</
+      # "最" should still be shown
+      assert html =~ "最"
+    end
+
+    test "hides desired words section when all words are known", %{conn: conn, user: user} do
+      # Create known words
+      _known1 = concept_fixture(user, %{word: "爱"})
+      _known2 = concept_fixture(user, %{word: "最"})
+
+      # Create a concept with desired words that are all already known
+      concept =
+        concept_fixture(user, %{
+          word: "喜欢",
+          desired_words: ["爱", "最"]
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      view
+      |> element("button[phx-value-id='#{concept.id}']")
+      |> render_click()
+
+      html = render(view)
+      # The entire desired words section should be hidden
+      refute html =~ "学这些词可以改进解释"
+    end
   end
 end

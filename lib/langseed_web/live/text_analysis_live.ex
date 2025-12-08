@@ -20,11 +20,12 @@ defmodule LangseedWeb.TextAnalysisLive do
        selected_words: MapSet.new(),
        known_words: Vocabulary.known_words_with_understanding(user),
        analyzing: false,
-       adding: false,
+       importing_words: [],
        expanded_concept: nil,
        current_text_id: nil,
        recent_texts: Library.list_recent_texts(user, 5),
-       show_load_menu: false
+       show_load_menu: false,
+       show_hsk: false
      )}
   end
 
@@ -148,6 +149,11 @@ defmodule LangseedWeb.TextAnalysisLive do
   end
 
   @impl true
+  def handle_event("toggle_hsk", _, socket) do
+    {:noreply, assign(socket, show_hsk: !socket.assigns.show_hsk)}
+  end
+
+  @impl true
   def handle_event("new_text", _, socket) do
     {:noreply,
      assign(socket,
@@ -168,17 +174,26 @@ defmodule LangseedWeb.TextAnalysisLive do
     if Enum.empty?(selected) do
       {:noreply, put_flash(socket, :error, "No words selected")}
     else
+      # Track which words are being imported, clear selection so user can continue
       {:noreply,
        socket
-       |> assign(adding: true)
-       |> start_async(:add_words, fn -> WordImporter.import_words(user, selected, context) end)}
+       |> assign(
+         importing_words: socket.assigns.importing_words ++ selected,
+         selected_words: MapSet.new()
+       )
+       |> start_async({:add_words, selected}, fn ->
+         WordImporter.import_words(user, selected, context)
+       end)}
     end
   end
 
   @impl true
-  def handle_async(:add_words, {:ok, {added, failed}}, socket) do
+  def handle_async({:add_words, words}, {:ok, {added, failed}}, socket) do
     user = current_user(socket)
     known_words = Vocabulary.known_words_with_understanding(user)
+
+    # Remove these words from importing list
+    importing_words = socket.assigns.importing_words -- words
 
     # Trigger background question generation for new words
     unless Enum.empty?(added) do
@@ -188,8 +203,7 @@ defmodule LangseedWeb.TextAnalysisLive do
     socket =
       socket
       |> assign(
-        adding: false,
-        selected_words: MapSet.new(),
+        importing_words: importing_words,
         known_words: known_words
       )
 
@@ -197,25 +211,28 @@ defmodule LangseedWeb.TextAnalysisLive do
       if Enum.empty?(added) do
         socket
       else
-        put_flash(socket, :info, "Added #{length(added)} words: #{Enum.join(added, ", ")}")
+        put_flash(socket, :info, "添加了 #{length(added)} 个词: #{Enum.join(added, ", ")}")
       end
 
     socket =
       if Enum.empty?(failed) do
         socket
       else
-        put_flash(socket, :error, "Failed to add: #{Enum.join(failed, ", ")}")
+        put_flash(socket, :error, "添加失败: #{Enum.join(failed, ", ")}")
       end
 
     {:noreply, socket}
   end
 
   @impl true
-  def handle_async(:add_words, {:exit, reason}, socket) do
+  def handle_async({:add_words, words}, {:exit, reason}, socket) do
+    # Remove failed words from importing list
+    importing_words = socket.assigns.importing_words -- words
+
     {:noreply,
      socket
-     |> assign(adding: false)
-     |> put_flash(:error, "Error adding words: #{inspect(reason)}")}
+     |> assign(importing_words: importing_words)
+     |> put_flash(:error, "添加出错: #{inspect(reason)}")}
   end
 
   defp word?({:word, _}), do: true
@@ -347,7 +364,7 @@ defmodule LangseedWeb.TextAnalysisLive do
 
           <div class="mb-4">
             <div class="flex items-center justify-between mb-3">
-              <div class="flex gap-3 text-sm">
+              <div class="flex items-center gap-3 text-sm">
                 <span class="flex items-center gap-1">
                   <span
                     class="inline-block w-3 h-3 rounded"
@@ -360,6 +377,15 @@ defmodule LangseedWeb.TextAnalysisLive do
                   <span class="inline-block w-3 h-3 rounded bg-base-content"></span>
                   不知道: {unknown_count}
                 </span>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    class="checkbox checkbox-xs"
+                    checked={@show_hsk}
+                    phx-click="toggle_hsk"
+                  />
+                  <span class="text-xs opacity-70">HSK</span>
+                </label>
               </div>
               <%= if unknown_count > 0 do %>
                 <button
@@ -377,24 +403,34 @@ defmodule LangseedWeb.TextAnalysisLive do
                   segment={segment}
                   known_words={@known_words}
                   selected_words={@selected_words}
+                  importing_words={@importing_words}
+                  show_hsk={@show_hsk}
                 />
               <% end %>
             </div>
           </div>
 
-          <%= if MapSet.size(@selected_words) > 0 do %>
+          <%= if MapSet.size(@selected_words) > 0 || length(@importing_words) > 0 do %>
             <div class="fixed bottom-0 left-0 right-0 p-4 bg-base-200 border-t border-base-300">
-              <button
-                class="btn btn-success w-full"
-                phx-click="add_selected"
-                disabled={@adding}
-              >
-                <%= if @adding do %>
-                  <span class="loading loading-spinner loading-sm mr-2"></span> 添加中...
-                <% else %>
-                  <.icon name="hero-plus" class="size-5 mr-2" /> 添加 {MapSet.size(@selected_words)} 个词
+              <div class="flex gap-2">
+                <%= if MapSet.size(@selected_words) > 0 do %>
+                  <button
+                    class="btn btn-success flex-1"
+                    phx-click="add_selected"
+                  >
+                    <.icon name="hero-plus" class="size-5" /> 添加 {MapSet.size(@selected_words)} 个词
+                  </button>
                 <% end %>
-              </button>
+                <%= if length(@importing_words) > 0 do %>
+                  <div class={[
+                    "flex items-center gap-2 px-4 py-2 bg-info/20 rounded-lg text-info",
+                    MapSet.size(@selected_words) == 0 && "flex-1 justify-center"
+                  ]}>
+                    <span class="loading loading-spinner loading-sm"></span>
+                    <span>添加中 {length(@importing_words)} 个...</span>
+                  </div>
+                <% end %>
+              </div>
             </div>
           <% end %>
         <% end %>

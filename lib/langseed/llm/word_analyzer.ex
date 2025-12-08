@@ -31,8 +31,9 @@ defmodule Langseed.LLM.WordAnalyzer do
   @spec analyze(integer() | nil, String.t(), String.t() | nil, MapSet.t()) ::
           {:ok, analysis()} | {:error, String.t()}
   def analyze(user_id, word, context_sentence \\ nil, known_words \\ MapSet.new()) do
-    known_chars = Language.extract_chars(known_words)
-    analyze_with_retry(user_id, word, context_sentence, known_chars, @max_retries, [])
+    # Include the word being analyzed in allowed words
+    allowed_words = MapSet.put(known_words, word)
+    analyze_with_retry(user_id, word, context_sentence, known_words, allowed_words, @max_retries, [])
   end
 
   @doc """
@@ -42,18 +43,19 @@ defmodule Langseed.LLM.WordAnalyzer do
   @spec regenerate_explanation(integer() | nil, Concept.t(), MapSet.t()) ::
           {:ok, [String.t()]} | {:error, String.t()}
   def regenerate_explanation(user_id, concept, known_words) do
-    known_chars = Language.extract_chars(known_words)
-    known_chars_list = known_chars |> MapSet.to_list() |> Enum.join("")
+    # Include the concept word in allowed words
+    allowed_words = MapSet.put(known_words, concept.word)
+    known_words_sample = known_words |> MapSet.to_list() |> Enum.take(50) |> Enum.join(" ")
     previous = Enum.join(concept.explanations || [], ", ")
 
-    prompt = build_regenerate_prompt(concept, known_chars_list, previous)
+    prompt = build_regenerate_prompt(concept, known_words_sample, previous)
 
     case call_llm(prompt, user_id, "regenerate_explanation") do
       {:ok, data} ->
         explanations =
           data
           |> Map.get("explanations", [])
-          |> Enum.filter(&(is_binary(&1) and Language.find_unknown_chars(&1, known_chars) == []))
+          |> Enum.filter(&(is_binary(&1) and Language.find_unknown_words(&1, allowed_words) == []))
           |> Enum.take(3)
 
         if Enum.empty?(explanations) do
@@ -69,29 +71,31 @@ defmodule Langseed.LLM.WordAnalyzer do
 
   # Private implementation
 
-  defp analyze_with_retry(_user_id, _word, _context, _known_chars, 0, illegal_chars) do
+  defp analyze_with_retry(_user_id, _word, _context, _known_words, _allowed_words, 0, illegal_words) do
     {:error,
-     "Failed after #{@max_retries} retries. Could not avoid characters: #{Enum.join(illegal_chars, ", ")}"}
+     "Failed after #{@max_retries} retries. Could not avoid words: #{Enum.join(illegal_words, ", ")}"}
   end
 
   defp analyze_with_retry(
          user_id,
          word,
          context_sentence,
-         known_chars,
+         known_words,
+         allowed_words,
          retries_left,
          previous_illegal
        ) do
-    prompt = build_analyze_prompt(word, context_sentence, known_chars, previous_illegal)
+    prompt = build_analyze_prompt(word, context_sentence, known_words, previous_illegal)
 
     with {:ok, data} <- call_llm(prompt, user_id, "analyze_word"),
          {:ok, analysis} <- parse_analysis(data) do
       validate_and_filter_explanations(
         analysis,
-        known_chars,
+        allowed_words,
         user_id,
         word,
         context_sentence,
+        known_words,
         retries_left
       )
     end
@@ -99,15 +103,16 @@ defmodule Langseed.LLM.WordAnalyzer do
 
   defp validate_and_filter_explanations(
          analysis,
-         known_chars,
+         allowed_words,
          user_id,
          word,
          context_sentence,
+         known_words,
          retries_left
        ) do
     {valid_explanations, all_illegal} =
       Enum.reduce(analysis.explanations, {[], []}, fn explanation, {valid, illegal_acc} ->
-        case Language.find_unknown_chars(explanation, known_chars) do
+        case Language.find_unknown_words(explanation, allowed_words) do
           [] -> {[explanation | valid], illegal_acc}
           illegal -> {valid, illegal_acc ++ illegal}
         end
@@ -128,14 +133,15 @@ defmodule Langseed.LLM.WordAnalyzer do
           user_id,
           word,
           context_sentence,
-          known_chars,
+          known_words,
+          allowed_words,
           retries_left - 1,
           all_illegal
         )
 
       true ->
         {:error,
-         "Failed after #{@max_retries} retries. Could not avoid characters: #{Enum.join(all_illegal, ", ")}"}
+         "Failed after #{@max_retries} retries. Could not avoid words: #{Enum.join(all_illegal, ", ")}"}
     end
   end
 
@@ -198,7 +204,7 @@ defmodule Langseed.LLM.WordAnalyzer do
 
   # Prompt builders
 
-  defp build_analyze_prompt(word, context_sentence, known_chars, previous_illegal) do
+  defp build_analyze_prompt(word, context_sentence, known_words, previous_illegal) do
     safe_word = StringUtils.ensure_valid_utf8(word)
     safe_sentence = StringUtils.ensure_valid_utf8(context_sentence)
 
@@ -209,7 +215,7 @@ defmodule Langseed.LLM.WordAnalyzer do
         ""
       end
 
-    known_chars_list = known_chars |> MapSet.to_list() |> Enum.join("")
+    known_words_sample = known_words |> MapSet.to_list() |> Enum.take(50) |> Enum.join(" ")
     retry_feedback = build_retry_feedback(previous_illegal)
 
     """
@@ -233,7 +239,10 @@ defmodule Langseed.LLM.WordAnalyzer do
     - Each explanation should help understand the word from a DIFFERENT angle
     - ABSOLUTELY NO ENGLISH - not even single letters or quoted words
     - DO NOT break down the word into its component characters
-    - The explanations MUST use ONLY these Chinese characters: #{known_chars_list}
+    - Use ONLY words the learner knows. Known words include: #{known_words_sample}
+    - You can also use: #{safe_word}
+    - IMPORTANT: Do NOT combine characters into words the learner doesn't know!
+      For example, if they know 学 and 生 separately, do NOT use 学生 unless 学生 is in their vocabulary.
     - You can use emojis freely
     - You can use numbers, punctuation, and spaces
     - Use ____ to show where the word fits in example sentences
@@ -244,7 +253,7 @@ defmodule Langseed.LLM.WordAnalyzer do
     BAD examples: "你 是 you", "'hello'", "A is B"
 
     EXPLANATION_QUALITY (1-5):
-    - 5: Perfect explanations using available characters
+    - 5: Perfect explanations using available words
     - 4: Good, captures the meaning well
     - 3: Adequate, could be clearer
     - 2: Limited, mostly emojis
@@ -255,7 +264,7 @@ defmodule Langseed.LLM.WordAnalyzer do
     """
   end
 
-  defp build_regenerate_prompt(concept, known_chars_list, previous) do
+  defp build_regenerate_prompt(concept, known_words_sample, previous) do
     """
     Create NEW, DIFFERENT explanations for the Chinese word "#{concept.word}" (#{concept.meaning}).
 
@@ -267,7 +276,10 @@ defmodule Langseed.LLM.WordAnalyzer do
       1. A short example sentence (use ____ for where the word goes)
       2. An emoji-based visual hint
       3. A contextual phrase if possible
-    - Use ONLY these Chinese characters: #{known_chars_list}
+    - Use ONLY words the learner knows. Known words include: #{known_words_sample}
+    - You can also use: #{concept.word}
+    - IMPORTANT: Do NOT combine characters into words the learner doesn't know!
+      For example, if they know 学 and 生 separately, do NOT use 学生 unless 学生 is in their vocabulary.
     - You can use emojis freely
     - NO ENGLISH at all
     - Keep each short and visual
@@ -282,19 +294,19 @@ defmodule Langseed.LLM.WordAnalyzer do
 
   defp build_retry_feedback(previous_illegal) do
     has_english_error = "[英文]" in previous_illegal
-    illegal_chars = Enum.reject(previous_illegal, &(&1 == "[英文]"))
+    illegal_words = Enum.reject(previous_illegal, &(&1 == "[英文]"))
 
     english_warning =
       if has_english_error, do: "You used ENGLISH letters which is FORBIDDEN. ", else: ""
 
-    char_warning =
-      if Enum.empty?(illegal_chars),
+    word_warning =
+      if Enum.empty?(illegal_words),
         do: "",
-        else: "You used these FORBIDDEN characters: #{Enum.join(illegal_chars, " ")}. "
+        else: "You used these UNKNOWN WORDS: #{Enum.join(illegal_words, ", ")}. The learner does not know these words! "
 
     """
 
-    ⚠️ RETRY: #{english_warning}#{char_warning}Use ONLY allowed Chinese characters or emojis. NO ENGLISH AT ALL.
+    ⚠️ RETRY: #{english_warning}#{word_warning}Use ONLY words from the learner's vocabulary. Do NOT combine characters into unknown words!
     """
   end
 end

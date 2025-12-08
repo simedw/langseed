@@ -9,12 +9,14 @@ defmodule LangseedWeb.VocabularyGraphLive do
     user = current_user(socket)
     graph = Graph.build_graph(user)
     stats = Graph.graph_stats(user)
+    known_words = Vocabulary.known_words(user)
 
     {:ok,
      assign(socket,
        page_title: "词汇图谱",
        graph_data: Jason.encode!(graph),
        stats: stats,
+       known_words: known_words,
        selected_concept: nil
      )}
   end
@@ -116,6 +118,7 @@ defmodule LangseedWeb.VocabularyGraphLive do
         show_desired_words={true}
         show_example_sentence={true}
         show_pause_button={true}
+        known_words={@known_words}
       />
     <% end %>
     """
