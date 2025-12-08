@@ -32,6 +32,20 @@ defmodule LangseedWeb.VocabularyGraphLive do
   end
 
   @impl true
+  def handle_event("toggle_pause", %{"id" => id}, socket) do
+    user = current_user(socket)
+    concept = Vocabulary.get_concept!(user, id)
+    {:ok, updated_concept} = Vocabulary.toggle_paused(concept)
+
+    action = if updated_concept.paused, do: "暂停了", else: "恢复了"
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "#{action} #{concept.word}")
+     |> assign(selected_concept: updated_concept)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="min-h-screen pb-20">
@@ -60,8 +74,16 @@ defmodule LangseedWeb.VocabularyGraphLive do
         </div>
 
         <div class="grid lg:grid-cols-2 gap-4 mb-4">
-          <.stats_card title="基础词汇" subtitle="用来解释最多其他词" items={@stats.foundational} />
-          <.stats_card title="复杂词汇" subtitle="需要最多词来解释" items={@stats.complex} />
+          <.stats_card
+            title="基础词汇"
+            subtitle="用来解释最多其他词"
+            items={@stats.foundational}
+          />
+          <.stats_card
+            title="复杂词汇"
+            subtitle="需要最多词来解释"
+            items={@stats.complex}
+          />
         </div>
 
         <div
@@ -93,6 +115,7 @@ defmodule LangseedWeb.VocabularyGraphLive do
         concept={@selected_concept}
         show_desired_words={true}
         show_example_sentence={true}
+        show_pause_button={true}
       />
     <% end %>
     """

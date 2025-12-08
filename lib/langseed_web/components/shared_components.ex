@@ -126,6 +126,7 @@ defmodule LangseedWeb.SharedComponents do
   attr :show_example_sentence, :boolean, default: false
   attr :show_understanding_slider, :boolean, default: false
   attr :show_delete_button, :boolean, default: false
+  attr :show_pause_button, :boolean, default: false
   attr :importing_words, :list, default: []
 
   def concept_card(assigns) do
@@ -208,16 +209,36 @@ defmodule LangseedWeb.SharedComponents do
             <p class="text-sm opacity-60 mt-1">{@concept.meaning}</p>
           </details>
 
-          <%= if @show_delete_button do %>
-            <div class="card-actions justify-end mt-4">
-              <button
-                class="btn btn-error btn-sm"
-                phx-click="delete"
-                phx-value-id={@concept.id}
-                data-confirm={"删除 #{@concept.word}?"}
-              >
-                <.icon name="hero-trash" class="size-4" /> 删除
-              </button>
+          <%= if @show_delete_button || @show_pause_button do %>
+            <div class="card-actions justify-between mt-4">
+              <%= if @show_pause_button do %>
+                <button
+                  class={[
+                    "btn btn-sm",
+                    if(@concept.paused, do: "btn-success", else: "btn-warning")
+                  ]}
+                  phx-click="toggle_pause"
+                  phx-value-id={@concept.id}
+                >
+                  <%= if @concept.paused do %>
+                    <.icon name="hero-play" class="size-4" /> 恢复练习
+                  <% else %>
+                    <.icon name="hero-pause" class="size-4" /> 暂停练习
+                  <% end %>
+                </button>
+              <% else %>
+                <div></div>
+              <% end %>
+              <%= if @show_delete_button do %>
+                <button
+                  class="btn btn-error btn-sm"
+                  phx-click="delete"
+                  phx-value-id={@concept.id}
+                  data-confirm={"删除 #{@concept.word}?"}
+                >
+                  <.icon name="hero-trash" class="size-4" /> 删除
+                </button>
+              <% end %>
             </div>
           <% end %>
         </div>

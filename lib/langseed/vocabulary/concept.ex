@@ -20,6 +20,8 @@ defmodule Langseed.Vocabulary.Concept do
     field :explanation_quality, :integer
     # Words the AI wishes it had to make a better explanation
     field :desired_words, {:array, :string}, default: []
+    # Paused words won't appear in practice
+    field :paused, :boolean, default: false
 
     belongs_to :user, Langseed.Accounts.User
 
@@ -39,6 +41,7 @@ defmodule Langseed.Vocabulary.Concept do
       :understanding,
       :explanation_quality,
       :desired_words,
+      :paused,
       :user_id
     ])
     |> validate_required([:word, :pinyin, :meaning, :part_of_speech])

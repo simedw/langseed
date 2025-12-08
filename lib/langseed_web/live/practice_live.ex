@@ -141,6 +141,18 @@ defmodule LangseedWeb.PracticeLive do
      |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
   end
 
+  # Pause word handler
+  @impl true
+  def handle_event("pause_word", _, socket) do
+    concept = socket.assigns.current_concept
+    {:ok, _} = Vocabulary.pause_concept(concept)
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "暂停了 #{concept.word}")
+     |> load_next_concept()}
+  end
+
   # Definition mode handlers
   @impl true
   def handle_event("understand", _, socket) do

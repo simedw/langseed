@@ -129,4 +129,28 @@ defmodule Langseed.Vocabulary do
   end
 
   def word_known?(nil, _word), do: false
+
+  @doc """
+  Toggles the paused state of a concept.
+  """
+  @spec toggle_paused(Concept.t()) :: {:ok, Concept.t()} | {:error, Ecto.Changeset.t()}
+  def toggle_paused(%Concept{} = concept) do
+    update_concept(concept, %{paused: !concept.paused})
+  end
+
+  @doc """
+  Pauses a concept (won't appear in practice).
+  """
+  @spec pause_concept(Concept.t()) :: {:ok, Concept.t()} | {:error, Ecto.Changeset.t()}
+  def pause_concept(%Concept{} = concept) do
+    update_concept(concept, %{paused: true})
+  end
+
+  @doc """
+  Unpauses a concept (will appear in practice again).
+  """
+  @spec unpause_concept(Concept.t()) :: {:ok, Concept.t()} | {:error, Ecto.Changeset.t()}
+  def unpause_concept(%Concept{} = concept) do
+    update_concept(concept, %{paused: false})
+  end
 end

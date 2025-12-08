@@ -82,6 +82,21 @@ defmodule LangseedWeb.VocabularyLive do
   end
 
   @impl true
+  def handle_event("toggle_pause", %{"id" => id}, socket) do
+    user = current_user(socket)
+    concept = Vocabulary.get_concept!(user, id)
+    {:ok, updated_concept} = Vocabulary.toggle_paused(concept)
+
+    concepts = Vocabulary.list_concepts(user)
+    action = if updated_concept.paused, do: "暂停了", else: "恢复了"
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "#{action} #{concept.word}")
+     |> assign(concepts: concepts, expanded_concept: updated_concept)}
+  end
+
+  @impl true
   def handle_async({:import_word, word}, {:ok, {[_], []}}, socket) do
     user = current_user(socket)
     concepts = Vocabulary.list_concepts(user)
@@ -159,6 +174,7 @@ defmodule LangseedWeb.VocabularyLive do
         show_example_sentence={true}
         show_understanding_slider={true}
         show_delete_button={true}
+        show_pause_button={true}
         importing_words={@importing_words}
       />
     <% end %>
@@ -168,12 +184,18 @@ defmodule LangseedWeb.VocabularyLive do
   defp concept_chip(assigns) do
     ~H"""
     <button
-      class="px-3 py-2 rounded-lg text-2xl font-bold transition-all hover:scale-105 cursor-pointer"
+      class={[
+        "px-3 py-2 rounded-lg text-2xl font-bold transition-all hover:scale-105 cursor-pointer relative",
+        @concept.paused && "opacity-50"
+      ]}
       style={"background-color: #{understanding_color(@concept.understanding)}20; border: 2px solid #{understanding_color(@concept.understanding)}"}
       phx-click="expand"
       phx-value-id={@concept.id}
     >
       {@concept.word}
+      <%= if @concept.paused do %>
+        <span class="absolute -top-1 -right-1 text-xs">⏸️</span>
+      <% end %>
     </button>
     """
   end

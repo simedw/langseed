@@ -21,6 +21,7 @@ defmodule Langseed.Practice do
     Concept
     |> where([c], c.user_id == ^user.id)
     |> where([c], c.understanding >= 0 and c.understanding <= 60)
+    |> where([c], c.paused == false)
     |> order_by([c], asc: c.understanding)
     |> limit(1)
     |> Repo.one()
@@ -38,6 +39,7 @@ defmodule Langseed.Practice do
     Concept
     |> where([c], c.user_id == ^user.id)
     |> where([c], c.understanding >= 0 and c.understanding <= 60)
+    |> where([c], c.paused == false)
     |> order_by([c], asc: c.understanding)
     |> limit(^limit)
     |> Repo.all()
@@ -53,6 +55,7 @@ defmodule Langseed.Practice do
     Concept
     |> where([c], c.user_id == ^user.id)
     |> where([c], c.understanding >= 1 and c.understanding <= 60)
+    |> where([c], c.paused == false)
     |> order_by([c], asc: c.understanding)
     |> Repo.all()
   end
@@ -276,6 +279,7 @@ defmodule Langseed.Practice do
     Concept
     |> where([c], c.user_id == ^user.id)
     |> where([c], c.understanding >= 1 and c.understanding <= 60)
+    |> where([c], c.paused == false)
     |> join(:left, [c], q in subquery(subquery), on: c.id == q.concept_id)
     |> where([c, q], is_nil(q.count) or q.count < ^target_count)
     |> select([c, q], {c, coalesce(q.count, 0)})

@@ -167,4 +167,58 @@ defmodule Langseed.VocabularyTest do
       refute Vocabulary.word_known?(nil, "test")
     end
   end
+
+  describe "toggle_paused/1" do
+    test "pauses an unpaused concept" do
+      user = user_fixture()
+      concept = concept_fixture(user, %{paused: false})
+
+      assert {:ok, updated} = Vocabulary.toggle_paused(concept)
+      assert updated.paused == true
+    end
+
+    test "unpauses a paused concept" do
+      user = user_fixture()
+      concept = concept_fixture(user, %{paused: true})
+
+      assert {:ok, updated} = Vocabulary.toggle_paused(concept)
+      assert updated.paused == false
+    end
+  end
+
+  describe "pause_concept/1" do
+    test "pauses a concept" do
+      user = user_fixture()
+      concept = concept_fixture(user, %{paused: false})
+
+      assert {:ok, updated} = Vocabulary.pause_concept(concept)
+      assert updated.paused == true
+    end
+
+    test "keeps already paused concept paused" do
+      user = user_fixture()
+      concept = concept_fixture(user, %{paused: true})
+
+      assert {:ok, updated} = Vocabulary.pause_concept(concept)
+      assert updated.paused == true
+    end
+  end
+
+  describe "unpause_concept/1" do
+    test "unpauses a concept" do
+      user = user_fixture()
+      concept = concept_fixture(user, %{paused: true})
+
+      assert {:ok, updated} = Vocabulary.unpause_concept(concept)
+      assert updated.paused == false
+    end
+
+    test "keeps already unpaused concept unpaused" do
+      user = user_fixture()
+      concept = concept_fixture(user, %{paused: false})
+
+      assert {:ok, updated} = Vocabulary.unpause_concept(concept)
+      assert updated.paused == false
+    end
+  end
 end

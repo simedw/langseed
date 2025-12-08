@@ -53,6 +53,15 @@ defmodule LangseedWeb.PracticeComponents do
     ~H"""
     <div class="card bg-base-200 shadow-lg">
       <div class="card-body">
+        <div class="flex justify-end -mt-2 -mr-2 mb-2">
+          <button
+            class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+            phx-click="pause_word"
+            title="暂停这个词"
+          >
+            <.icon name="hero-pause" class="size-4" /> 暂停
+          </button>
+        </div>
         <div class="text-center mb-4">
           <span class="badge badge-warning mb-2">新词</span>
           <div class="flex items-center justify-center gap-2">
@@ -133,6 +142,15 @@ defmodule LangseedWeb.PracticeComponents do
     ~H"""
     <div class="card bg-base-200 shadow-lg">
       <div class="card-body">
+        <div class="flex justify-end -mt-2 -mr-2 mb-2">
+          <button
+            class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+            phx-click="pause_word"
+            title="暂停这个词"
+          >
+            <.icon name="hero-pause" class="size-4" /> 暂停
+          </button>
+        </div>
         <%= case @question.question_type do %>
           <% "yes_no" -> %>
             <.yes_no_question question={@question} feedback={@feedback} user_answer={@user_answer} />
@@ -279,6 +297,15 @@ defmodule LangseedWeb.PracticeComponents do
     ~H"""
     <div class="card bg-base-200 shadow-lg">
       <div class="card-body">
+        <div class="flex justify-end -mt-2 -mr-2 mb-2">
+          <button
+            class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+            phx-click="pause_word"
+            title="暂停这个词"
+          >
+            <.icon name="hero-pause" class="size-4" /> 暂停
+          </button>
+        </div>
         <div class="text-center mb-4">
           <span class="badge badge-info mb-2">写句子</span>
           <div class="flex items-center justify-center gap-2">
