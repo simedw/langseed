@@ -1,4 +1,7 @@
 defmodule Langseed.Library.Text do
+  @moduledoc """
+  Schema for user-saved texts used for reading and vocabulary extraction.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

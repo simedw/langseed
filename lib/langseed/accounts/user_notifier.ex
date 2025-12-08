@@ -1,4 +1,7 @@
 defmodule Langseed.Accounts.UserNotifier do
+  @moduledoc """
+  Handles sending email notifications to users.
+  """
   import Swoosh.Email
 
   alias Langseed.Mailer

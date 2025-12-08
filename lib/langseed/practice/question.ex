@@ -1,4 +1,7 @@
 defmodule Langseed.Practice.Question do
+  @moduledoc """
+  Schema for practice questions (yes/no, fill-blank, sentence) linked to concepts.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

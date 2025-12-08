@@ -1,13 +1,16 @@
 defmodule LangseedWeb.TextAnalysisLive do
   use LangseedWeb, :live_view
 
+  import LangseedWeb.TextAnalysisComponents
+
   alias Langseed.Vocabulary
   alias Langseed.Library
-  alias Langseed.LLM
+  alias Langseed.Language
+  alias Langseed.Services.WordImporter
 
   @impl true
   def mount(_params, _session, socket) do
-    user = get_current_user(socket)
+    user = current_user(socket)
 
     {:ok,
      assign(socket,
@@ -15,7 +18,6 @@ defmodule LangseedWeb.TextAnalysisLive do
        input_text: "",
        segments: [],
        selected_words: MapSet.new(),
-       # Map of word -> understanding level
        known_words: Vocabulary.known_words_with_understanding(user),
        analyzing: false,
        adding: false,
@@ -27,45 +29,47 @@ defmodule LangseedWeb.TextAnalysisLive do
   end
 
   @impl true
-  def handle_params(params, _uri, socket) do
-    user = get_current_user(socket)
+  def handle_params(%{"text_id" => text_id}, _uri, socket) do
+    {:noreply, load_text(socket, text_id)}
+  end
 
-    case params do
-      %{"text_id" => text_id} ->
-        case Library.get_text(user, text_id) do
-          nil ->
-            {:noreply, put_flash(socket, :error, "文本不存在")}
+  def handle_params(_params, _uri, socket) do
+    {:noreply, socket}
+  end
 
-          text ->
-            segments =
-              if String.trim(text.content) != "", do: segment_text(text.content), else: []
+  defp load_text(socket, text_id) do
+    user = current_user(socket)
 
-            {:noreply,
-             assign(socket,
-               input_text: text.content,
-               segments: segments,
-               current_text_id: text.id,
-               known_words: Vocabulary.known_words_with_understanding(user),
-               selected_words: MapSet.new()
-             )}
-        end
+    case Library.get_text(user, text_id) do
+      nil ->
+        put_flash(socket, :error, "文本不存在")
 
-      _ ->
-        {:noreply, socket}
+      text ->
+        segments = segment_content(text.content)
+
+        assign(socket,
+          input_text: text.content,
+          segments: segments,
+          current_text_id: text.id,
+          known_words: Vocabulary.known_words_with_understanding(user),
+          selected_words: MapSet.new()
+        )
     end
+  end
+
+  defp segment_content(content) do
+    if String.trim(content) != "", do: Language.segment(content), else: []
   end
 
   @impl true
   def handle_event("update_text", params, socket) do
-    user = get_current_user(socket)
-    # phx-change on standalone element sends name => value
+    user = current_user(socket)
     text = params["text"] || ""
 
-    # Auto-analyze on text change
     if String.trim(text) == "" do
       {:noreply, assign(socket, input_text: text, segments: [], selected_words: MapSet.new())}
     else
-      segments = segment_text(text)
+      segments = Language.segment(text)
       known_words = Vocabulary.known_words_with_understanding(user)
 
       {:noreply,
@@ -75,13 +79,6 @@ defmodule LangseedWeb.TextAnalysisLive do
          known_words: known_words,
          selected_words: MapSet.new()
        )}
-    end
-  end
-
-  defp get_current_user(socket) do
-    case socket.assigns[:current_scope] do
-      %{user: user} -> user
-      _ -> nil
     end
   end
 
@@ -105,7 +102,7 @@ defmodule LangseedWeb.TextAnalysisLive do
 
     unknown_words =
       socket.assigns.segments
-      |> Enum.filter(&is_word?/1)
+      |> Enum.filter(&word?/1)
       |> Enum.map(&get_word/1)
       |> Enum.uniq()
       |> Enum.reject(&Map.has_key?(known_words, &1))
@@ -116,7 +113,7 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   @impl true
   def handle_event("show_concept", %{"word" => word}, socket) do
-    user = get_current_user(socket)
+    user = current_user(socket)
 
     case Vocabulary.get_concept_by_word(user, word) do
       nil -> {:noreply, socket}
@@ -131,44 +128,12 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   @impl true
   def handle_event("save_text", _, socket) do
-    user = get_current_user(socket)
     text = socket.assigns.input_text
 
     if String.trim(text) == "" do
       {:noreply, put_flash(socket, :error, "没有文本可保存")}
     else
-      case socket.assigns.current_text_id do
-        nil ->
-          # Create new text
-          case Library.create_text(user, %{content: text}) do
-            {:ok, saved_text} ->
-              {:noreply,
-               socket
-               |> assign(
-                 current_text_id: saved_text.id,
-                 recent_texts: Library.list_recent_texts(user, 5)
-               )
-               |> put_flash(:info, "已保存: #{saved_text.title}")}
-
-            {:error, _} ->
-              {:noreply, put_flash(socket, :error, "保存失败")}
-          end
-
-        text_id ->
-          # Update existing text
-          text_record = Library.get_text!(user, text_id)
-
-          case Library.update_text(text_record, %{content: text}) do
-            {:ok, _} ->
-              {:noreply,
-               socket
-               |> assign(recent_texts: Library.list_recent_texts(user, 5))
-               |> put_flash(:info, "已更新")}
-
-            {:error, _} ->
-              {:noreply, put_flash(socket, :error, "更新失败")}
-          end
-      end
+      {:noreply, save_text(socket, text)}
     end
   end
 
@@ -196,27 +161,27 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   @impl true
   def handle_event("add_selected", _, socket) do
-    user = get_current_user(socket)
+    user = current_user(socket)
     selected = socket.assigns.selected_words |> MapSet.to_list()
     context = socket.assigns.input_text
 
-    if length(selected) == 0 do
+    if Enum.empty?(selected) do
       {:noreply, put_flash(socket, :error, "No words selected")}
     else
       {:noreply,
        socket
        |> assign(adding: true)
-       |> start_async(:add_words, fn -> add_words_with_llm(user, selected, context) end)}
+       |> start_async(:add_words, fn -> WordImporter.import_words(user, selected, context) end)}
     end
   end
 
   @impl true
   def handle_async(:add_words, {:ok, {added, failed}}, socket) do
-    user = get_current_user(socket)
+    user = current_user(socket)
     known_words = Vocabulary.known_words_with_understanding(user)
 
     # Trigger background question generation for new words
-    if length(added) > 0 do
+    unless Enum.empty?(added) do
       Langseed.Workers.QuestionGenerator.enqueue()
     end
 
@@ -229,17 +194,17 @@ defmodule LangseedWeb.TextAnalysisLive do
       )
 
     socket =
-      if length(added) > 0 do
-        put_flash(socket, :info, "Added #{length(added)} words: #{Enum.join(added, ", ")}")
-      else
+      if Enum.empty?(added) do
         socket
+      else
+        put_flash(socket, :info, "Added #{length(added)} words: #{Enum.join(added, ", ")}")
       end
 
     socket =
-      if length(failed) > 0 do
-        put_flash(socket, :error, "Failed to add: #{Enum.join(failed, ", ")}")
-      else
+      if Enum.empty?(failed) do
         socket
+      else
+        put_flash(socket, :error, "Failed to add: #{Enum.join(failed, ", ")}")
       end
 
     {:noreply, socket}
@@ -253,139 +218,49 @@ defmodule LangseedWeb.TextAnalysisLive do
      |> put_flash(:error, "Error adding words: #{inspect(reason)}")}
   end
 
-  defp segment_text(text) do
-    # Use Jieba for word segmentation, but preserve punctuation and newlines
-    {:ok, jieba} = Jieba.new()
-
-    # Split by newlines first to preserve them, then segment each line
-    text
-    |> String.split(~r/(\n)/, include_captures: true)
-    |> Enum.flat_map(fn part ->
-      if part == "\n" do
-        [{:newline, "\n"}]
-      else
-        jieba
-        |> Jieba.cut(part)
-        |> Enum.map(fn word ->
-          cond do
-            String.trim(word) == "" -> {:space, word}
-            Regex.match?(~r/^[\p{P}\p{S}]+$/u, word) -> {:punct, word}
-            true -> {:word, word}
-          end
-        end)
-      end
-    end)
-  end
-
-  defp is_word?({:word, _}), do: true
-  defp is_word?(_), do: false
+  defp word?({:word, _}), do: true
+  defp word?(_), do: false
 
   defp get_word({_, word}), do: word
 
-  defp add_words_with_llm(user, words, context) do
-    # Get current known words to pass to LLM for explanation generation
-    known_words = Vocabulary.known_words(user)
-    # Capture user_id for use in async tasks
-    user_id = if user, do: user.id, else: nil
-    # Sanitize context once
-    safe_context = ensure_valid_utf8(context)
+  defp save_text(socket, text) do
+    user = current_user(socket)
 
-    # Process words in parallel for faster LLM calls
-    results =
-      words
-      |> Task.async_stream(
-        fn word ->
-          # Extract just the sentence containing the word
-          sentence = extract_sentence(safe_context, word)
-          # Extra safety: ensure sentence is valid UTF-8 before DB insert
-          safe_sentence = ensure_valid_utf8(sentence)
+    case do_save_text(user, socket.assigns.current_text_id, text) do
+      {:created, saved_text} ->
+        socket
+        |> assign(
+          current_text_id: saved_text.id,
+          recent_texts: Library.list_recent_texts(user, 5)
+        )
+        |> put_flash(:info, "已保存: #{saved_text.title}")
 
-          case LLM.analyze_word(user_id, word, safe_sentence, known_words) do
-            {:ok, analysis} ->
-              attrs = %{
-                word: ensure_valid_utf8(word),
-                pinyin: ensure_valid_utf8(analysis.pinyin),
-                meaning: ensure_valid_utf8(analysis.meaning),
-                part_of_speech: analysis.part_of_speech,
-                explanations: Enum.map(analysis.explanations, &ensure_valid_utf8/1),
-                explanation_quality: analysis.explanation_quality,
-                desired_words: Enum.map(analysis.desired_words, &ensure_valid_utf8/1),
-                example_sentence: safe_sentence,
-                understanding: 0
-              }
+      {:updated, _} ->
+        socket
+        |> assign(recent_texts: Library.list_recent_texts(user, 5))
+        |> put_flash(:info, "已更新")
 
-              case Vocabulary.create_concept(user, attrs) do
-                {:ok, _concept} -> {:ok, word}
-                {:error, _} -> {:error, word}
-              end
+      {:error, :create} ->
+        put_flash(socket, :error, "保存失败")
 
-            {:error, _reason} ->
-              # Fallback: create with placeholder values
-              attrs = %{
-                word: ensure_valid_utf8(word),
-                pinyin: "?",
-                meaning: "?",
-                part_of_speech: "other",
-                explanations: ["❓"],
-                explanation_quality: 1,
-                desired_words: [],
-                example_sentence: safe_sentence,
-                understanding: 0
-              }
-
-              case Vocabulary.create_concept(user, attrs) do
-                {:ok, _concept} -> {:ok, word}
-                {:error, _} -> {:error, word}
-              end
-          end
-        end,
-        max_concurrency: 5,
-        timeout: 60_000
-      )
-      |> Enum.map(fn
-        {:ok, result} -> result
-        {:exit, _reason} -> {:error, "timeout"}
-      end)
-
-    added = Enum.filter(results, fn {status, _} -> status == :ok end) |> Enum.map(&elem(&1, 1))
-
-    failed =
-      Enum.filter(results, fn {status, _} -> status == :error end) |> Enum.map(&elem(&1, 1))
-
-    {added, failed}
-  end
-
-  # Extract the sentence containing the word from the full text
-  defp extract_sentence(text, word) do
-    # Ensure valid UTF-8 before processing
-    safe_text = ensure_valid_utf8(text)
-
-    # Split by common Chinese sentence endings (Elixir strings are UTF-8 by default)
-    sentences =
-      safe_text
-      |> String.split(~r/[。！？\n]+/, trim: true)
-      |> Enum.map(&String.trim/1)
-      |> Enum.reject(&(&1 == ""))
-
-    # Find the first sentence containing the word, fallback to first sentence
-    case Enum.find(sentences, fn s -> String.contains?(s, word) end) do
-      nil -> List.first(sentences) || word
-      found -> found
+      {:error, :update} ->
+        put_flash(socket, :error, "更新失败")
     end
   end
 
-  defp ensure_valid_utf8(nil), do: ""
+  defp do_save_text(user, nil, text) do
+    case Library.create_text(user, %{content: text}) do
+      {:ok, saved_text} -> {:created, saved_text}
+      {:error, _} -> {:error, :create}
+    end
+  end
 
-  defp ensure_valid_utf8(str) when is_binary(str) do
-    if String.valid?(str) do
-      str
-    else
-      # Drop invalid byte sequences by extracting only valid parts
-      case :unicode.characters_to_binary(str, :utf8, :utf8) do
-        {:error, valid, _} -> valid
-        {:incomplete, valid, _} -> valid
-        binary when is_binary(binary) -> binary
-      end
+  defp do_save_text(user, text_id, text) do
+    text_record = Library.get_text!(user, text_id)
+
+    case Library.update_text(text_record, %{content: text}) do
+      {:ok, updated} -> {:updated, updated}
+      {:error, _} -> {:error, :update}
     end
   end
 
@@ -465,7 +340,7 @@ defmodule LangseedWeb.TextAnalysisLive do
         </div>
 
         <%= if length(@segments) > 0 do %>
-          <% words_only = @segments |> Enum.filter(&is_word?/1) |> Enum.map(&get_word/1) %>
+          <% words_only = @segments |> Enum.filter(&word?/1) |> Enum.map(&get_word/1) %>
           <% unique_words = words_only |> Enum.uniq() %>
           <% known_count = Enum.count(unique_words, &Map.has_key?(@known_words, &1)) %>
           <% unknown_count = length(unique_words) - known_count %>
@@ -533,148 +408,6 @@ defmodule LangseedWeb.TextAnalysisLive do
         <% end %>
       </div>
     </div>
-    """
-  end
-
-  defp concept_card(assigns) do
-    ~H"""
-    <div class="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto">
-      <div
-        class="card bg-base-100 shadow-2xl"
-        style={"border-left: 6px solid #{understanding_color(@concept.understanding)}"}
-      >
-        <div class="card-body p-5">
-          <div class="flex items-start justify-between">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="text-4xl font-bold">{@concept.word}</span>
-                <.speak_button text={@concept.word} />
-              </div>
-              <p class="text-xl text-primary mt-1">{@concept.pinyin}</p>
-              <span class="badge badge-sm badge-ghost">{@concept.part_of_speech}</span>
-            </div>
-            <button
-              class="btn btn-ghost btn-sm btn-circle"
-              phx-click="collapse"
-            >
-              <.icon name="hero-x-mark" class="size-5" />
-            </button>
-          </div>
-
-          <%= if @concept.explanations && length(@concept.explanations) > 0 do %>
-            <div class="mt-4 p-3 bg-base-200 rounded-lg space-y-2">
-              <%= for explanation <- @concept.explanations do %>
-                <p class="text-lg">{explanation}</p>
-              <% end %>
-              <%= if @concept.explanation_quality do %>
-                <div class="flex items-center gap-1 mt-2 text-sm opacity-60">
-                  <span>解释质量:</span>
-                  <.quality_stars quality={@concept.explanation_quality} />
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-
-          <details class="mt-3">
-            <summary class="text-xs opacity-40 cursor-pointer hover:opacity-60">
-              👁️ 英文
-            </summary>
-            <p class="text-sm opacity-60 mt-1">{@concept.meaning}</p>
-          </details>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  defp quality_stars(assigns) do
-    ~H"""
-    <span class="inline-flex">
-      <%= for i <- 1..5 do %>
-        <%= if i <= @quality do %>
-          <span class="text-warning">★</span>
-        <% else %>
-          <span class="opacity-30">☆</span>
-        <% end %>
-      <% end %>
-    </span>
-    """
-  end
-
-  defp understanding_color(level) do
-    cond do
-      level < 50 ->
-        ratio = level / 50
-        r = 239
-        g = round(68 + (171 - 68) * ratio)
-        b = round(68 + (8 - 68) * ratio)
-        "rgb(#{r}, #{g}, #{b})"
-
-      true ->
-        ratio = (level - 50) / 50
-        r = round(234 - (234 - 34) * ratio)
-        g = round(179 + (197 - 179) * ratio)
-        b = round(8 + (94 - 8) * ratio)
-        "rgb(#{r}, #{g}, #{b})"
-    end
-  end
-
-  defp segment_inline(%{segment: {:newline, _}} = assigns) do
-    ~H"<br />"
-  end
-
-  defp segment_inline(%{segment: {:space, text}} = assigns) do
-    assigns = assign(assigns, :text, text)
-    ~H"<span>{@text}</span>"
-  end
-
-  defp segment_inline(%{segment: {:punct, text}} = assigns) do
-    assigns = assign(assigns, :text, text)
-    ~H'<span class="opacity-60">{@text}</span>'
-  end
-
-  defp segment_inline(%{segment: {:word, word}} = assigns) do
-    understanding = Map.get(assigns.known_words, word)
-    known = understanding != nil
-    selected = MapSet.member?(assigns.selected_words, word)
-
-    assigns =
-      assign(assigns, word: word, known: known, selected: selected, understanding: understanding)
-
-    ~H"""
-    <%= if @known do %>
-      <span
-        class="cursor-pointer hover:underline"
-        style={"color: #{understanding_color(@understanding)}"}
-        phx-click="show_concept"
-        phx-value-word={@word}
-      >
-        {@word}
-      </span>
-    <% else %>
-      <span
-        class={"cursor-pointer transition-colors #{if @selected, do: "text-primary font-bold underline decoration-2", else: "text-base-content hover:text-primary"}"}
-        phx-click="toggle_word"
-        phx-value-word={@word}
-      >
-        {@word}
-      </span>
-    <% end %>
-    """
-  end
-
-  defp speak_button(assigns) do
-    ~H"""
-    <button
-      type="button"
-      phx-hook="Speak"
-      id={"speak-#{:erlang.phash2(@text)}"}
-      data-text={@text}
-      class="btn btn-ghost btn-circle btn-sm"
-      title="播放发音"
-    >
-      <.icon name="hero-speaker-wave" class="size-5" />
-    </button>
     """
   end
 end

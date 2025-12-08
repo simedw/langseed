@@ -1,4 +1,7 @@
 defmodule Langseed.Accounts.UserToken do
+  @moduledoc """
+  Schema and functions for managing user session and authentication tokens.
+  """
   use Ecto.Schema
   import Ecto.Query
   alias Langseed.Accounts.UserToken

@@ -1,4 +1,7 @@
 defmodule Langseed.Accounts.User do
+  @moduledoc """
+  Schema for user accounts with email/password and OAuth authentication.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

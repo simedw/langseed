@@ -5,7 +5,7 @@ defmodule LangseedWeb.TextsLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    user = get_current_user(socket)
+    user = current_user(socket)
 
     {:ok,
      assign(socket,
@@ -18,7 +18,7 @@ defmodule LangseedWeb.TextsLive do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    user = get_current_user(socket)
+    user = current_user(socket)
     text = Library.get_text!(user, id)
     {:ok, _} = Library.delete_text(text)
 
@@ -30,7 +30,7 @@ defmodule LangseedWeb.TextsLive do
 
   @impl true
   def handle_event("start_edit", %{"id" => id}, socket) do
-    user = get_current_user(socket)
+    user = current_user(socket)
     text = Library.get_text!(user, id)
     {:noreply, assign(socket, editing_id: String.to_integer(id), edit_title: text.title)}
   end
@@ -47,20 +47,13 @@ defmodule LangseedWeb.TextsLive do
 
   @impl true
   def handle_event("save_title", %{"id" => id}, socket) do
-    user = get_current_user(socket)
+    user = current_user(socket)
     text = Library.get_text!(user, id)
     {:ok, _} = Library.update_text(text, %{title: socket.assigns.edit_title})
 
     {:noreply,
      socket
      |> assign(texts: Library.list_texts(user), editing_id: nil, edit_title: "")}
-  end
-
-  defp get_current_user(socket) do
-    case socket.assigns[:current_scope] do
-      %{user: user} -> user
-      _ -> nil
-    end
   end
 
   @impl true

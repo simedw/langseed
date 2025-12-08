@@ -16,6 +16,7 @@ defmodule Langseed.Practice do
   Gets the next word to practice for a user, prioritizing lowest understanding (0-60%).
   Returns nil if no words need practice.
   """
+  @spec get_next_concept(User.t() | nil) :: Concept.t() | nil
   def get_next_concept(%User{} = user) do
     Concept
     |> where([c], c.user_id == ^user.id)
@@ -30,6 +31,7 @@ defmodule Langseed.Practice do
   @doc """
   Gets all concepts that need practice for a user (0-60% understanding).
   """
+  @spec get_practice_concepts(User.t() | nil, integer()) :: [Concept.t()]
   def get_practice_concepts(user, limit \\ 10)
 
   def get_practice_concepts(%User{} = user, limit) do
@@ -46,6 +48,7 @@ defmodule Langseed.Practice do
   @doc """
   Gets concepts suitable for quiz questions (1-60% understanding).
   """
+  @spec get_quiz_concepts(User.t() | nil) :: [Concept.t()]
   def get_quiz_concepts(%User{} = user) do
     Concept
     |> where([c], c.user_id == ^user.id)
@@ -59,6 +62,8 @@ defmodule Langseed.Practice do
   @doc """
   Gets an unused question for a concept, or generates one if none exists.
   """
+  @spec get_or_generate_question(User.t() | nil, Concept.t()) ::
+          {:ok, Question.t()} | {:error, String.t()}
   def get_or_generate_question(%User{} = user, concept) do
     case get_unused_question(concept.id) do
       nil -> generate_question(user, concept)
@@ -71,6 +76,7 @@ defmodule Langseed.Practice do
   @doc """
   Gets an unused question for a concept.
   """
+  @spec get_unused_question(term()) :: Question.t() | nil
   def get_unused_question(concept_id) do
     Question
     |> where([q], q.concept_id == ^concept_id and q.used == false)
@@ -83,6 +89,8 @@ defmodule Langseed.Practice do
   Generates a question for a concept and stores it in the database.
   Randomly picks between yes_no and fill_blank question types.
   """
+  @spec generate_question(User.t() | nil, Concept.t()) ::
+          {:ok, Question.t()} | {:error, String.t()}
   def generate_question(%User{} = user, concept) do
     known_words = Vocabulary.known_words(user)
     question_type = Enum.random(["yes_no", "fill_blank"])
@@ -106,7 +114,7 @@ defmodule Langseed.Practice do
           explanation: data.explanation
         }
 
-        attrs = if user, do: Map.put(attrs, :user_id, user.id), else: attrs
+        attrs = Map.put(attrs, :user_id, user.id)
 
         create_question(attrs)
 
@@ -116,13 +124,8 @@ defmodule Langseed.Practice do
   end
 
   defp generate_fill_blank(user, concept, known_words) do
-    # Get some distractor words (other concepts) - scoped by user if available
-    base_query =
-      if user do
-        Concept |> where([c], c.user_id == ^user.id)
-      else
-        Concept
-      end
+    # Get distractor words (other concepts from the same user)
+    base_query = Concept |> where([c], c.user_id == ^user.id)
 
     distractors =
       base_query
@@ -153,7 +156,7 @@ defmodule Langseed.Practice do
           options: data.options
         }
 
-        attrs = if user, do: Map.put(attrs, :user_id, user.id), else: attrs
+        attrs = Map.put(attrs, :user_id, user.id)
 
         create_question(attrs)
 
@@ -165,6 +168,7 @@ defmodule Langseed.Practice do
   @doc """
   Creates a question.
   """
+  @spec create_question(map()) :: {:ok, Question.t()} | {:error, Ecto.Changeset.t()}
   def create_question(attrs) do
     %Question{}
     |> Question.changeset(attrs)
@@ -174,6 +178,7 @@ defmodule Langseed.Practice do
   @doc """
   Marks a question as used.
   """
+  @spec mark_question_used(Question.t()) :: {:ok, Question.t()} | {:error, Ecto.Changeset.t()}
   def mark_question_used(question) do
     question
     |> Question.changeset(%{used: true})
@@ -183,6 +188,8 @@ defmodule Langseed.Practice do
   @doc """
   Records an answer and updates the concept's understanding score.
   """
+  @spec record_answer(Concept.t(), boolean()) ::
+          {:ok, Concept.t()} | {:error, Ecto.Changeset.t()}
   def record_answer(concept, correct?) do
     change =
       if correct? do
@@ -204,6 +211,7 @@ defmodule Langseed.Practice do
   @doc """
   Sets a 0% understanding word to 1% (user said they understand).
   """
+  @spec mark_understood(Concept.t()) :: {:ok, Concept.t()} | {:error, Ecto.Changeset.t()}
   def mark_understood(concept) do
     if concept.understanding == 0 do
       Vocabulary.update_concept(concept, %{understanding: 1})
@@ -215,6 +223,8 @@ defmodule Langseed.Practice do
   @doc """
   Evaluates a user's sentence using the target word.
   """
+  @spec evaluate_sentence(User.t() | nil, Concept.t(), String.t()) ::
+          {:ok, map()} | {:error, String.t()}
   def evaluate_sentence(%User{} = user, concept, user_sentence) do
     known_words = Vocabulary.known_words(user)
     LLM.evaluate_sentence(user.id, concept, user_sentence, known_words)
@@ -225,6 +235,8 @@ defmodule Langseed.Practice do
   @doc """
   Regenerates explanations for a concept.
   """
+  @spec regenerate_explanation(User.t() | nil, Concept.t()) ::
+          {:ok, Concept.t()} | {:error, String.t()}
   def regenerate_explanation(%User{} = user, concept) do
     known_words = Vocabulary.known_words(user)
 
@@ -242,6 +254,7 @@ defmodule Langseed.Practice do
   @doc """
   Counts unused questions for a concept.
   """
+  @spec count_unused_questions(term()) :: integer()
   def count_unused_questions(concept_id) do
     Question
     |> where([q], q.concept_id == ^concept_id and q.used == false)
@@ -252,6 +265,7 @@ defmodule Langseed.Practice do
   Gets concepts needing more questions for a user.
   Returns concepts with understanding 1-60% that have fewer than target_count unused questions.
   """
+  @spec get_concepts_needing_questions(User.t() | nil, integer()) :: [{Concept.t(), integer()}]
   def get_concepts_needing_questions(%User{} = user, target_count) do
     subquery =
       from q in Question,

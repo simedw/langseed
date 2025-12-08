@@ -1,4 +1,7 @@
 defmodule Langseed.Vocabulary.Concept do
+  @moduledoc """
+  Schema for vocabulary concepts (words) with pinyin, meaning, and explanations.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

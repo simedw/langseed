@@ -71,7 +71,8 @@ defmodule Langseed.MixProject do
       {:bandit, "~> 1.5"},
       {:oban, "~> 2.18"},
       {:ueberauth, "~> 0.10"},
-      {:ueberauth_google, "~> 0.12"}
+      {:ueberauth_google, "~> 0.12"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 

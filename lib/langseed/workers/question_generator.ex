@@ -47,22 +47,20 @@ defmodule Langseed.Workers.QuestionGenerator do
 
   defp generate_questions_for_concept(user, concept, current_count) do
     needed = @target_questions_per_word - current_count
+    Enum.each(1..needed//1, fn _ -> generate_single_question(user, concept) end)
+  end
 
-    if needed > 0 do
-      Enum.each(1..needed, fn _ ->
-        # Add some delay between API calls to avoid rate limiting
-        Process.sleep(500)
+  defp generate_single_question(user, concept) do
+    # Add some delay between API calls to avoid rate limiting
+    Process.sleep(500)
 
-        case Practice.generate_question(user, concept) do
-          {:ok, _question} ->
-            :ok
+    case Practice.generate_question(user, concept) do
+      {:ok, _question} ->
+        :ok
 
-          {:error, reason} ->
-            # Log but don't fail the job
-            require Logger
-            Logger.warning("Failed to generate question for #{concept.word}: #{inspect(reason)}")
-        end
-      end)
+      {:error, reason} ->
+        require Logger
+        Logger.warning("Failed to generate question for #{concept.word}: #{inspect(reason)}")
     end
   end
 

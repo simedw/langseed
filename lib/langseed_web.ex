@@ -53,6 +53,7 @@ defmodule LangseedWeb do
       use Phoenix.LiveView
 
       unquote(html_helpers())
+      unquote(live_view_helpers())
     end
   end
 
@@ -86,6 +87,8 @@ defmodule LangseedWeb do
       import Phoenix.HTML
       # Core UI components
       import LangseedWeb.CoreComponents
+      # Shared components (speak_button, quality_stars, concept_card, etc.)
+      import LangseedWeb.SharedComponents
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
@@ -93,6 +96,19 @@ defmodule LangseedWeb do
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())
+    end
+  end
+
+  defp live_view_helpers do
+    quote do
+      # Gets the current user from socket assigns.
+      # Returns nil if not authenticated.
+      defp current_user(socket) do
+        case socket.assigns[:current_scope] do
+          %{user: user} -> user
+          _ -> nil
+        end
+      end
     end
   end
 

@@ -1,4 +1,7 @@
 defmodule LangseedWeb.UserAuth do
+  @moduledoc """
+  Handles user authentication for both regular HTTP requests and LiveView.
+  """
   use LangseedWeb, :verified_routes
 
   import Plug.Conn
@@ -115,16 +118,21 @@ defmodule LangseedWeb.UserAuth do
   end
 
   defp ensure_user_token(conn) do
-    if token = get_session(conn, :user_token) do
-      {token, conn}
-    else
-      conn = fetch_cookies(conn, signed: [@remember_me_cookie])
+    case get_session(conn, :user_token) do
+      nil -> ensure_user_token_from_cookie(conn)
+      token -> {token, conn}
+    end
+  end
 
-      if token = conn.cookies[@remember_me_cookie] do
-        {token, conn |> put_token_in_session(token) |> put_session(:user_remember_me, true)}
-      else
+  defp ensure_user_token_from_cookie(conn) do
+    conn = fetch_cookies(conn, signed: [@remember_me_cookie])
+
+    case conn.cookies[@remember_me_cookie] do
+      nil ->
         nil
-      end
+
+      token ->
+        {token, conn |> put_token_in_session(token) |> put_session(:user_remember_me, true)}
     end
   end
 

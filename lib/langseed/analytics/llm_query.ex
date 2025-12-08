@@ -1,4 +1,7 @@
 defmodule Langseed.Analytics.LlmQuery do
+  @moduledoc """
+  Schema for tracking LLM API usage including token counts and query types.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 
