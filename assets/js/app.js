@@ -24,9 +24,162 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/langseed"
 import topbar from "../vendor/topbar"
+import * as d3 from "../vendor/d3.min.js"
 
 // Text-to-speech hook for Chinese pronunciation
 const Hooks = {
+  WordGraph: {
+    mounted() {
+      const graphData = JSON.parse(this.el.dataset.graph)
+      this.renderGraph(graphData)
+      
+      // Re-render on window resize
+      this.resizeHandler = () => this.renderGraph(graphData)
+      window.addEventListener('resize', this.resizeHandler)
+    },
+    
+    destroyed() {
+      if (this.resizeHandler) {
+        window.removeEventListener('resize', this.resizeHandler)
+      }
+    },
+    
+    renderGraph(data) {
+      // Clear existing content
+      this.el.innerHTML = ''
+      
+      if (data.nodes.length === 0) {
+        this.el.innerHTML = '<div class="flex items-center justify-center h-full text-lg opacity-50">暂无词汇数据</div>'
+        return
+      }
+      
+      const width = this.el.clientWidth
+      const height = this.el.clientHeight
+      
+      // Create SVG
+      const svg = d3.select(this.el)
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("viewBox", [0, 0, width, height])
+      
+      // Color scale based on understanding (red -> yellow -> green)
+      const understandingColor = (level) => {
+        if (level < 50) {
+          const ratio = level / 50
+          const r = 239
+          const g = Math.round(68 + (171 - 68) * ratio)
+          const b = Math.round(68 + (8 - 68) * ratio)
+          return `rgb(${r}, ${g}, ${b})`
+        } else {
+          const ratio = (level - 50) / 50
+          const r = Math.round(234 - (234 - 34) * ratio)
+          const g = Math.round(179 + (197 - 179) * ratio)
+          const b = Math.round(8 + (94 - 8) * ratio)
+          return `rgb(${r}, ${g}, ${b})`
+        }
+      }
+      
+      // Create arrow marker for directed edges
+      svg.append("defs").append("marker")
+        .attr("id", "arrowhead")
+        .attr("viewBox", "-0 -5 10 10")
+        .attr("refX", 20)
+        .attr("refY", 0)
+        .attr("orient", "auto")
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
+        .append("path")
+        .attr("d", "M 0,-5 L 10,0 L 0,5")
+        .attr("fill", "#888")
+      
+      // Create force simulation
+      const simulation = d3.forceSimulation(data.nodes)
+        .force("link", d3.forceLink(data.links).id(d => d.id).distance(80))
+        .force("charge", d3.forceManyBody().strength(-200))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collision", d3.forceCollide().radius(30))
+      
+      // Create links (edges)
+      const link = svg.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(data.links)
+        .join("line")
+        .attr("stroke", "#888")
+        .attr("stroke-opacity", 0.4)
+        .attr("stroke-width", 1.5)
+        .attr("marker-end", "url(#arrowhead)")
+      
+      // Create node groups
+      const node = svg.append("g")
+        .attr("class", "nodes")
+        .selectAll("g")
+        .data(data.nodes)
+        .join("g")
+        .call(d3.drag()
+          .on("start", (event, d) => {
+            if (!event.active) simulation.alphaTarget(0.3).restart()
+            d.fx = d.x
+            d.fy = d.y
+          })
+          .on("drag", (event, d) => {
+            d.fx = event.x
+            d.fy = event.y
+          })
+          .on("end", (event, d) => {
+            if (!event.active) simulation.alphaTarget(0)
+            d.fx = null
+            d.fy = null
+          }))
+      
+      // Add circles to nodes
+      const self = this
+      node.append("circle")
+        .attr("r", 15)
+        .attr("fill", d => understandingColor(d.understanding))
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 2)
+        .style("cursor", "pointer")
+        .on("click", (event, d) => {
+          event.stopPropagation()
+          self.pushEvent("select_word", { word: d.id })
+        })
+      
+      // Add labels to nodes
+      node.append("text")
+        .text(d => d.id)
+        .attr("text-anchor", "middle")
+        .attr("dy", 5)
+        .attr("font-size", "14px")
+        .attr("font-weight", "bold")
+        .attr("fill", "#fff")
+        .style("pointer-events", "none")
+        .style("text-shadow", "0 0 3px rgba(0,0,0,0.8)")
+      
+      // Add tooltip on hover
+      node.append("title")
+        .text(d => `${d.id}\n${d.pinyin}\n${d.meaning}\n理解: ${d.understanding}%`)
+      
+      // Update positions on simulation tick
+      simulation.on("tick", () => {
+        // Keep nodes within bounds
+        data.nodes.forEach(d => {
+          d.x = Math.max(20, Math.min(width - 20, d.x))
+          d.y = Math.max(20, Math.min(height - 20, d.y))
+        })
+        
+        link
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y)
+        
+        node.attr("transform", d => `translate(${d.x},${d.y})`)
+      })
+    }
+  },
+  
   Speak: {
     mounted() {
       this.el.addEventListener("click", () => {

@@ -25,6 +25,7 @@ defmodule LangseedWeb.Router do
       layout: {LangseedWeb.Layouts, :app},
       on_mount: [{LangseedWeb.UserAuth, :require_authenticated_user}] do
       live "/", VocabularyLive
+      live "/graph", VocabularyGraphLive
       live "/analyze", TextAnalysisLive
       live "/texts", TextsLive
       live "/practice", PracticeLive

@@ -49,6 +49,9 @@ defmodule LangseedWeb.Layouts do
         <a href="/" class="btn btn-sm btn-ghost">
           <.icon name="hero-book-open" class="size-4" /> 词汇
         </a>
+        <a href="/graph" class="btn btn-sm btn-ghost">
+          <.icon name="hero-share" class="size-4" /> 图谱
+        </a>
         <a href="/analyze" class="btn btn-sm btn-ghost">
           <.icon name="hero-magnifying-glass" class="size-4" /> 分析
         </a>
