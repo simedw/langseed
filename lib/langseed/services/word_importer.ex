@@ -7,6 +7,7 @@ defmodule Langseed.Services.WordImporter do
   alias Langseed.Vocabulary
   alias Langseed.Utils.StringUtils
   alias Langseed.Accounts.Scope
+  alias Langseed.Workers.QuestionGenerator
 
   @doc """
   Imports a list of words into the scope's vocabulary.
@@ -44,6 +45,11 @@ defmodule Langseed.Services.WordImporter do
 
     added = results |> Enum.filter(&match?({:ok, _}, &1)) |> Enum.map(&elem(&1, 1))
     failed = results |> Enum.filter(&match?({:error, _}, &1)) |> Enum.map(&elem(&1, 1))
+
+    # Trigger question generation for the user if any words were added
+    if length(added) > 0 && scope do
+      QuestionGenerator.enqueue(scope.user)
+    end
 
     {added, failed}
   end

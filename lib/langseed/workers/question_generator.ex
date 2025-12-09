@@ -1,7 +1,7 @@
 defmodule Langseed.Workers.QuestionGenerator do
   @moduledoc """
   Background worker that pre-generates questions for words that need practice.
-  Ensures each word with < 60% understanding has at least 4 unused questions ready.
+  Ensures each word with <= 60% understanding has at least 4 unused questions ready.
   """
 
   use Oban.Worker, queue: :questions, max_attempts: 3

@@ -266,7 +266,8 @@ defmodule Langseed.Practice do
 
   @doc """
   Gets concepts needing more questions for a scope.
-  Returns concepts with understanding 1-60% that have fewer than target_count unused questions.
+  Returns concepts with understanding 0-60% that have fewer than target_count unused questions.
+  Questions are generated immediately for new words (0%) so they're ready when practiced.
   """
   @spec get_concepts_needing_questions(Scope.t() | nil, integer()) :: [{Concept.t(), integer()}]
   def get_concepts_needing_questions(%Scope{user: user, language: language}, target_count) do
@@ -278,7 +279,7 @@ defmodule Langseed.Practice do
 
     Concept
     |> where([c], c.user_id == ^user.id and c.language == ^language)
-    |> where([c], c.understanding >= 1 and c.understanding <= 60)
+    |> where([c], c.understanding >= 0 and c.understanding <= 60)
     |> where([c], c.paused == false)
     |> join(:left, [c], q in subquery(subquery), on: c.id == q.concept_id)
     |> where([c, q], is_nil(q.count) or q.count < ^target_count)
