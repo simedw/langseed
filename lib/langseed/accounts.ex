@@ -290,6 +290,17 @@ defmodule Langseed.Accounts do
     :ok
   end
 
+  ## Language preferences
+
+  @doc """
+  Updates the user's selected language preference.
+  """
+  def update_selected_language(%User{} = user, language) when is_binary(language) do
+    user
+    |> Ecto.Changeset.change(selected_language: language)
+    |> Repo.update()
+  end
+
   ## Token helper
 
   defp update_user_and_delete_all_tokens(changeset) do

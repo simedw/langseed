@@ -7,18 +7,18 @@ defmodule Langseed.Vocabulary.Graph do
   """
 
   alias Langseed.Vocabulary
-  alias Langseed.Accounts.User
+  alias Langseed.Accounts.Scope
 
   @doc """
-  Builds a graph of word dependencies for a user's vocabulary.
+  Builds a graph of word dependencies for a scope's vocabulary.
 
   Returns a map with:
   - `nodes`: List of %{id: word, understanding: level, pinyin: string}
   - `links`: List of %{source: word, target: word} where source is used to explain target
   """
-  @spec build_graph(User.t()) :: %{nodes: list(map()), links: list(map())}
-  def build_graph(%User{} = user) do
-    concepts = Vocabulary.list_concepts(user)
+  @spec build_graph(Scope.t()) :: %{nodes: list(map()), links: list(map())}
+  def build_graph(%Scope{} = scope) do
+    concepts = Vocabulary.list_concepts(scope)
     known_words = MapSet.new(concepts, & &1.word)
 
     nodes =
@@ -54,9 +54,9 @@ defmodule Langseed.Vocabulary.Graph do
   @doc """
   Builds graph statistics for display.
   """
-  @spec graph_stats(User.t()) :: map()
-  def graph_stats(%User{} = user) do
-    graph = build_graph(user)
+  @spec graph_stats(Scope.t()) :: map()
+  def graph_stats(%Scope{} = scope) do
+    graph = build_graph(scope)
 
     # Calculate in-degree (how many words depend on this word)
     in_degrees =

@@ -4,6 +4,7 @@ defmodule Langseed.LibraryFixtures do
   """
 
   alias Langseed.Library
+  alias Langseed.Accounts.Scope
 
   def valid_text_attrs(attrs \\ %{}) do
     Enum.into(attrs, %{
@@ -13,8 +14,9 @@ defmodule Langseed.LibraryFixtures do
   end
 
   def text_fixture(user, attrs \\ %{}) do
+    scope = %Scope{user: user, language: "zh"}
     attrs = valid_text_attrs(attrs)
-    {:ok, text} = Library.create_text(user, attrs)
+    {:ok, text} = Library.create_text(scope, attrs)
     text
   end
 end

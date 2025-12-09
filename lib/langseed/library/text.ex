@@ -8,6 +8,8 @@ defmodule Langseed.Library.Text do
   schema "texts" do
     field :title, :string
     field :content, :string
+    # Language code (e.g., "zh", "ja", "ko", "en", "sv")
+    field :language, :string, default: "zh"
 
     belongs_to :user, Langseed.Accounts.User
 
@@ -17,7 +19,7 @@ defmodule Langseed.Library.Text do
   @doc false
   def changeset(text, attrs) do
     text
-    |> cast(attrs, [:title, :content, :user_id])
+    |> cast(attrs, [:title, :content, :language, :user_id])
     |> validate_required([:content])
     |> maybe_generate_title()
   end

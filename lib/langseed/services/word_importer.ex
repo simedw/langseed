@@ -6,23 +6,24 @@ defmodule Langseed.Services.WordImporter do
   alias Langseed.LLM
   alias Langseed.Vocabulary
   alias Langseed.Utils.StringUtils
-  alias Langseed.Accounts.User
+  alias Langseed.Accounts.Scope
 
   @doc """
-  Imports a list of words into the user's vocabulary.
+  Imports a list of words into the scope's vocabulary.
 
   Uses LLM to analyze each word and extract pinyin, meaning, and explanations.
   Falls back to placeholder values if LLM analysis fails.
 
   Returns `{added, failed}` where each is a list of word strings.
   """
-  @spec import_words(User.t() | nil, [String.t()], String.t()) ::
+  @spec import_words(Scope.t() | nil, [String.t()], String.t()) ::
           {added :: [String.t()], failed :: [String.t()]}
-  def import_words(user, words, context) do
+  def import_words(scope, words, context) do
     # Get current known words to pass to LLM for explanation generation
-    known_words = Vocabulary.known_words(user)
-    # Capture user_id for use in async tasks
-    user_id = if user, do: user.id, else: nil
+    known_words = Vocabulary.known_words(scope)
+    # Capture user_id and language for use in async tasks
+    user_id = if scope, do: scope.user.id, else: nil
+    language = if scope, do: scope.language, else: "zh"
     # Sanitize context once
     safe_context = StringUtils.ensure_valid_utf8(context)
 
@@ -31,7 +32,7 @@ defmodule Langseed.Services.WordImporter do
       words
       |> Task.async_stream(
         fn word ->
-          import_single_word(user, user_id, word, safe_context, known_words)
+          import_single_word(scope, user_id, language, word, safe_context, known_words)
         end,
         max_concurrency: 5,
         timeout: 60_000
@@ -47,22 +48,22 @@ defmodule Langseed.Services.WordImporter do
     {added, failed}
   end
 
-  defp import_single_word(user, user_id, word, context, known_words) do
+  defp import_single_word(scope, user_id, language, word, context, known_words) do
     # Extract just the sentence containing the word
-    sentence = extract_sentence(context, word)
+    sentence = extract_sentence(context, word, language)
     # Extra safety: ensure sentence is valid UTF-8 before DB insert
     safe_sentence = StringUtils.ensure_valid_utf8(sentence)
 
-    case LLM.analyze_word(user_id, word, safe_sentence, known_words) do
+    case LLM.analyze_word(user_id, word, safe_sentence, known_words, language) do
       {:ok, analysis} ->
-        create_concept_from_analysis(user, word, safe_sentence, analysis)
+        create_concept_from_analysis(scope, word, safe_sentence, analysis)
 
       {:error, _reason} ->
-        create_fallback_concept(user, word, safe_sentence)
+        create_fallback_concept(scope, word, safe_sentence)
     end
   end
 
-  defp create_concept_from_analysis(user, word, sentence, analysis) do
+  defp create_concept_from_analysis(scope, word, sentence, analysis) do
     attrs = %{
       word: StringUtils.ensure_valid_utf8(word),
       pinyin: StringUtils.ensure_valid_utf8(analysis.pinyin),
@@ -75,13 +76,13 @@ defmodule Langseed.Services.WordImporter do
       understanding: 0
     }
 
-    case Vocabulary.create_concept(user, attrs) do
+    case Vocabulary.create_concept(scope, attrs) do
       {:ok, _concept} -> {:ok, word}
       {:error, _} -> {:error, word}
     end
   end
 
-  defp create_fallback_concept(user, word, sentence) do
+  defp create_fallback_concept(scope, word, sentence) do
     attrs = %{
       word: StringUtils.ensure_valid_utf8(word),
       pinyin: "?",
@@ -94,17 +95,23 @@ defmodule Langseed.Services.WordImporter do
       understanding: 0
     }
 
-    case Vocabulary.create_concept(user, attrs) do
+    case Vocabulary.create_concept(scope, attrs) do
       {:ok, _concept} -> {:ok, word}
       {:error, _} -> {:error, word}
     end
   end
 
-  defp extract_sentence(text, word) do
-    # Split by common Chinese sentence endings
+  defp extract_sentence(text, word, language) do
+    # Split by sentence endings based on language
+    sentence_pattern =
+      case language do
+        "zh" -> ~r/[。！？\n]+/
+        _ -> ~r/[.!?\n]+/
+      end
+
     sentences =
       text
-      |> String.split(~r/[。！？\n]+/, trim: true)
+      |> String.split(sentence_pattern, trim: true)
       |> Enum.map(&String.trim/1)
       |> Enum.reject(&(&1 == ""))
 

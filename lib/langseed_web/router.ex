@@ -11,6 +11,7 @@ defmodule LangseedWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
+    plug LangseedWeb.Plugs.SetLocale
   end
 
   pipeline :api do
@@ -68,5 +69,11 @@ defmodule LangseedWeb.Router do
     pipe_through [:browser]
 
     delete "/users/log-out", UserSessionController, :delete
+  end
+
+  scope "/", LangseedWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    put "/language", LanguageController, :update
   end
 end

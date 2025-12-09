@@ -4,6 +4,7 @@ defmodule Langseed.VocabularyFixtures do
   """
 
   alias Langseed.Vocabulary
+  alias Langseed.Accounts.Scope
 
   def valid_concept_attrs(attrs \\ %{}) do
     Enum.into(attrs, %{
@@ -18,8 +19,15 @@ defmodule Langseed.VocabularyFixtures do
   end
 
   def concept_fixture(user, attrs \\ %{}) do
+    scope = %Scope{user: user, language: "zh"}
     attrs = valid_concept_attrs(attrs)
-    {:ok, concept} = Vocabulary.create_concept(user, attrs)
+    {:ok, concept} = Vocabulary.create_concept(scope, attrs)
+    concept
+  end
+
+  def concept_fixture_with_scope(scope, attrs \\ %{}) do
+    attrs = valid_concept_attrs(attrs)
+    {:ok, concept} = Vocabulary.create_concept(scope, attrs)
     concept
   end
 end

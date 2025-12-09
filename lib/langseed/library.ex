@@ -6,15 +6,15 @@ defmodule Langseed.Library do
   import Ecto.Query, warn: false
   alias Langseed.Repo
   alias Langseed.Library.Text
-  alias Langseed.Accounts.User
+  alias Langseed.Accounts.Scope
 
   @doc """
-  Returns the list of texts for a user, ordered by most recently updated.
+  Returns the list of texts for a scope (user + language), ordered by most recently updated.
   """
-  @spec list_texts(User.t() | nil) :: [Text.t()]
-  def list_texts(%User{} = user) do
+  @spec list_texts(Scope.t() | nil) :: [Text.t()]
+  def list_texts(%Scope{user: user, language: language}) do
     Text
-    |> where(user_id: ^user.id)
+    |> where(user_id: ^user.id, language: ^language)
     |> order_by(desc: :updated_at)
     |> Repo.all()
   end
@@ -22,14 +22,14 @@ defmodule Langseed.Library do
   def list_texts(nil), do: []
 
   @doc """
-  Returns recent texts for a user (limited count), ordered by most recently updated.
+  Returns recent texts for a scope (limited count), ordered by most recently updated.
   """
-  @spec list_recent_texts(User.t() | nil, integer()) :: [Text.t()]
-  def list_recent_texts(user, limit \\ 5)
+  @spec list_recent_texts(Scope.t() | nil, integer()) :: [Text.t()]
+  def list_recent_texts(scope, limit \\ 5)
 
-  def list_recent_texts(%User{} = user, limit) do
+  def list_recent_texts(%Scope{user: user, language: language}, limit) do
     Text
-    |> where(user_id: ^user.id)
+    |> where(user_id: ^user.id, language: ^language)
     |> order_by(desc: :updated_at)
     |> limit(^limit)
     |> Repo.all()
@@ -38,11 +38,11 @@ defmodule Langseed.Library do
   def list_recent_texts(nil, _limit), do: []
 
   @doc """
-  Gets a single text for a user.
+  Gets a single text for a scope.
   Raises if not found.
   """
-  @spec get_text!(User.t(), term()) :: Text.t()
-  def get_text!(%User{} = user, id) do
+  @spec get_text!(Scope.t(), term()) :: Text.t()
+  def get_text!(%Scope{user: user}, id) do
     Text
     |> where(user_id: ^user.id, id: ^id)
     |> Repo.one!()
@@ -53,21 +53,21 @@ defmodule Langseed.Library do
   @doc """
   Gets a single text, returns nil if not found.
   """
-  @spec get_text(User.t() | nil, term()) :: Text.t() | nil
-  def get_text(%User{} = user, id) do
+  @spec get_text(Scope.t() | nil, term()) :: Text.t() | nil
+  def get_text(%Scope{user: user}, id) do
     Repo.get_by(Text, id: id, user_id: user.id)
   end
 
   def get_text(nil, _id), do: nil
 
   @doc """
-  Creates a text for a user.
+  Creates a text for a scope (user + language).
   """
-  @spec create_text(User.t() | nil, map()) ::
+  @spec create_text(Scope.t() | nil, map()) ::
           {:ok, Text.t()} | {:error, Ecto.Changeset.t() | String.t()}
-  def create_text(%User{} = user, attrs) do
+  def create_text(%Scope{user: user, language: language}, attrs) do
     %Text{}
-    |> Text.changeset(Map.put(attrs, :user_id, user.id))
+    |> Text.changeset(attrs |> Map.put(:user_id, user.id) |> Map.put(:language, language))
     |> Repo.insert()
   end
 

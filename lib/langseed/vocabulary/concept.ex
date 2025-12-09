@@ -22,6 +22,8 @@ defmodule Langseed.Vocabulary.Concept do
     field :desired_words, {:array, :string}, default: []
     # Paused words won't appear in practice
     field :paused, :boolean, default: false
+    # Language code (e.g., "zh", "ja", "ko", "en", "sv")
+    field :language, :string, default: "zh"
 
     belongs_to :user, Langseed.Accounts.User
 
@@ -42,15 +44,28 @@ defmodule Langseed.Vocabulary.Concept do
       :explanation_quality,
       :desired_words,
       :paused,
+      :language,
       :user_id
     ])
-    |> validate_required([:word, :pinyin, :meaning, :part_of_speech])
+    |> validate_required([:word, :meaning, :part_of_speech])
+    |> validate_pinyin_for_chinese()
     |> validate_inclusion(:part_of_speech, @parts_of_speech)
     |> validate_number(:understanding, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_number(:explanation_quality,
       greater_than_or_equal_to: 1,
       less_than_or_equal_to: 5
     )
+  end
+
+  # Pinyin is only required for Chinese
+  defp validate_pinyin_for_chinese(changeset) do
+    language = get_field(changeset, :language) || "zh"
+
+    if language == "zh" do
+      validate_required(changeset, [:pinyin])
+    else
+      changeset
+    end
   end
 
   def parts_of_speech, do: @parts_of_speech

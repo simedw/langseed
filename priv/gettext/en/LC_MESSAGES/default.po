@@ -1,0 +1,317 @@
+## English translations (default)
+msgid ""
+msgstr ""
+"Language: en\n"
+
+#: Navigation
+msgid "Vocabulary"
+msgstr "Vocabulary"
+
+msgid "Graph"
+msgstr "Graph"
+
+msgid "Analyze"
+msgstr "Analyze"
+
+msgid "Texts"
+msgstr "Texts"
+
+msgid "Practice"
+msgstr "Practice"
+
+#: Actions
+msgid "Save"
+msgstr "Save"
+
+msgid "Update"
+msgstr "Update"
+
+msgid "Delete"
+msgstr "Delete"
+
+msgid "Load"
+msgstr "Load"
+
+msgid "New"
+msgstr "New"
+
+msgid "Add"
+msgstr "Add"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Next"
+msgstr "Next"
+
+msgid "Skip"
+msgstr "Skip"
+
+#: Messages
+msgid "Language updated"
+msgstr "Language updated"
+
+msgid "Saved"
+msgstr "Saved"
+
+msgid "Updated"
+msgstr "Updated"
+
+msgid "Deleted"
+msgstr "Deleted"
+
+msgid "Added"
+msgstr "Added"
+
+msgid "Failed"
+msgstr "Failed"
+
+#: Practice
+msgid "New explanation"
+msgstr "New explanation"
+
+msgid "Pause"
+msgstr "Pause"
+
+msgid "Resume"
+msgstr "Resume"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "No"
+msgstr "No"
+
+msgid "Submit"
+msgstr "Submit"
+
+msgid "Write a sentence"
+msgstr "Write a sentence"
+
+#: Empty states
+msgid "No vocabulary yet"
+msgstr "No vocabulary yet"
+
+msgid "No texts saved"
+msgstr "No texts saved"
+
+msgid "Go to Analyze to add words"
+msgstr "Go to Analyze to add words"
+
+#: Recent
+msgid "Recent"
+msgstr "Recent"
+
+msgid "View all"
+msgstr "View all"
+
+msgid "New text"
+msgstr "New text"
+
+#: Vocabulary page
+msgid "Go to %{link} to add words"
+msgstr "Go to %{link} to add words"
+
+#: Graph page
+msgid "Vocabulary Graph"
+msgstr "Vocabulary Graph"
+
+msgid "Words"
+msgstr "Words"
+
+msgid "Connections"
+msgstr "Connections"
+
+msgid "Isolated"
+msgstr "Isolated"
+
+msgid "Words without connections"
+msgstr "Words without connections"
+
+msgid "Foundational words"
+msgstr "Foundational words"
+
+msgid "Used to explain most other words"
+msgstr "Used to explain most other words"
+
+msgid "Complex words"
+msgstr "Complex words"
+
+msgid "Need most words to explain"
+msgstr "Need most words to explain"
+
+msgid "No data"
+msgstr "No data"
+
+msgid "No vocabulary data yet"
+msgstr "No vocabulary data yet"
+
+msgid "Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green)."
+msgstr "Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green)."
+
+msgid "Arrow direction: A → B means A is used to explain B."
+msgstr "Arrow direction: A → B means A is used to explain B."
+
+msgid "List view"
+msgstr "List view"
+
+#: Texts page
+msgid "No saved texts"
+msgstr "No saved texts"
+
+msgid "Go to %{link} to save texts"
+msgstr "Go to %{link} to save texts"
+
+msgid "Read"
+msgstr "Read"
+
+msgid "Delete this text?"
+msgstr "Delete this text?"
+
+#: Practice page
+msgid "Well done!"
+msgstr "Well done!"
+
+msgid "No words need practice"
+msgstr "No words need practice"
+
+msgid "Go to %{link} to add more words"
+msgstr "Go to %{link} to add more words"
+
+msgid "Loading..."
+msgstr "Loading..."
+
+msgid "Generating question..."
+msgstr "Generating question..."
+
+msgid "New word"
+msgstr "New word"
+
+msgid "Pause this word"
+msgstr "Pause this word"
+
+msgid "Try another explanation"
+msgstr "Try another explanation"
+
+msgid "Correct!"
+msgstr "Correct!"
+
+#: Text Analysis
+msgid "Enter text..."
+msgstr "Enter text..."
+
+msgid "Known:"
+msgstr "Known:"
+
+msgid "Unknown:"
+msgstr "Unknown:"
+
+msgid "Select all unknown"
+msgstr "Select all unknown"
+
+msgid "Add %{count} words"
+msgstr "Add %{count} words"
+
+msgid "Adding %{count}..."
+msgstr "Adding %{count}..."
+
+msgid "Added %{count} words: %{words}"
+msgstr "Added %{count} words: %{words}"
+
+msgid "Failed to add: %{words}"
+msgstr "Failed to add: %{words}"
+
+msgid "Error adding: %{error}"
+msgstr "Error adding: %{error}"
+
+msgid "Failed to add %{word}"
+msgstr "Failed to add %{word}"
+
+msgid "Added %{word}"
+msgstr "Added %{word}"
+
+msgid "New explanation generated"
+msgstr "New explanation generated"
+
+msgid "Generation failed, please try again"
+msgstr "Generation failed, please try again"
+
+msgid "Generation failed"
+msgstr "Generation failed"
+
+msgid "Evaluation failed"
+msgstr "Evaluation failed"
+
+msgid "Paused %{word}"
+msgstr "Paused %{word}"
+
+msgid "No text to save"
+msgstr "No text to save"
+
+msgid "Resume practice"
+msgstr "Resume practice"
+
+msgid "Pause practice"
+msgstr "Pause practice"
+
+msgid "Known"
+msgstr "Known"
+
+msgid "Mark as already known (100%)"
+msgstr "Mark as already known (100%)"
+
+msgid "Marked %{count} words as known"
+msgstr "Marked %{count} words as known"
+
+#: Shared components
+msgid "Play pronunciation"
+msgstr "Play pronunciation"
+
+msgid "Learning these words can improve explanations:"
+msgstr "Learning these words can improve explanations:"
+
+msgid "Adding..."
+msgstr "Adding..."
+
+msgid "Click to add to vocabulary"
+msgstr "Click to add to vocabulary"
+
+msgid "Explanation quality:"
+msgstr "Explanation quality:"
+
+msgid "Understanding"
+msgstr "Understanding"
+
+msgid "Delete %{word}?"
+msgstr "Delete %{word}?"
+
+msgid "Wrong"
+msgstr "Wrong"
+
+msgid "Correct answer: %{answer}"
+msgstr "Correct answer: %{answer}"
+
+msgid "Write sentence"
+msgstr "Write sentence"
+
+msgid "Write a sentence using %{word}"
+msgstr "Write a sentence using %{word}"
+
+msgid "Good!"
+msgstr "Good!"
+
+msgid "Needs improvement"
+msgstr "Needs improvement"
+
+msgid "Suggestion:"
+msgstr "Suggestion:"
+
+msgid "Write your sentence..."
+msgstr "Write your sentence..."
+
+msgid "Checking..."
+msgstr "Checking..."
+
+msgid "English"
+msgstr "English"
+

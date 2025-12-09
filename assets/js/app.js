@@ -49,7 +49,8 @@ const Hooks = {
       this.el.innerHTML = ''
       
       if (data.nodes.length === 0) {
-        this.el.innerHTML = '<div class="flex items-center justify-center h-full text-lg opacity-50">暂无词汇数据</div>'
+        const emptyMessage = this.el.dataset.emptyMessage || 'No vocabulary data yet'
+        this.el.innerHTML = `<div class="flex items-center justify-center h-full text-lg opacity-50">${emptyMessage}</div>`
         return
       }
       

@@ -25,22 +25,22 @@ defmodule Langseed.LLM.QuestionGenerator do
   Generates a Yes/No question about the target word using only known vocabulary.
   Returns {:ok, %{question: ..., answer: true/false, explanation: ...}} or {:error, reason}
   """
-  @spec generate_yes_no(integer() | nil, Concept.t(), MapSet.t()) ::
+  @spec generate_yes_no(integer() | nil, Concept.t(), MapSet.t(), String.t()) ::
           {:ok, yes_no_result()} | {:error, String.t()}
-  def generate_yes_no(user_id, concept, known_words) do
+  def generate_yes_no(user_id, concept, known_words, language \\ "zh") do
     # Include the target word in allowed words
     allowed_words = MapSet.put(known_words, concept.word)
 
-    generate_yes_no_with_retry(user_id, concept, known_words, allowed_words, [], @max_retries)
+    generate_yes_no_with_retry(user_id, concept, known_words, allowed_words, language, [], @max_retries)
   end
 
   @doc """
   Generates a fill-in-the-blank question with multiple choice options.
   Returns {:ok, %{sentence: ..., options: [...], correct_index: 0-3}} or {:error, reason}
   """
-  @spec generate_fill_blank(integer() | nil, Concept.t(), MapSet.t(), [Concept.t()]) ::
+  @spec generate_fill_blank(integer() | nil, Concept.t(), MapSet.t(), [Concept.t()], String.t()) ::
           {:ok, fill_blank_result()} | {:error, String.t()}
-  def generate_fill_blank(user_id, concept, known_words, distractor_words) do
+  def generate_fill_blank(user_id, concept, known_words, distractor_words, language \\ "zh") do
     # Include target word and distractor words in allowed words
     distractor_word_set = distractor_words |> Enum.map(& &1.word) |> MapSet.new()
 
@@ -55,6 +55,7 @@ defmodule Langseed.LLM.QuestionGenerator do
       known_words,
       allowed_words,
       distractor_words,
+      language,
       [],
       @max_retries
     )
@@ -67,6 +68,7 @@ defmodule Langseed.LLM.QuestionGenerator do
          _concept,
          _known_words,
          _allowed_words,
+         _language,
          _previous_illegal,
          0
        ) do
@@ -78,14 +80,15 @@ defmodule Langseed.LLM.QuestionGenerator do
          concept,
          known_words,
          allowed_words,
+         language,
          previous_illegal,
          attempts
        ) do
-    prompt = build_yes_no_prompt(concept, known_words, previous_illegal)
+    prompt = build_yes_no_prompt(concept, known_words, previous_illegal, language)
 
     with {:ok, data} <- call_llm(prompt, user_id, "yes_no_question"),
          {:ok, result} <- parse_yes_no(data),
-         :ok <- validate_words(result.question, allowed_words) do
+         :ok <- validate_words(result.question, allowed_words, language) do
       {:ok, result}
     else
       {:invalid_words, illegal} ->
@@ -94,6 +97,7 @@ defmodule Langseed.LLM.QuestionGenerator do
           concept,
           known_words,
           allowed_words,
+          language,
           illegal,
           attempts - 1
         )
@@ -103,7 +107,7 @@ defmodule Langseed.LLM.QuestionGenerator do
     end
   end
 
-  defp build_yes_no_prompt(concept, known_words, previous_illegal) do
+  defp build_yes_no_prompt(concept, known_words, previous_illegal, language) do
     # Show a sample of known words (not all, to keep prompt reasonable)
     known_words_sample =
       known_words
@@ -112,25 +116,22 @@ defmodule Langseed.LLM.QuestionGenerator do
       |> Enum.join(" ")
 
     retry_feedback = build_retry_feedback(previous_illegal)
+    language_name = language_name(language)
 
     """
-    Generate a Yes/No question in Chinese to test understanding of the word "#{concept.word}" (#{concept.meaning}).
+    Generate a Yes/No question in #{language_name} to test understanding of the word "#{concept.word}" (#{concept.meaning}).
     #{retry_feedback}
     RULES:
-    - The question must be answerable with YES (是/对) or NO (不是/不对)
-    - Use ONLY words the learner knows. Known words include: #{known_words_sample}
+    - The question must be answerable with YES or NO
+    - Write the question in #{language_name}
+    - Use ONLY #{language_name} words the learner knows. Known words include: #{known_words_sample}
     - You can also use: #{concept.word}
     - Use emojis if helpful
     - The question should test if the learner understands the MEANING of the word
     - Make the question clear and unambiguous
-    - IMPORTANT: Do NOT combine characters into words the learner doesn't know!
-      For example, if they know 学 and 生 separately, do NOT use 学生 unless 学生 is in their vocabulary.
 
     Respond ONLY with JSON (no markdown):
-    {"question": "Chinese question here", "answer": true or false, "explanation": "brief Chinese explanation of why"}
-
-    Example for 晚上 (night):
-    {"question": "太阳 在 晚上 出来 吗？", "answer": false, "explanation": "太阳 在 白天 出来，不是 晚上"}
+    {"question": "#{language_name} question here", "answer": true or false, "explanation": "brief #{language_name} explanation of why"}
     """
   end
 
@@ -153,6 +154,7 @@ defmodule Langseed.LLM.QuestionGenerator do
          _known_words,
          _allowed_words,
          _distractors,
+         _language,
          _previous_illegal,
          0
        ) do
@@ -165,15 +167,16 @@ defmodule Langseed.LLM.QuestionGenerator do
          known_words,
          allowed_words,
          distractor_words,
+         language,
          previous_illegal,
          attempts
        ) do
-    prompt = build_fill_blank_prompt(concept, known_words, distractor_words, previous_illegal)
+    prompt = build_fill_blank_prompt(concept, known_words, distractor_words, previous_illegal, language)
 
     with {:ok, data} <- call_llm(prompt, user_id, "fill_blank_question"),
          {:ok, result} <- parse_fill_blank(data),
          sentence_text = String.replace(result.sentence, "____", ""),
-         :ok <- validate_words(sentence_text, allowed_words) do
+         :ok <- validate_words(sentence_text, allowed_words, language) do
       {:ok, result}
     else
       {:invalid_words, illegal} ->
@@ -183,6 +186,7 @@ defmodule Langseed.LLM.QuestionGenerator do
           known_words,
           allowed_words,
           distractor_words,
+          language,
           illegal,
           attempts - 1
         )
@@ -192,7 +196,7 @@ defmodule Langseed.LLM.QuestionGenerator do
     end
   end
 
-  defp build_fill_blank_prompt(concept, known_words, distractor_words, previous_illegal) do
+  defp build_fill_blank_prompt(concept, known_words, distractor_words, previous_illegal, language) do
     # Show a sample of known words (not all, to keep prompt reasonable)
     known_words_sample =
       known_words
@@ -202,23 +206,22 @@ defmodule Langseed.LLM.QuestionGenerator do
 
     distractors = distractor_words |> Enum.take(3) |> Enum.map(& &1.word) |> Enum.join(", ")
     retry_feedback = build_retry_feedback(previous_illegal)
+    language_name = language_name(language)
 
     """
-    Generate a fill-in-the-blank sentence in Chinese to test the word "#{concept.word}" (#{concept.meaning}).
+    Generate a fill-in-the-blank sentence in #{language_name} to test the word "#{concept.word}" (#{concept.meaning}).
     #{retry_feedback}
     RULES:
-    - Create a sentence where "#{concept.word}" fits naturally in the blank
-    - Use ONLY words the learner knows. Known words include: #{known_words_sample}
+    - Create a #{language_name} sentence where "#{concept.word}" fits naturally in the blank
+    - Use ONLY #{language_name} words the learner knows. Known words include: #{known_words_sample}
     - Mark the blank with ____
     - The context should make the correct answer clear
-    - IMPORTANT: Do NOT combine characters into words the learner doesn't know!
-      For example, if they know 学 and 生 separately, do NOT use 学生 unless 学生 is in their vocabulary.
 
     The correct answer is: #{concept.word}
     Distractor options (wrong answers): #{distractors}
 
     Respond ONLY with JSON (no markdown):
-    {"sentence": "我 喜欢 ____ 书", "options": ["#{concept.word}", "option2", "option3", "option4"], "correct_index": 0}
+    {"sentence": "#{language_name} sentence with ____ blank", "options": ["#{concept.word}", "option2", "option3", "option4"], "correct_index": 0}
 
     IMPORTANT: Shuffle the options randomly, correct_index should match where #{concept.word} ends up (0-3).
     """
@@ -245,25 +248,22 @@ defmodule Langseed.LLM.QuestionGenerator do
     |> Client.parse_json()
   end
 
-  defp validate_words(text, allowed_words) do
-    case Language.find_unknown_words(text, allowed_words) do
+  defp validate_words(text, allowed_words, language) do
+    case Language.find_unknown_words(text, allowed_words, language) do
       [] -> :ok
       illegal -> {:invalid_words, illegal}
     end
   end
 
+  defp language_name("zh"), do: "Chinese"
+  defp language_name("sv"), do: "Swedish"
+  defp language_name("en"), do: "English"
+  defp language_name(_), do: "the target language"
+
   defp build_retry_feedback([]), do: ""
 
   defp build_retry_feedback(previous_illegal) do
-    has_english_error = "[英文]" in previous_illegal
-    illegal_words = Enum.reject(previous_illegal, &(&1 == "[英文]"))
-
-    english_warning =
-      if has_english_error do
-        "You used ENGLISH letters which is FORBIDDEN. "
-      else
-        ""
-      end
+    illegal_words = previous_illegal
 
     word_warning =
       if Enum.empty?(illegal_words) do
@@ -274,7 +274,7 @@ defmodule Langseed.LLM.QuestionGenerator do
 
     """
 
-    ⚠️ RETRY: #{english_warning}#{word_warning}Use ONLY words from the learner's vocabulary. Do NOT combine characters into unknown words!
+    ⚠️ RETRY: #{word_warning}Use ONLY words from the learner's vocabulary.
     """
   end
 end

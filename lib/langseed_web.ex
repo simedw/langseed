@@ -101,6 +101,12 @@ defmodule LangseedWeb do
 
   defp live_view_helpers do
     quote do
+      # Gets the current scope from socket assigns.
+      # Returns nil if not authenticated.
+      defp current_scope(socket) do
+        socket.assigns[:current_scope]
+      end
+
       # Gets the current user from socket assigns.
       # Returns nil if not authenticated.
       defp current_user(socket) do

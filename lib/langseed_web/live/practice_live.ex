@@ -12,7 +12,7 @@ defmodule LangseedWeb.PracticeLive do
     {:ok,
      socket
      |> assign(
-       page_title: "Practice",
+       page_title: gettext("Practice"),
        current_concept: nil,
        mode: :loading,
        question: nil,
@@ -26,15 +26,15 @@ defmodule LangseedWeb.PracticeLive do
   end
 
   defp load_next_concept(socket) do
-    user = current_user(socket)
+    scope = current_scope(socket)
 
-    case Practice.get_next_concept(user) do
+    case Practice.get_next_concept(scope) do
       nil -> assign(socket, mode: :no_words, current_concept: nil)
-      concept -> setup_concept(socket, user, concept)
+      concept -> setup_concept(socket, scope, concept)
     end
   end
 
-  defp setup_concept(socket, user, concept) do
+  defp setup_concept(socket, scope, concept) do
     mode = if concept.understanding == 0, do: :definition, else: :loading_quiz
 
     socket
@@ -45,16 +45,16 @@ defmodule LangseedWeb.PracticeLive do
       feedback: nil,
       user_answer: nil
     )
-    |> maybe_start_quiz_generation(user, concept, mode)
+    |> maybe_start_quiz_generation(scope, concept, mode)
   end
 
-  defp maybe_start_quiz_generation(socket, user, concept, :loading_quiz) do
+  defp maybe_start_quiz_generation(socket, scope, concept, :loading_quiz) do
     socket
     |> assign(loading: true)
-    |> start_async(:generate_question, fn -> Practice.get_or_generate_question(user, concept) end)
+    |> start_async(:generate_question, fn -> Practice.get_or_generate_question(scope, concept) end)
   end
 
-  defp maybe_start_quiz_generation(socket, _user, _concept, _mode), do: socket
+  defp maybe_start_quiz_generation(socket, _scope, _concept, _mode), do: socket
 
   @impl true
   def handle_async(:generate_question, {:ok, {:ok, question}}, socket) do
@@ -77,7 +77,7 @@ defmodule LangseedWeb.PracticeLive do
     {:noreply,
      socket
      |> assign(current_concept: updated_concept, loading: false)
-     |> put_flash(:info, "新解释已生成")}
+     |> put_flash(:info, gettext("New explanation generated"))}
   end
 
   @impl true
@@ -85,12 +85,12 @@ defmodule LangseedWeb.PracticeLive do
     {:noreply,
      socket
      |> assign(loading: false)
-     |> put_flash(:error, "生成失败，请再试")}
+     |> put_flash(:error, gettext("Generation failed, please try again"))}
   end
 
   @impl true
   def handle_async(:regenerate_explanation, {:exit, _}, socket) do
-    {:noreply, assign(socket, loading: false) |> put_flash(:error, "生成失败")}
+    {:noreply, assign(socket, loading: false) |> put_flash(:error, gettext("Generation failed"))}
   end
 
   @impl true
@@ -109,19 +109,19 @@ defmodule LangseedWeb.PracticeLive do
 
   @impl true
   def handle_async(:evaluate_sentence, {:ok, {:error, _}}, socket) do
-    {:noreply, assign(socket, loading: false) |> put_flash(:error, "评估失败")}
+    {:noreply, assign(socket, loading: false) |> put_flash(:error, gettext("Evaluation failed"))}
   end
 
   @impl true
   def handle_async(:evaluate_sentence, {:exit, _}, socket) do
-    {:noreply, assign(socket, loading: false) |> put_flash(:error, "评估失败")}
+    {:noreply, assign(socket, loading: false) |> put_flash(:error, gettext("Evaluation failed"))}
   end
 
   @impl true
   def handle_async({:import_word, word}, {:ok, {[_], []}}, socket) do
     {:noreply,
      socket
-     |> put_flash(:success, "添加了 #{word} ✓")
+     |> put_flash(:success, gettext("Added %{word}", word: word))
      |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
   end
 
@@ -129,7 +129,7 @@ defmodule LangseedWeb.PracticeLive do
   def handle_async({:import_word, word}, {:ok, {[], [_]}}, socket) do
     {:noreply,
      socket
-     |> put_flash(:error, "添加 #{word} 失败")
+     |> put_flash(:error, gettext("Failed to add %{word}", word: word))
      |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
   end
 
@@ -137,7 +137,7 @@ defmodule LangseedWeb.PracticeLive do
   def handle_async({:import_word, word}, {:exit, _reason}, socket) do
     {:noreply,
      socket
-     |> put_flash(:error, "添加 #{word} 失败")
+     |> put_flash(:error, gettext("Failed to add %{word}", word: word))
      |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
   end
 
@@ -149,7 +149,7 @@ defmodule LangseedWeb.PracticeLive do
 
     {:noreply,
      socket
-     |> put_flash(:info, "暂停了 #{concept.word}")
+     |> put_flash(:info, gettext("Paused %{word}", word: concept.word))
      |> load_next_concept()}
   end
 
@@ -164,14 +164,14 @@ defmodule LangseedWeb.PracticeLive do
 
   @impl true
   def handle_event("new_explanation", _, socket) do
-    user = current_user(socket)
+    scope = current_scope(socket)
     concept = socket.assigns.current_concept
 
     {:noreply,
      socket
      |> assign(loading: true)
      |> start_async(:regenerate_explanation, fn ->
-       Practice.regenerate_explanation(user, concept)
+       Practice.regenerate_explanation(scope, concept)
      end)}
   end
 
@@ -227,18 +227,18 @@ defmodule LangseedWeb.PracticeLive do
 
   @impl true
   def handle_event("submit_sentence", _, socket) do
-    user = current_user(socket)
+    scope = current_scope(socket)
     sentence = socket.assigns.sentence_input
     concept = socket.assigns.current_concept
 
     if String.trim(sentence) == "" do
-      {:noreply, put_flash(socket, :error, "请写一个句子")}
+      {:noreply, put_flash(socket, :error, "Please write a sentence")}
     else
       {:noreply,
        socket
        |> assign(loading: true)
        |> start_async(:evaluate_sentence, fn ->
-         Practice.evaluate_sentence(user, concept, sentence)
+         Practice.evaluate_sentence(scope, concept, sentence)
        end)}
     end
   end
@@ -259,17 +259,17 @@ defmodule LangseedWeb.PracticeLive do
   # Desired word handlers
   @impl true
   def handle_event("add_desired_word", %{"word" => word, "context" => context}, socket) do
-    user = current_user(socket)
+    scope = current_scope(socket)
 
     # Check if word already exists
-    if Vocabulary.word_known?(user, word) do
-      {:noreply, put_flash(socket, :info, "#{word} 已经在你的词汇表里了")}
+    if Vocabulary.word_known?(scope, word) do
+      {:noreply, put_flash(socket, :info, "#{word} is already in your vocabulary")}
     else
       {:noreply,
        socket
        |> assign(importing_words: [word | socket.assigns.importing_words])
        |> start_async({:import_word, word}, fn ->
-         WordImporter.import_words(user, [word], context)
+         WordImporter.import_words(scope, [word], context)
        end)}
     end
   end
@@ -279,7 +279,7 @@ defmodule LangseedWeb.PracticeLive do
     ~H"""
     <div class="min-h-screen pb-20">
       <div class="p-4 max-w-lg mx-auto">
-        <h1 class="text-2xl font-bold mb-6 text-center">练习</h1>
+        <h1 class="text-2xl font-bold mb-6 text-center">{gettext("Practice")}</h1>
 
         <%= case @mode do %>
           <% :no_words -> %>
@@ -287,7 +287,7 @@ defmodule LangseedWeb.PracticeLive do
           <% :loading -> %>
             <.loading_card />
           <% :loading_quiz -> %>
-            <.loading_card message="生成问题中..." />
+            <.loading_card message={gettext("Generating question...")} />
           <% :definition -> %>
             <.definition_card
               concept={@current_concept}

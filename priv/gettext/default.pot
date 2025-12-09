@@ -1,0 +1,308 @@
+## This file is a PO Template file.
+##
+## `msgid`s here are often extracted from source code.
+## Add new translations manually only if they're dynamic
+## or not easily detectable.
+
+msgid ""
+msgstr ""
+
+#: Navigation
+msgid "Vocabulary"
+msgstr ""
+
+msgid "Graph"
+msgstr ""
+
+msgid "Analyze"
+msgstr ""
+
+msgid "Texts"
+msgstr ""
+
+msgid "Practice"
+msgstr ""
+
+#: Actions
+msgid "Save"
+msgstr ""
+
+msgid "Update"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Load"
+msgstr ""
+
+msgid "New"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Next"
+msgstr ""
+
+msgid "Skip"
+msgstr ""
+
+#: Messages
+msgid "Language updated"
+msgstr ""
+
+msgid "Saved"
+msgstr ""
+
+msgid "Updated"
+msgstr ""
+
+msgid "Deleted"
+msgstr ""
+
+msgid "Added"
+msgstr ""
+
+msgid "Failed"
+msgstr ""
+
+#: Practice
+msgid "I understand"
+msgstr ""
+
+msgid "New explanation"
+msgstr ""
+
+msgid "Pause"
+msgstr ""
+
+msgid "Resume"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "Submit"
+msgstr ""
+
+msgid "Write a sentence"
+msgstr ""
+
+#: Empty states
+msgid "No vocabulary yet"
+msgstr ""
+
+msgid "No texts saved"
+msgstr ""
+
+msgid "Go to Analyze to add words"
+msgstr ""
+
+#: Recent
+msgid "Recent"
+msgstr ""
+
+msgid "View all"
+msgstr ""
+
+msgid "New text"
+msgstr ""
+
+#: Vocabulary page
+msgid "No vocabulary yet"
+msgstr ""
+
+msgid "Go to %{link} to add words"
+msgstr ""
+
+#: Graph page
+msgid "Vocabulary Graph"
+msgstr ""
+
+msgid "Words"
+msgstr ""
+
+msgid "Connections"
+msgstr ""
+
+msgid "Isolated"
+msgstr ""
+
+msgid "Words without connections"
+msgstr ""
+
+msgid "Foundational words"
+msgstr ""
+
+msgid "Used to explain most other words"
+msgstr ""
+
+msgid "Complex words"
+msgstr ""
+
+msgid "Need most words to explain"
+msgstr ""
+
+msgid "No data"
+msgstr ""
+
+msgid "No vocabulary data yet"
+msgstr ""
+
+msgid "Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green)."
+msgstr ""
+
+msgid "Arrow direction: A → B means A is used to explain B."
+msgstr ""
+
+msgid "List view"
+msgstr ""
+
+#: Texts page
+msgid "No saved texts"
+msgstr ""
+
+msgid "Go to %{link} to save texts"
+msgstr ""
+
+msgid "Read"
+msgstr ""
+
+msgid "Delete this text?"
+msgstr ""
+
+#: Practice page
+msgid "Well done!"
+msgstr ""
+
+msgid "No words need practice"
+msgstr ""
+
+msgid "Go to %{link} to add more words"
+msgstr ""
+
+msgid "Loading..."
+msgstr ""
+
+msgid "Generating question..."
+msgstr ""
+
+msgid "New word"
+msgstr ""
+
+msgid "Pause this word"
+msgstr ""
+
+msgid "Try another explanation"
+msgstr ""
+
+msgid "Correct!"
+msgstr ""
+
+msgid "Wrong"
+msgstr ""
+
+msgid "Correct answer: %{answer}"
+msgstr ""
+
+msgid "Write sentence"
+msgstr ""
+
+msgid "Write a sentence using %{word}"
+msgstr ""
+
+msgid "Good!"
+msgstr ""
+
+msgid "Needs improvement"
+msgstr ""
+
+msgid "Suggestion:"
+msgstr ""
+
+msgid "Write your sentence..."
+msgstr ""
+
+msgid "Checking..."
+msgstr ""
+
+msgid "English"
+msgstr ""
+
+#: Text Analysis
+msgid "Enter text..."
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Update"
+msgstr ""
+
+msgid "No text to save"
+msgstr ""
+
+msgid "Saved"
+msgstr ""
+
+msgid "Recent"
+msgstr ""
+
+msgid "View all"
+msgstr ""
+
+msgid "No saved texts"
+msgstr ""
+
+msgid "Known:"
+msgstr ""
+
+msgid "Unknown:"
+msgstr ""
+
+msgid "Select all unknown"
+msgstr ""
+
+msgid "Add %{count} words"
+msgstr ""
+
+msgid "Adding %{count}..."
+msgstr ""
+
+msgid "Added %{count} words: %{words}"
+msgstr ""
+
+msgid "Failed to add: %{words}"
+msgstr ""
+
+msgid "Error adding: %{error}"
+msgstr ""
+
+msgid "Failed to add %{word}"
+msgstr ""
+
+msgid "Added %{word} ✓"
+msgstr ""
+
+msgid "New explanation generated"
+msgstr ""
+
+msgid "Generation failed, please try again"
+msgstr ""
+
+msgid "Generation failed"
+msgstr ""
+
+msgid "Evaluation failed"
+msgstr ""
+
+msgid "Paused %{word}"
+msgstr ""
+

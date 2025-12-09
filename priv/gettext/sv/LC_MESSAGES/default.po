@@ -1,0 +1,320 @@
+## Swedish translations
+msgid ""
+msgstr ""
+"Language: sv\n"
+
+#: Navigation
+msgid "Vocabulary"
+msgstr "Ordförråd"
+
+msgid "Graph"
+msgstr "Graf"
+
+msgid "Analyze"
+msgstr "Analysera"
+
+msgid "Texts"
+msgstr "Texter"
+
+msgid "Practice"
+msgstr "Öva"
+
+#: Actions
+msgid "Save"
+msgstr "Spara"
+
+msgid "Update"
+msgstr "Uppdatera"
+
+msgid "Delete"
+msgstr "Ta bort"
+
+msgid "Load"
+msgstr "Ladda"
+
+msgid "New"
+msgstr "Ny"
+
+msgid "Add"
+msgstr "Lägg till"
+
+msgid "Cancel"
+msgstr "Avbryt"
+
+msgid "Next"
+msgstr "Nästa"
+
+msgid "Skip"
+msgstr "Hoppa över"
+
+#: Messages
+msgid "Language updated"
+msgstr "Språk uppdaterat"
+
+msgid "Saved"
+msgstr "Sparat"
+
+msgid "Updated"
+msgstr "Uppdaterat"
+
+msgid "Deleted"
+msgstr "Borttaget"
+
+msgid "Added"
+msgstr "Tillagt"
+
+msgid "Failed"
+msgstr "Misslyckades"
+
+#: Practice
+msgid "I understand"
+msgstr "Jag förstår"
+
+msgid "New explanation"
+msgstr "Ny förklaring"
+
+msgid "Pause"
+msgstr "Pausa"
+
+msgid "Resume"
+msgstr "Återuppta"
+
+msgid "Yes"
+msgstr "Ja"
+
+msgid "No"
+msgstr "Nej"
+
+msgid "Submit"
+msgstr "Skicka"
+
+msgid "Write a sentence"
+msgstr "Skriv en mening"
+
+#: Empty states
+msgid "No vocabulary yet"
+msgstr "Inget ordförråd ännu"
+
+msgid "No texts saved"
+msgstr "Inga sparade texter"
+
+msgid "Go to Analyze to add words"
+msgstr "Gå till Analysera för att lägga till ord"
+
+#: Recent
+msgid "Recent"
+msgstr "Senaste"
+
+msgid "View all"
+msgstr "Visa alla"
+
+msgid "New text"
+msgstr "Ny text"
+
+#: Vocabulary page
+msgid "Go to %{link} to add words"
+msgstr "Gå till %{link} för att lägga till ord"
+
+#: Graph page
+msgid "Vocabulary Graph"
+msgstr "Ordförrådsgrafen"
+
+msgid "Words"
+msgstr "Ord"
+
+msgid "Connections"
+msgstr "Kopplingar"
+
+msgid "Isolated"
+msgstr "Isolerade"
+
+msgid "Words without connections"
+msgstr "Ord utan kopplingar"
+
+msgid "Foundational words"
+msgstr "Grundläggande ord"
+
+msgid "Used to explain most other words"
+msgstr "Används för att förklara flest andra ord"
+
+msgid "Complex words"
+msgstr "Komplexa ord"
+
+msgid "Need most words to explain"
+msgstr "Behöver flest ord för att förklara"
+
+msgid "No data"
+msgstr "Ingen data"
+
+msgid "No vocabulary data yet"
+msgstr "Ingen ordförrådsdata ännu"
+
+msgid "Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green)."
+msgstr "Klicka på noder för detaljer. Dra för att justera position. Färg visar förståelsenivå (röd → gul → grön)."
+
+msgid "Arrow direction: A → B means A is used to explain B."
+msgstr "Pilriktning: A → B betyder att A används för att förklara B."
+
+msgid "List view"
+msgstr "Listvy"
+
+#: Texts page
+msgid "No saved texts"
+msgstr "Inga sparade texter"
+
+msgid "Go to %{link} to save texts"
+msgstr "Gå till %{link} för att spara texter"
+
+msgid "Read"
+msgstr "Läs"
+
+msgid "Delete this text?"
+msgstr "Ta bort denna text?"
+
+#: Practice page
+msgid "Well done!"
+msgstr "Bra jobbat!"
+
+msgid "No words need practice"
+msgstr "Inga ord behöver övas"
+
+msgid "Go to %{link} to add more words"
+msgstr "Gå till %{link} för att lägga till fler ord"
+
+msgid "Loading..."
+msgstr "Laddar..."
+
+msgid "Generating question..."
+msgstr "Genererar fråga..."
+
+msgid "New word"
+msgstr "Nytt ord"
+
+msgid "Pause this word"
+msgstr "Pausa detta ord"
+
+msgid "Try another explanation"
+msgstr "Prova en annan förklaring"
+
+msgid "Correct!"
+msgstr "Rätt!"
+
+#: Text Analysis
+msgid "Enter text..."
+msgstr "Skriv text..."
+
+msgid "Known:"
+msgstr "Kända:"
+
+msgid "Unknown:"
+msgstr "Okända:"
+
+msgid "Select all unknown"
+msgstr "Välj alla okända"
+
+msgid "Add %{count} words"
+msgstr "Lägg till %{count} ord"
+
+msgid "Adding %{count}..."
+msgstr "Lägger till %{count}..."
+
+msgid "Added %{count} words: %{words}"
+msgstr "La till %{count} ord: %{words}"
+
+msgid "Failed to add: %{words}"
+msgstr "Misslyckades att lägga till: %{words}"
+
+msgid "Error adding: %{error}"
+msgstr "Fel vid tillägg: %{error}"
+
+msgid "Failed to add %{word}"
+msgstr "Misslyckades att lägga till %{word}"
+
+msgid "Added %{word}"
+msgstr "La till %{word}"
+
+msgid "New explanation generated"
+msgstr "Ny förklaring genererad"
+
+msgid "Generation failed, please try again"
+msgstr "Generering misslyckades, försök igen"
+
+msgid "Generation failed"
+msgstr "Generering misslyckades"
+
+msgid "Evaluation failed"
+msgstr "Utvärdering misslyckades"
+
+msgid "Paused %{word}"
+msgstr "Pausade %{word}"
+
+msgid "No text to save"
+msgstr "Ingen text att spara"
+
+msgid "Resume practice"
+msgstr "Återuppta övning"
+
+msgid "Pause practice"
+msgstr "Pausa övning"
+
+msgid "Known"
+msgstr "Känt"
+
+msgid "Mark as already known (100%)"
+msgstr "Markera som redan känt (100%)"
+
+msgid "Marked %{count} words as known"
+msgstr "Markerade %{count} ord som kända"
+
+#: Shared components
+msgid "Play pronunciation"
+msgstr "Spela upp uttal"
+
+msgid "Learning these words can improve explanations:"
+msgstr "Att lära dig dessa ord kan förbättra förklaringarna:"
+
+msgid "Adding..."
+msgstr "Lägger till..."
+
+msgid "Click to add to vocabulary"
+msgstr "Klicka för att lägga till i ordförrådet"
+
+msgid "Explanation quality:"
+msgstr "Förklaringskvalitet:"
+
+msgid "Understanding"
+msgstr "Förståelse"
+
+msgid "Delete %{word}?"
+msgstr "Ta bort %{word}?"
+
+msgid "Wrong"
+msgstr "Fel"
+
+msgid "Correct answer: %{answer}"
+msgstr "Rätt svar: %{answer}"
+
+msgid "Write sentence"
+msgstr "Skriv mening"
+
+msgid "Write a sentence using %{word}"
+msgstr "Skriv en mening med %{word}"
+
+msgid "Good!"
+msgstr "Bra!"
+
+msgid "Needs improvement"
+msgstr "Behöver förbättras"
+
+msgid "Suggestion:"
+msgstr "Förslag:"
+
+msgid "Write your sentence..."
+msgstr "Skriv din mening..."
+
+msgid "Checking..."
+msgstr "Kontrollerar..."
+
+msgid "English"
+msgstr "Engelska"
+

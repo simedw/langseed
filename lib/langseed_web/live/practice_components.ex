@@ -4,6 +4,7 @@ defmodule LangseedWeb.PracticeComponents do
   """
 
   use Phoenix.Component
+  use Gettext, backend: LangseedWeb.Gettext
 
   import LangseedWeb.CoreComponents, only: [icon: 1]
   import LangseedWeb.SharedComponents, only: [speak_button: 1, desired_words_section: 1]
@@ -16,10 +17,10 @@ defmodule LangseedWeb.PracticeComponents do
     <div class="card bg-base-200 shadow-lg">
       <div class="card-body text-center">
         <div class="text-6xl mb-4">🎉</div>
-        <h2 class="card-title justify-center">做得好！</h2>
-        <p class="opacity-70">没有需要练习的词汇了</p>
+        <h2 class="card-title justify-center">{gettext("Well done!")}</h2>
+        <p class="opacity-70">{gettext("No words need practice")}</p>
         <p class="text-sm opacity-50 mt-2">
-          去 <a href="/analyze" class="link link-primary">分析</a> 添加更多词汇
+          {gettext("Go to %{link} to add more words", link: ~s(<a href="/analyze" class="link link-primary">#{gettext("Analyze")}</a>)) |> Phoenix.HTML.raw()}
         </p>
       </div>
     </div>
@@ -29,14 +30,16 @@ defmodule LangseedWeb.PracticeComponents do
   @doc """
   Renders a loading card with an optional message.
   """
-  attr :message, :string, default: "加载中..."
+  attr :message, :string, default: nil
 
   def loading_card(assigns) do
+    assigns = assign_new(assigns, :display_message, fn -> assigns.message || gettext("Loading...") end)
+
     ~H"""
     <div class="card bg-base-200 shadow-lg">
       <div class="card-body items-center text-center">
         <span class="loading loading-spinner loading-lg"></span>
-        <p class="opacity-70 mt-4">{@message}</p>
+        <p class="opacity-70 mt-4">{@display_message}</p>
       </div>
     </div>
     """
@@ -57,18 +60,20 @@ defmodule LangseedWeb.PracticeComponents do
           <button
             class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
             phx-click="pause_word"
-            title="暂停这个词"
+            title={gettext("Pause this word")}
           >
-            <.icon name="hero-pause" class="size-4" /> 暂停
+            <.icon name="hero-pause" class="size-4" /> {gettext("Pause")}
           </button>
         </div>
         <div class="text-center mb-4">
-          <span class="badge badge-warning mb-2">新词</span>
+          <span class="badge badge-warning mb-2">{gettext("New word")}</span>
           <div class="flex items-center justify-center gap-2">
             <h2 class="text-5xl font-bold">{@concept.word}</h2>
             <.speak_button text={@concept.word} />
           </div>
-          <p class="text-xl text-primary mt-2">{@concept.pinyin}</p>
+          <%= if @concept.language == "zh" && @concept.pinyin && @concept.pinyin != "" && @concept.pinyin != "-" do %>
+            <p class="text-xl text-primary mt-2">{@concept.pinyin}</p>
+          <% end %>
         </div>
 
         <div class="bg-base-300 rounded-lg p-4 mb-4">
@@ -92,37 +97,25 @@ defmodule LangseedWeb.PracticeComponents do
 
         <details class="mb-4">
           <summary class="text-xs opacity-40 cursor-pointer hover:opacity-60">
-            👁️ 英文
+            👁️ {gettext("English")}
           </summary>
           <p class="text-sm opacity-60 mt-1">{@concept.meaning}</p>
         </details>
 
         <div class="flex flex-col gap-2">
-          <button
-            class="btn btn-success"
-            phx-click="understand"
-            disabled={@loading}
-          >
-            <.icon name="hero-check" class="size-5" /> 我懂了
+          <button class="btn btn-success" phx-click="understand" disabled={@loading}>
+            <.icon name="hero-check" class="size-5" /> {gettext("I understand")}
           </button>
-          <button
-            class="btn btn-outline"
-            phx-click="new_explanation"
-            disabled={@loading}
-          >
+          <button class="btn btn-outline" phx-click="new_explanation" disabled={@loading}>
             <%= if @loading do %>
               <span class="loading loading-spinner loading-sm"></span>
             <% else %>
               <.icon name="hero-arrow-path" class="size-5" />
             <% end %>
-            换一个解释
+            {gettext("Try another explanation")}
           </button>
-          <button
-            class="btn btn-ghost btn-sm"
-            phx-click="skip"
-            disabled={@loading}
-          >
-            跳过
+          <button class="btn btn-ghost btn-sm" phx-click="skip" disabled={@loading}>
+            {gettext("Skip")}
           </button>
         </div>
       </div>
@@ -146,9 +139,9 @@ defmodule LangseedWeb.PracticeComponents do
           <button
             class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
             phx-click="pause_word"
-            title="暂停这个词"
+            title={gettext("Pause this word")}
           >
-            <.icon name="hero-pause" class="size-4" /> 暂停
+            <.icon name="hero-pause" class="size-4" /> {gettext("Pause")}
           </button>
         </div>
         <%= case @question.question_type do %>
@@ -165,13 +158,13 @@ defmodule LangseedWeb.PracticeComponents do
         <%= if @feedback do %>
           <div class="mt-4">
             <button class="btn btn-primary w-full" phx-click="next">
-              下一个 <.icon name="hero-arrow-right" class="size-5" />
+              {gettext("Next")} <.icon name="hero-arrow-right" class="size-5" />
             </button>
           </div>
         <% else %>
           <div class="mt-4 text-center">
             <button class="btn btn-ghost btn-sm" phx-click="switch_to_sentence">
-              写句子练习
+              {gettext("Write sentence")}
             </button>
           </div>
         <% end %>
@@ -199,7 +192,7 @@ defmodule LangseedWeb.PracticeComponents do
         <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-error"} mb-4"}>
           <span class="text-2xl">{if @feedback.correct, do: "✅", else: "❌"}</span>
           <div>
-            <p class="font-bold">{if @feedback.correct, do: "正确！", else: "错误"}</p>
+            <p class="font-bold">{if @feedback.correct, do: gettext("Correct!"), else: gettext("Wrong")}</p>
             <%= if @feedback.explanation && @feedback.explanation != "" do %>
               <p class="text-sm">{@feedback.explanation}</p>
             <% end %>
@@ -212,14 +205,14 @@ defmodule LangseedWeb.PracticeComponents do
             phx-click="answer_yes_no"
             phx-value-answer="yes"
           >
-            是 ✓
+            {gettext("Yes")} ✓
           </button>
           <button
             class="btn btn-lg btn-error flex-1"
             phx-click="answer_yes_no"
             phx-value-answer="no"
           >
-            不是 ✗
+            {gettext("No")} ✗
           </button>
         </div>
       <% end %>
@@ -277,7 +270,7 @@ defmodule LangseedWeb.PracticeComponents do
         <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-error"} mt-4"}>
           <span class="text-2xl">{if @feedback.correct, do: "✅", else: "❌"}</span>
           <p class="font-bold">
-            {if @feedback.correct, do: "正确！", else: "正确答案: #{@feedback.correct_answer}"}
+            {if @feedback.correct, do: gettext("Correct!"), else: gettext("Correct answer: %{answer}", answer: @feedback.correct_answer)}
           </p>
         </div>
       <% end %>
@@ -301,44 +294,46 @@ defmodule LangseedWeb.PracticeComponents do
           <button
             class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
             phx-click="pause_word"
-            title="暂停这个词"
+            title={gettext("Pause this word")}
           >
-            <.icon name="hero-pause" class="size-4" /> 暂停
+            <.icon name="hero-pause" class="size-4" /> {gettext("Pause")}
           </button>
         </div>
         <div class="text-center mb-4">
-          <span class="badge badge-info mb-2">写句子</span>
+          <span class="badge badge-info mb-2">{gettext("Write sentence")}</span>
           <div class="flex items-center justify-center gap-2">
             <h2 class="text-3xl font-bold">{@concept.word}</h2>
             <.speak_button text={@concept.word} />
           </div>
-          <p class="text-lg text-primary">{@concept.pinyin}</p>
+          <%= if @concept.language == "zh" && @concept.pinyin && @concept.pinyin != "" && @concept.pinyin != "-" do %>
+            <p class="text-lg text-primary">{@concept.pinyin}</p>
+          <% end %>
           <p class="text-sm opacity-60 mt-1">{@concept.meaning}</p>
         </div>
 
         <p class="text-center mb-4 opacity-70">
-          用 <span class="font-bold text-primary">{@concept.word}</span> 写一个句子
+          {gettext("Write a sentence using %{word}", word: ~s(<span class="font-bold text-primary">#{@concept.word}</span>)) |> Phoenix.HTML.raw()}
         </p>
 
         <%= if @feedback do %>
           <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-warning"} mb-4"}>
             <div>
-              <p class="font-bold">{if @feedback.correct, do: "很好！👍", else: "需要改进"}</p>
+              <p class="font-bold">{if @feedback.correct, do: gettext("Good!"), else: gettext("Needs improvement")}</p>
               <p>{@feedback.feedback}</p>
               <%= if @feedback.improved do %>
-                <p class="text-sm mt-2 opacity-70">建议: {@feedback.improved}</p>
+                <p class="text-sm mt-2 opacity-70">{gettext("Suggestion:")} {@feedback.improved}</p>
               <% end %>
             </div>
           </div>
 
           <button class="btn btn-primary w-full" phx-click="next">
-            下一个 <.icon name="hero-arrow-right" class="size-5" />
+            {gettext("Next")} <.icon name="hero-arrow-right" class="size-5" />
           </button>
         <% else %>
           <form phx-submit="submit_sentence" phx-change="update_sentence">
             <textarea
               class="textarea textarea-bordered w-full h-24 text-lg mb-4"
-              placeholder="写你的句子..."
+              placeholder={gettext("Write your sentence...")}
               name="sentence"
               disabled={@loading}
             >{@sentence_input}</textarea>
@@ -349,15 +344,15 @@ defmodule LangseedWeb.PracticeComponents do
               disabled={@loading || String.trim(@sentence_input) == ""}
             >
               <%= if @loading do %>
-                <span class="loading loading-spinner loading-sm"></span> 检查中...
+                <span class="loading loading-spinner loading-sm"></span> {gettext("Checking...")}
               <% else %>
-                <.icon name="hero-paper-airplane" class="size-5" /> 提交
+                <.icon name="hero-paper-airplane" class="size-5" /> {gettext("Submit")}
               <% end %>
             </button>
           </form>
 
           <button class="btn btn-ghost btn-sm w-full mt-2" phx-click="skip">
-            跳过
+            {gettext("Skip")}
           </button>
         <% end %>
       </div>

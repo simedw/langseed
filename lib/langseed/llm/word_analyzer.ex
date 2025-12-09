@@ -21,19 +21,29 @@ defmodule Langseed.LLM.WordAnalyzer do
         }
 
   @doc """
-  Analyzes a Chinese word within its context sentence to extract
-  pinyin, meaning, part of speech, and a self-referential explanation.
+  Analyzes a word within its context sentence to extract
+  pronunciation (pinyin for Chinese), meaning, part of speech, and explanations.
 
-  The explanation will only use characters from the known_words set + emojis.
+  The explanation will only use words from the known_words set + emojis.
 
   Returns {:ok, analysis} or {:error, reason}
   """
-  @spec analyze(integer() | nil, String.t(), String.t() | nil, MapSet.t()) ::
+  @spec analyze(integer() | nil, String.t(), String.t() | nil, MapSet.t(), String.t()) ::
           {:ok, analysis()} | {:error, String.t()}
-  def analyze(user_id, word, context_sentence \\ nil, known_words \\ MapSet.new()) do
+  def analyze(user_id, word, context_sentence \\ nil, known_words \\ MapSet.new(), language \\ "zh") do
     # Include the word being analyzed in allowed words
     allowed_words = MapSet.put(known_words, word)
-    analyze_with_retry(user_id, word, context_sentence, known_words, allowed_words, @max_retries, [])
+
+    analyze_with_retry(
+      user_id,
+      word,
+      context_sentence,
+      known_words,
+      allowed_words,
+      language,
+      @max_retries,
+      []
+    )
   end
 
   @doc """
@@ -55,7 +65,9 @@ defmodule Langseed.LLM.WordAnalyzer do
         explanations =
           data
           |> Map.get("explanations", [])
-          |> Enum.filter(&(is_binary(&1) and Language.find_unknown_words(&1, allowed_words) == []))
+          |> Enum.filter(
+            &(is_binary(&1) and Language.find_unknown_words(&1, allowed_words) == [])
+          )
           |> Enum.take(3)
 
         if Enum.empty?(explanations) do
@@ -71,7 +83,16 @@ defmodule Langseed.LLM.WordAnalyzer do
 
   # Private implementation
 
-  defp analyze_with_retry(_user_id, _word, _context, _known_words, _allowed_words, 0, illegal_words) do
+  defp analyze_with_retry(
+         _user_id,
+         _word,
+         _context,
+         _known_words,
+         _allowed_words,
+         _language,
+         0,
+         illegal_words
+       ) do
     {:error,
      "Failed after #{@max_retries} retries. Could not avoid words: #{Enum.join(illegal_words, ", ")}"}
   end
@@ -82,13 +103,14 @@ defmodule Langseed.LLM.WordAnalyzer do
          context_sentence,
          known_words,
          allowed_words,
+         language,
          retries_left,
          previous_illegal
        ) do
-    prompt = build_analyze_prompt(word, context_sentence, known_words, previous_illegal)
+    prompt = build_analyze_prompt(word, context_sentence, known_words, previous_illegal, language)
 
     with {:ok, data} <- call_llm(prompt, user_id, "analyze_word"),
-         {:ok, analysis} <- parse_analysis(data) do
+         {:ok, analysis} <- parse_analysis(data, language) do
       validate_and_filter_explanations(
         analysis,
         allowed_words,
@@ -96,6 +118,7 @@ defmodule Langseed.LLM.WordAnalyzer do
         word,
         context_sentence,
         known_words,
+        language,
         retries_left
       )
     end
@@ -108,11 +131,12 @@ defmodule Langseed.LLM.WordAnalyzer do
          word,
          context_sentence,
          known_words,
+         language,
          retries_left
        ) do
     {valid_explanations, all_illegal} =
       Enum.reduce(analysis.explanations, {[], []}, fn explanation, {valid, illegal_acc} ->
-        case Language.find_unknown_words(explanation, allowed_words) do
+        case Language.find_unknown_words(explanation, allowed_words, language) do
           [] -> {[explanation | valid], illegal_acc}
           illegal -> {valid, illegal_acc ++ illegal}
         end
@@ -135,6 +159,7 @@ defmodule Langseed.LLM.WordAnalyzer do
           context_sentence,
           known_words,
           allowed_words,
+          language,
           retries_left - 1,
           all_illegal
         )
@@ -152,13 +177,16 @@ defmodule Langseed.LLM.WordAnalyzer do
     |> Client.parse_json()
   end
 
-  defp parse_analysis(%{"pinyin" => pinyin, "meaning" => meaning, "part_of_speech" => pos} = data) do
+  defp parse_analysis(%{"meaning" => meaning, "part_of_speech" => pos} = data, language) do
     explanations =
       case {Map.get(data, "explanations"), Map.get(data, "explanation")} do
         {list, _} when is_list(list) -> list |> Enum.filter(&is_binary/1) |> Enum.take(5)
         {_, str} when is_binary(str) and str != "" -> [str]
         _ -> []
       end
+
+    # Pinyin only for Chinese
+    pinyin = if language == "zh", do: Map.get(data, "pinyin", ""), else: ""
 
     {:ok,
      %{
@@ -171,7 +199,7 @@ defmodule Langseed.LLM.WordAnalyzer do
      }}
   end
 
-  defp parse_analysis(_), do: {:error, "Invalid response format"}
+  defp parse_analysis(_, _language), do: {:error, "Invalid response format"}
 
   defp normalize_quality(nil), do: nil
   defp normalize_quality(q) when is_integer(q) and q >= 1 and q <= 5, do: q
@@ -204,7 +232,7 @@ defmodule Langseed.LLM.WordAnalyzer do
 
   # Prompt builders
 
-  defp build_analyze_prompt(word, context_sentence, known_words, previous_illegal) do
+  defp build_analyze_prompt(word, context_sentence, known_words, previous_illegal, language) do
     safe_word = StringUtils.ensure_valid_utf8(word)
     safe_sentence = StringUtils.ensure_valid_utf8(context_sentence)
 
@@ -218,39 +246,52 @@ defmodule Langseed.LLM.WordAnalyzer do
     known_words_sample = known_words |> MapSet.to_list() |> Enum.take(50) |> Enum.join(" ")
     retry_feedback = build_retry_feedback(previous_illegal)
 
+    language_name = language_name(language)
+    target_language = target_explanation_language(language)
+
+    # Chinese needs pinyin, others don't
+    json_format = if language == "zh" do
+      """
+      {
+        "pinyin": "pinyin with tone marks",
+        "meaning": "English meaning",
+        "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
+        "explanations": ["explanation1", "explanation2", "explanation3"],
+        "explanation_quality": 1-5,
+        "desired_words": ["word1", "word2"]
+      }
+      """
+    else
+      """
+      {
+        "meaning": "English meaning",
+        "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
+        "explanations": ["explanation1", "explanation2", "explanation3"],
+        "explanation_quality": 1-5,
+        "desired_words": ["word1", "word2"]
+      }
+      """
+    end
+
     """
-    Analyze this Chinese word: "#{safe_word}"
+    Analyze this #{language_name} word: "#{safe_word}"
     #{context_part}
     Respond ONLY with a JSON object in this exact format (no markdown, no code blocks):
-    {
-      "pinyin": "pinyin with tone marks",
-      "meaning": "English meaning",
-      "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
-      "explanations": ["explanation1", "explanation2", "explanation3"],
-      "explanation_quality": 1-5,
-      "desired_words": ["word1", "word2"]
-    }
+    #{json_format}
 
     CRITICAL RULES for the explanations field:
     - Provide 2-3 DIFFERENT explanations using different approaches:
-      1. A short example sentence showing usage (use ____ for the word's position)
+      1. A short example sentence showing usage in #{language_name} (use ____ for the word's position)
       2. An emoji-based visual hint
       3. A simple contextual phrase if possible
     - Each explanation should help understand the word from a DIFFERENT angle
-    - ABSOLUTELY NO ENGLISH - not even single letters or quoted words
-    - DO NOT break down the word into its component characters
-    - Use ONLY words the learner knows. Known words include: #{known_words_sample}
+    - Write explanations in #{target_language}
+    - Use ONLY #{language_name} words the learner knows. Known words include: #{known_words_sample}
     - You can also use: #{safe_word}
-    - IMPORTANT: Do NOT combine characters into words the learner doesn't know!
-      For example, if they know 学 and 生 separately, do NOT use 学生 unless 学生 is in their vocabulary.
     - You can use emojis freely
     - You can use numbers, punctuation, and spaces
     - Use ____ to show where the word fits in example sentences
     - Keep each explanation SHORT
-
-    GOOD examples for 所以 (therefore): ["我 很 累，____ 我 要 休息", "1️⃣ ➡️ 2️⃣", "A，____ B"]
-    GOOD examples for 好: ["👍😊", "很 ____！", "我 ____ 吃"]
-    BAD examples: "你 是 you", "'hello'", "A is B"
 
     EXPLANATION_QUALITY (1-5):
     - 5: Perfect explanations using available words
@@ -259,10 +300,21 @@ defmodule Langseed.LLM.WordAnalyzer do
     - 2: Limited, mostly emojis
     - 1: Very poor
 
-    DESIRED_WORDS: List 0-5 Chinese words that would help write better explanations.
+    DESIRED_WORDS: List 0-5 #{language_name} words that would help write better explanations.
+    These must be #{language_name} words, not English or other languages.
     #{retry_feedback}
     """
   end
+
+  defp language_name("zh"), do: "Chinese"
+  defp language_name("sv"), do: "Swedish"
+  defp language_name("en"), do: "English"
+  defp language_name(_), do: "the target language"
+
+  defp target_explanation_language("zh"), do: "Chinese (no English)"
+  defp target_explanation_language("sv"), do: "Swedish (no English)"
+  defp target_explanation_language("en"), do: "simple English"
+  defp target_explanation_language(_), do: "the target language"
 
   defp build_regenerate_prompt(concept, known_words_sample, previous) do
     """
@@ -302,7 +354,8 @@ defmodule Langseed.LLM.WordAnalyzer do
     word_warning =
       if Enum.empty?(illegal_words),
         do: "",
-        else: "You used these UNKNOWN WORDS: #{Enum.join(illegal_words, ", ")}. The learner does not know these words! "
+        else:
+          "You used these UNKNOWN WORDS: #{Enum.join(illegal_words, ", ")}. The learner does not know these words! "
 
     """
 

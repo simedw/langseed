@@ -9,8 +9,10 @@ defmodule Langseed.Workers.QuestionGenerator do
   alias Langseed.Repo
   alias Langseed.Practice
   alias Langseed.Accounts.User
+  alias Langseed.Accounts.Scope
 
   @target_questions_per_word 4
+  @supported_languages ["zh", "en", "sv"]
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"user_id" => user_id}}) when not is_nil(user_id) do
@@ -36,25 +38,33 @@ defmodule Langseed.Workers.QuestionGenerator do
   end
 
   @doc """
-  Generates questions for a specific user's concepts that need them.
+  Generates questions for a specific user's concepts across all languages.
   """
   def generate_missing_questions_for_user(%User{} = user) do
-    Practice.get_concepts_needing_questions(user, @target_questions_per_word)
-    |> Enum.each(fn {concept, current_count} ->
-      generate_questions_for_concept(user, concept, current_count)
+    # Generate for each supported language
+    Enum.each(@supported_languages, fn language ->
+      scope = %Scope{user: user, language: language}
+      generate_missing_questions_for_scope(scope)
     end)
   end
 
-  defp generate_questions_for_concept(user, concept, current_count) do
-    needed = @target_questions_per_word - current_count
-    Enum.each(1..needed//1, fn _ -> generate_single_question(user, concept) end)
+  defp generate_missing_questions_for_scope(%Scope{} = scope) do
+    Practice.get_concepts_needing_questions(scope, @target_questions_per_word)
+    |> Enum.each(fn {concept, current_count} ->
+      generate_questions_for_concept(scope, concept, current_count)
+    end)
   end
 
-  defp generate_single_question(user, concept) do
+  defp generate_questions_for_concept(scope, concept, current_count) do
+    needed = @target_questions_per_word - current_count
+    Enum.each(1..needed//1, fn _ -> generate_single_question(scope, concept) end)
+  end
+
+  defp generate_single_question(scope, concept) do
     # Add some delay between API calls to avoid rate limiting
     Process.sleep(500)
 
-    case Practice.generate_question(user, concept) do
+    case Practice.generate_question(scope, concept) do
       {:ok, _question} ->
         :ok
 

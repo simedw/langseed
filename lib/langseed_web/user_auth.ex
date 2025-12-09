@@ -41,7 +41,10 @@ defmodule LangseedWeb.UserAuth do
       token ->
         case Accounts.get_user_by_session_token(token) do
           {user, _token_inserted_at} ->
-            Phoenix.Component.assign(socket, :current_scope, Scope.for_user(user))
+            scope = Scope.for_user(user)
+            # Set locale for LiveView
+            Gettext.put_locale(LangseedWeb.Gettext, scope.language || "en")
+            Phoenix.Component.assign(socket, :current_scope, scope)
 
           nil ->
             Phoenix.Component.assign(socket, :current_scope, nil)

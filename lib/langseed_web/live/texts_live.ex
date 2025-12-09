@@ -5,12 +5,12 @@ defmodule LangseedWeb.TextsLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    user = current_user(socket)
+    scope = current_scope(socket)
 
     {:ok,
      assign(socket,
-       page_title: "Texts",
-       texts: Library.list_texts(user),
+       page_title: gettext("Texts"),
+       texts: Library.list_texts(scope),
        editing_id: nil,
        edit_title: ""
      )}
@@ -18,20 +18,20 @@ defmodule LangseedWeb.TextsLive do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    user = current_user(socket)
-    text = Library.get_text!(user, id)
+    scope = current_scope(socket)
+    text = Library.get_text!(scope, id)
     {:ok, _} = Library.delete_text(text)
 
     {:noreply,
      socket
-     |> assign(texts: Library.list_texts(user))
-     |> put_flash(:info, "已删除")}
+     |> assign(texts: Library.list_texts(scope))
+     |> put_flash(:info, gettext("Deleted"))}
   end
 
   @impl true
   def handle_event("start_edit", %{"id" => id}, socket) do
-    user = current_user(socket)
-    text = Library.get_text!(user, id)
+    scope = current_scope(socket)
+    text = Library.get_text!(scope, id)
     {:noreply, assign(socket, editing_id: String.to_integer(id), edit_title: text.title)}
   end
 
@@ -47,13 +47,13 @@ defmodule LangseedWeb.TextsLive do
 
   @impl true
   def handle_event("save_title", %{"id" => id}, socket) do
-    user = current_user(socket)
-    text = Library.get_text!(user, id)
+    scope = current_scope(socket)
+    text = Library.get_text!(scope, id)
     {:ok, _} = Library.update_text(text, %{title: socket.assigns.edit_title})
 
     {:noreply,
      socket
-     |> assign(texts: Library.list_texts(user), editing_id: nil, edit_title: "")}
+     |> assign(texts: Library.list_texts(scope), editing_id: nil, edit_title: "")}
   end
 
   @impl true
@@ -61,23 +61,19 @@ defmodule LangseedWeb.TextsLive do
     ~H"""
     <div class="min-h-screen">
       <div class="p-4">
-        <h1 class="text-2xl font-bold mb-4">文本</h1>
+        <h1 class="text-2xl font-bold mb-4">{gettext("Texts")}</h1>
 
         <%= if length(@texts) == 0 do %>
           <div class="text-center py-12">
-            <p class="text-lg opacity-70">还没有保存的文本</p>
+            <p class="text-lg opacity-70">{gettext("No saved texts")}</p>
             <p class="text-sm opacity-50 mt-2">
-              去 <a href="/analyze" class="link link-primary">分析</a> 页面保存文本
+              {gettext("Go to %{link} to save texts", link: ~s(<a href="/analyze" class="link link-primary">#{gettext("Analyze")}</a>)) |> Phoenix.HTML.raw()}
             </p>
           </div>
         <% else %>
           <div class="space-y-3">
             <%= for text <- @texts do %>
-              <.text_card
-                text={text}
-                editing={@editing_id == text.id}
-                edit_title={@edit_title}
-              />
+              <.text_card text={text} editing={@editing_id == text.id} edit_title={@edit_title} />
             <% end %>
           </div>
         <% end %>
@@ -124,18 +120,11 @@ defmodule LangseedWeb.TextsLive do
           </div>
 
           <div class="flex gap-1">
-            <a
-              href={"/analyze?text_id=#{@text.id}"}
-              class="btn btn-sm btn-primary"
-            >
-              <.icon name="hero-book-open" class="size-4" /> 读
+            <a href={"/analyze?text_id=#{@text.id}"} class="btn btn-sm btn-primary">
+              <.icon name="hero-book-open" class="size-4" /> {gettext("Read")}
             </a>
             <%= unless @editing do %>
-              <button
-                class="btn btn-sm btn-ghost"
-                phx-click="start_edit"
-                phx-value-id={@text.id}
-              >
+              <button class="btn btn-sm btn-ghost" phx-click="start_edit" phx-value-id={@text.id}>
                 <.icon name="hero-pencil" class="size-4" />
               </button>
             <% end %>
@@ -143,7 +132,7 @@ defmodule LangseedWeb.TextsLive do
               class="btn btn-sm btn-ghost text-error"
               phx-click="delete"
               phx-value-id={@text.id}
-              data-confirm="删除这个文本?"
+              data-confirm={gettext("Delete this text?")}
             >
               <.icon name="hero-trash" class="size-4" />
             </button>

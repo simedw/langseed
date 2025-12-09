@@ -3,21 +3,25 @@ defmodule Langseed.VocabularyTest do
 
   alias Langseed.Vocabulary
   alias Langseed.Vocabulary.Concept
+  alias Langseed.Accounts.Scope
 
   import Langseed.AccountsFixtures
   import Langseed.VocabularyFixtures
 
+  defp scope_for(user), do: %Scope{user: user, language: "zh"}
+
   describe "list_concepts/1" do
-    test "returns all concepts for a user" do
+    test "returns all concepts for a scope" do
       user = user_fixture()
+      scope = scope_for(user)
       concept = concept_fixture(user)
 
-      concepts = Vocabulary.list_concepts(user)
+      concepts = Vocabulary.list_concepts(scope)
       assert length(concepts) == 1
       assert hd(concepts).id == concept.id
     end
 
-    test "returns empty list for nil user" do
+    test "returns empty list for nil scope" do
       assert Vocabulary.list_concepts(nil) == []
     end
 
@@ -26,20 +30,21 @@ defmodule Langseed.VocabularyTest do
       user2 = user_fixture()
       concept_fixture(user1)
 
-      assert Vocabulary.list_concepts(user2) == []
+      assert Vocabulary.list_concepts(scope_for(user2)) == []
     end
   end
 
   describe "get_concept!/2" do
-    test "returns the concept for the given user and id" do
+    test "returns the concept for the given scope and id" do
       user = user_fixture()
+      scope = scope_for(user)
       concept = concept_fixture(user)
 
-      fetched = Vocabulary.get_concept!(user, concept.id)
+      fetched = Vocabulary.get_concept!(scope, concept.id)
       assert fetched.id == concept.id
     end
 
-    test "raises for nil user" do
+    test "raises for nil scope" do
       assert_raise RuntimeError, "Authentication required", fn ->
         Vocabulary.get_concept!(nil, 1)
       end
@@ -49,18 +54,20 @@ defmodule Langseed.VocabularyTest do
   describe "get_concept_by_word/2" do
     test "returns the concept for the given word" do
       user = user_fixture()
+      scope = scope_for(user)
       concept = concept_fixture(user, %{word: "测试"})
 
-      fetched = Vocabulary.get_concept_by_word(user, "测试")
+      fetched = Vocabulary.get_concept_by_word(scope, "测试")
       assert fetched.id == concept.id
     end
 
     test "returns nil for non-existent word" do
       user = user_fixture()
-      assert Vocabulary.get_concept_by_word(user, "不存在") == nil
+      scope = scope_for(user)
+      assert Vocabulary.get_concept_by_word(scope, "不存在") == nil
     end
 
-    test "returns nil for nil user" do
+    test "returns nil for nil scope" do
       assert Vocabulary.get_concept_by_word(nil, "test") == nil
     end
   end
@@ -68,22 +75,25 @@ defmodule Langseed.VocabularyTest do
   describe "create_concept/2" do
     test "creates a concept with valid data" do
       user = user_fixture()
+      scope = scope_for(user)
       attrs = valid_concept_attrs()
 
-      assert {:ok, %Concept{} = concept} = Vocabulary.create_concept(user, attrs)
+      assert {:ok, %Concept{} = concept} = Vocabulary.create_concept(scope, attrs)
       assert concept.word == "你好"
       assert concept.pinyin == "nǐ hǎo"
       assert concept.meaning == "hello"
+      assert concept.language == "zh"
     end
 
-    test "returns error for nil user" do
+    test "returns error for nil scope" do
       attrs = valid_concept_attrs()
       assert {:error, "Authentication required"} = Vocabulary.create_concept(nil, attrs)
     end
 
     test "returns error for invalid data" do
       user = user_fixture()
-      assert {:error, %Ecto.Changeset{}} = Vocabulary.create_concept(user, %{})
+      scope = scope_for(user)
+      assert {:error, %Ecto.Changeset{}} = Vocabulary.create_concept(scope, %{})
     end
   end
 
@@ -110,26 +120,28 @@ defmodule Langseed.VocabularyTest do
   describe "delete_concept/1" do
     test "deletes the concept" do
       user = user_fixture()
+      scope = scope_for(user)
       concept = concept_fixture(user)
 
       assert {:ok, %Concept{}} = Vocabulary.delete_concept(concept)
-      assert Vocabulary.list_concepts(user) == []
+      assert Vocabulary.list_concepts(scope) == []
     end
   end
 
   describe "known_words/1" do
     test "returns a MapSet of known words" do
       user = user_fixture()
+      scope = scope_for(user)
       concept_fixture(user, %{word: "你好"})
       concept_fixture(user, %{word: "再见"})
 
-      words = Vocabulary.known_words(user)
+      words = Vocabulary.known_words(scope)
       assert MapSet.member?(words, "你好")
       assert MapSet.member?(words, "再见")
       assert MapSet.size(words) == 2
     end
 
-    test "returns empty MapSet for nil user" do
+    test "returns empty MapSet for nil scope" do
       assert Vocabulary.known_words(nil) == MapSet.new()
     end
   end
@@ -137,15 +149,16 @@ defmodule Langseed.VocabularyTest do
   describe "known_words_with_understanding/1" do
     test "returns a map of word to understanding" do
       user = user_fixture()
+      scope = scope_for(user)
       concept_fixture(user, %{word: "你好", understanding: 50})
       concept_fixture(user, %{word: "再见", understanding: 75})
 
-      words = Vocabulary.known_words_with_understanding(user)
+      words = Vocabulary.known_words_with_understanding(scope)
       assert words["你好"] == 50
       assert words["再见"] == 75
     end
 
-    test "returns empty map for nil user" do
+    test "returns empty map for nil scope" do
       assert Vocabulary.known_words_with_understanding(nil) == %{}
     end
   end
@@ -153,17 +166,19 @@ defmodule Langseed.VocabularyTest do
   describe "word_known?/2" do
     test "returns true for known word" do
       user = user_fixture()
+      scope = scope_for(user)
       concept_fixture(user, %{word: "测试"})
 
-      assert Vocabulary.word_known?(user, "测试")
+      assert Vocabulary.word_known?(scope, "测试")
     end
 
     test "returns false for unknown word" do
       user = user_fixture()
-      refute Vocabulary.word_known?(user, "不存在")
+      scope = scope_for(user)
+      refute Vocabulary.word_known?(scope, "不存在")
     end
 
-    test "returns false for nil user" do
+    test "returns false for nil scope" do
       refute Vocabulary.word_known?(nil, "test")
     end
   end

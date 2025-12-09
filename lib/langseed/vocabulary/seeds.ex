@@ -253,11 +253,15 @@ defmodule Langseed.Vocabulary.Seeds do
   def seed_words, do: @seed_words
 
   @doc """
-  Creates seed vocabulary for a new user.
+  Creates seed vocabulary for a new user (Chinese language).
   Returns {:ok, count} with number of words created.
   """
   def create_for_user(user) do
     alias Langseed.Vocabulary
+    alias Langseed.Accounts.Scope
+
+    # Create a scope for Chinese language
+    scope = %Scope{user: user, language: "zh"}
 
     results =
       @seed_words
@@ -270,7 +274,7 @@ defmodule Langseed.Vocabulary.Seeds do
             example_sentence: nil
           })
 
-        Vocabulary.create_concept(user, attrs)
+        Vocabulary.create_concept(scope, attrs)
       end)
 
     successful =

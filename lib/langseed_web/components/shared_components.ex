@@ -4,6 +4,7 @@ defmodule LangseedWeb.SharedComponents do
   """
 
   use Phoenix.Component
+  use Gettext, backend: LangseedWeb.Gettext
 
   import LangseedWeb.CoreComponents, only: [icon: 1]
 
@@ -22,7 +23,7 @@ defmodule LangseedWeb.SharedComponents do
       id={"speak-#{:erlang.phash2(@text)}"}
       data-text={@text}
       class="btn btn-ghost btn-circle btn-sm"
-      title="播放发音"
+      title={gettext("Play pronunciation")}
     >
       <.icon name="hero-speaker-wave" class="size-5" />
     </button>
@@ -100,7 +101,7 @@ defmodule LangseedWeb.SharedComponents do
     ~H"""
     <%= if length(@filtered_words) > 0 do %>
       <div class="mt-3 p-3 bg-info/10 rounded-lg">
-        <p class="text-xs opacity-60 mb-2">💡 学这些词可以改进解释:</p>
+        <p class="text-xs opacity-60 mb-2">💡 {gettext("Learning these words can improve explanations:")}</p>
         <div class="flex flex-wrap gap-1">
           <%= for word <- @filtered_words do %>
             <% is_importing = word in @importing_words %>
@@ -118,7 +119,7 @@ defmodule LangseedWeb.SharedComponents do
               phx-value-word={word}
               phx-value-context={@context || ""}
               disabled={is_importing}
-              title={if is_importing, do: "添加中...", else: "点击添加到词汇"}
+              title={if is_importing, do: gettext("Adding..."), else: gettext("Click to add to vocabulary")}
             >
               <%= if is_importing do %>
                 <span class="loading loading-spinner loading-xs mr-1"></span>
@@ -153,7 +154,9 @@ defmodule LangseedWeb.SharedComponents do
   attr :known_words, :any, default: nil
 
   def concept_card(assigns) do
-    assigns = assign(assigns, :hsk_level, HSK.lookup(assigns.concept.word))
+    # HSK level only makes sense for Chinese
+    hsk_level = if assigns.concept.language == "zh", do: HSK.lookup(assigns.concept.word), else: nil
+    assigns = assign(assigns, :hsk_level, hsk_level)
 
     ~H"""
     <div class="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto">
@@ -168,7 +171,9 @@ defmodule LangseedWeb.SharedComponents do
                 <span class="text-4xl font-bold">{@concept.word}</span>
                 <.speak_button text={@concept.word} />
               </div>
-              <p class="text-xl text-primary mt-1">{@concept.pinyin}</p>
+              <%= if @concept.language == "zh" && @concept.pinyin && @concept.pinyin != "" && @concept.pinyin != "-" do %>
+                <p class="text-xl text-primary mt-1">{@concept.pinyin}</p>
+              <% end %>
               <div class="flex gap-1">
                 <span class="badge badge-sm badge-ghost">{@concept.part_of_speech}</span>
                 <%= if @hsk_level do %>
@@ -191,7 +196,7 @@ defmodule LangseedWeb.SharedComponents do
               <% end %>
               <%= if @concept.explanation_quality do %>
                 <div class="flex items-center gap-1 mt-2 text-sm opacity-60">
-                  <span>解释质量:</span>
+                  <span>{gettext("Explanation quality:")}</span>
                   <.quality_stars quality={@concept.explanation_quality} />
                 </div>
               <% end %>
@@ -216,7 +221,7 @@ defmodule LangseedWeb.SharedComponents do
           <%= if @show_understanding_slider do %>
             <div class="mt-4">
               <div class="flex items-center gap-2">
-                <span class="text-sm opacity-50">理解</span>
+                <span class="text-sm opacity-50">{gettext("Understanding")}</span>
                 <input
                   type="range"
                   min="0"
@@ -235,7 +240,7 @@ defmodule LangseedWeb.SharedComponents do
 
           <details class="mt-3">
             <summary class="text-xs opacity-40 cursor-pointer hover:opacity-60">
-              👁️ 英文
+              👁️ {gettext("English")}
             </summary>
             <p class="text-sm opacity-60 mt-1">{@concept.meaning}</p>
           </details>
@@ -252,9 +257,9 @@ defmodule LangseedWeb.SharedComponents do
                   phx-value-id={@concept.id}
                 >
                   <%= if @concept.paused do %>
-                    <.icon name="hero-play" class="size-4" /> 恢复练习
+                    <.icon name="hero-play" class="size-4" /> {gettext("Resume practice")}
                   <% else %>
-                    <.icon name="hero-pause" class="size-4" /> 暂停练习
+                    <.icon name="hero-pause" class="size-4" /> {gettext("Pause practice")}
                   <% end %>
                 </button>
               <% else %>
@@ -265,9 +270,9 @@ defmodule LangseedWeb.SharedComponents do
                   class="btn btn-error btn-sm"
                   phx-click="delete"
                   phx-value-id={@concept.id}
-                  data-confirm={"删除 #{@concept.word}?"}
+                  data-confirm={gettext("Delete %{word}?", word: @concept.word)}
                 >
-                  <.icon name="hero-trash" class="size-4" /> 删除
+                  <.icon name="hero-trash" class="size-4" /> {gettext("Delete")}
                 </button>
               <% end %>
             </div>

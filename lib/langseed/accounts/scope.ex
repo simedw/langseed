@@ -18,7 +18,7 @@ defmodule Langseed.Accounts.Scope do
 
   alias Langseed.Accounts.User
 
-  defstruct user: nil
+  defstruct user: nil, language: "zh"
 
   @doc """
   Creates a scope for the given user.
@@ -26,8 +26,15 @@ defmodule Langseed.Accounts.Scope do
   Returns nil if no user is given.
   """
   def for_user(%User{} = user) do
-    %__MODULE__{user: user}
+    %__MODULE__{user: user, language: user.selected_language || "zh"}
   end
 
   def for_user(nil), do: nil
+
+  @doc """
+  Updates the language in the scope.
+  """
+  def with_language(%__MODULE__{} = scope, language) do
+    %{scope | language: language}
+  end
 end

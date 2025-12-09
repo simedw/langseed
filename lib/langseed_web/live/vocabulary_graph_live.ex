@@ -6,14 +6,14 @@ defmodule LangseedWeb.VocabularyGraphLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    user = current_user(socket)
-    graph = Graph.build_graph(user)
-    stats = Graph.graph_stats(user)
-    known_words = Vocabulary.known_words(user)
+    scope = current_scope(socket)
+    graph = Graph.build_graph(scope)
+    stats = Graph.graph_stats(scope)
+    known_words = Vocabulary.known_words(scope)
 
     {:ok,
      assign(socket,
-       page_title: "词汇图谱",
+       page_title: gettext("Graph"),
        graph_data: Jason.encode!(graph),
        stats: stats,
        known_words: known_words,
@@ -23,8 +23,8 @@ defmodule LangseedWeb.VocabularyGraphLive do
 
   @impl true
   def handle_event("select_word", %{"word" => word}, socket) do
-    user = current_user(socket)
-    concept = Vocabulary.get_concept_by_word(user, word)
+    scope = current_scope(socket)
+    concept = Vocabulary.get_concept_by_word(scope, word)
     {:noreply, assign(socket, selected_concept: concept)}
   end
 
@@ -35,11 +35,11 @@ defmodule LangseedWeb.VocabularyGraphLive do
 
   @impl true
   def handle_event("toggle_pause", %{"id" => id}, socket) do
-    user = current_user(socket)
-    concept = Vocabulary.get_concept!(user, id)
+    scope = current_scope(socket)
+    concept = Vocabulary.get_concept!(scope, id)
     {:ok, updated_concept} = Vocabulary.toggle_paused(concept)
 
-    action = if updated_concept.paused, do: "暂停了", else: "恢复了"
+    action = if updated_concept.paused, do: "Paused", else: "Resumed"
 
     {:noreply,
      socket
@@ -53,37 +53,37 @@ defmodule LangseedWeb.VocabularyGraphLive do
     <div class="min-h-screen pb-20">
       <div class="p-4">
         <div class="flex items-center justify-between mb-4">
-          <h1 class="text-2xl font-bold">词汇图谱</h1>
+          <h1 class="text-2xl font-bold">{gettext("Vocabulary Graph")}</h1>
           <a href="/" class="btn btn-sm btn-ghost">
-            <.icon name="hero-list-bullet" class="size-4" /> 列表视图
+            <.icon name="hero-list-bullet" class="size-4" /> {gettext("List view")}
           </a>
         </div>
 
         <div class="stats stats-vertical lg:stats-horizontal shadow mb-4 w-full">
           <div class="stat">
-            <div class="stat-title">词汇</div>
+            <div class="stat-title">{gettext("Words")}</div>
             <div class="stat-value text-primary">{@stats.node_count}</div>
           </div>
           <div class="stat">
-            <div class="stat-title">关联</div>
+            <div class="stat-title">{gettext("Connections")}</div>
             <div class="stat-value text-secondary">{@stats.edge_count}</div>
           </div>
           <div class="stat">
-            <div class="stat-title">孤立词</div>
+            <div class="stat-title">{gettext("Isolated")}</div>
             <div class="stat-value text-warning">{@stats.isolated_count}</div>
-            <div class="stat-desc">没有关联的词</div>
+            <div class="stat-desc">{gettext("Words without connections")}</div>
           </div>
         </div>
 
         <div class="grid lg:grid-cols-2 gap-4 mb-4">
           <.stats_card
-            title="基础词汇"
-            subtitle="用来解释最多其他词"
+            title={gettext("Foundational words")}
+            subtitle={gettext("Used to explain most other words")}
             items={@stats.foundational}
           />
           <.stats_card
-            title="复杂词汇"
-            subtitle="需要最多词来解释"
+            title={gettext("Complex words")}
+            subtitle={gettext("Need most words to explain")}
             items={@stats.complex}
           />
         </div>
@@ -93,6 +93,7 @@ defmodule LangseedWeb.VocabularyGraphLive do
           phx-hook="WordGraph"
           phx-update="ignore"
           data-graph={@graph_data}
+          data-empty-message={gettext("No vocabulary data yet")}
           class="card bg-base-200 shadow-lg overflow-hidden"
           style="height: 500px;"
         >
@@ -102,8 +103,8 @@ defmodule LangseedWeb.VocabularyGraphLive do
         </div>
 
         <div class="mt-4 text-sm opacity-60">
-          <p>💡 点击节点查看详情。拖动可调整位置。颜色表示理解程度（红→黄→绿）。</p>
-          <p>箭头方向：A → B 表示 A 被用来解释 B。</p>
+          <p>💡 {gettext("Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green).")}</p>
+          <p>{gettext("Arrow direction: A → B means A is used to explain B.")}</p>
         </div>
       </div>
     </div>
@@ -137,7 +138,7 @@ defmodule LangseedWeb.VocabularyGraphLive do
             </span>
           <% end %>
           <%= if Enum.empty?(@items) do %>
-            <span class="text-xs opacity-40">暂无数据</span>
+            <span class="text-xs opacity-40">{gettext("No data")}</span>
           <% end %>
         </div>
       </div>

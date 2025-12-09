@@ -1,0 +1,320 @@
+## Chinese translations
+msgid ""
+msgstr ""
+"Language: zh\n"
+
+#: Navigation
+msgid "Vocabulary"
+msgstr "词汇"
+
+msgid "Graph"
+msgstr "图谱"
+
+msgid "Analyze"
+msgstr "分析"
+
+msgid "Texts"
+msgstr "文本"
+
+msgid "Practice"
+msgstr "练习"
+
+#: Actions
+msgid "Save"
+msgstr "保存"
+
+msgid "Update"
+msgstr "更新"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Load"
+msgstr "加载"
+
+msgid "New"
+msgstr "新建"
+
+msgid "Add"
+msgstr "添加"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Next"
+msgstr "下一个"
+
+msgid "Skip"
+msgstr "跳过"
+
+#: Messages
+msgid "Language updated"
+msgstr "语言已更新"
+
+msgid "Updated"
+msgstr "已更新"
+
+msgid "Deleted"
+msgstr "已删除"
+
+msgid "Added"
+msgstr "已添加"
+
+msgid "Failed"
+msgstr "失败"
+
+#: Practice
+msgid "I understand"
+msgstr "我懂了"
+
+msgid "New explanation"
+msgstr "新解释"
+
+msgid "Pause"
+msgstr "暂停"
+
+msgid "Resume"
+msgstr "恢复"
+
+msgid "Yes"
+msgstr "是"
+
+msgid "No"
+msgstr "否"
+
+msgid "Submit"
+msgstr "提交"
+
+msgid "Write a sentence"
+msgstr "写一个句子"
+
+#: Empty states
+msgid "No vocabulary yet"
+msgstr "还没有词汇"
+
+msgid "No texts saved"
+msgstr "没有保存的文本"
+
+msgid "Go to Analyze to add words"
+msgstr "去分析添加"
+
+#: Recent
+msgid "Recent"
+msgstr "最近"
+
+msgid "View all"
+msgstr "查看全部"
+
+msgid "New text"
+msgstr "新文本"
+
+#: Vocabulary page
+msgid "Go to %{link} to add words"
+msgstr "去 %{link} 添加"
+
+#: Graph page
+msgid "Vocabulary Graph"
+msgstr "词汇图谱"
+
+msgid "Words"
+msgstr "词汇"
+
+msgid "Connections"
+msgstr "关联"
+
+msgid "Isolated"
+msgstr "孤立词"
+
+msgid "Words without connections"
+msgstr "没有关联的词"
+
+msgid "Foundational words"
+msgstr "基础词汇"
+
+msgid "Used to explain most other words"
+msgstr "用来解释最多其他词"
+
+msgid "Complex words"
+msgstr "复杂词汇"
+
+msgid "Need most words to explain"
+msgstr "需要最多词来解释"
+
+msgid "No data"
+msgstr "暂无数据"
+
+msgid "No vocabulary data yet"
+msgstr "暂无词汇数据"
+
+msgid "Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green)."
+msgstr "点击节点查看详情。拖动可调整位置。颜色表示理解程度（红→黄→绿）。"
+
+msgid "Arrow direction: A → B means A is used to explain B."
+msgstr "箭头方向：A → B 表示 A 被用来解释 B。"
+
+msgid "List view"
+msgstr "列表视图"
+
+#: Texts page
+msgid "No saved texts"
+msgstr "还没有保存的文本"
+
+msgid "Go to %{link} to save texts"
+msgstr "去 %{link} 页面保存文本"
+
+msgid "Read"
+msgstr "读"
+
+msgid "Delete this text?"
+msgstr "删除这个文本?"
+
+#: Practice page
+msgid "Well done!"
+msgstr "做得好！"
+
+msgid "No words need practice"
+msgstr "没有需要练习的词汇了"
+
+msgid "Go to %{link} to add more words"
+msgstr "去 %{link} 添加更多词汇"
+
+msgid "Loading..."
+msgstr "加载中..."
+
+msgid "Generating question..."
+msgstr "生成问题中..."
+
+msgid "New word"
+msgstr "新词"
+
+msgid "Pause this word"
+msgstr "暂停这个词"
+
+msgid "Try another explanation"
+msgstr "换一个解释"
+
+msgid "Correct!"
+msgstr "正确！"
+
+#: Text Analysis
+msgid "Enter text..."
+msgstr "输入中文..."
+
+msgid "Saved"
+msgstr "已保存"
+
+msgid "Known:"
+msgstr "知道:"
+
+msgid "Unknown:"
+msgstr "不知道:"
+
+msgid "Select all unknown"
+msgstr "全选不知道"
+
+msgid "Add %{count} words"
+msgstr "添加 %{count} 个词"
+
+msgid "Adding %{count}..."
+msgstr "添加中 %{count} 个..."
+
+msgid "Added %{count} words: %{words}"
+msgstr "添加了 %{count} 个词: %{words}"
+
+msgid "Failed to add: %{words}"
+msgstr "添加失败: %{words}"
+
+msgid "Error adding: %{error}"
+msgstr "添加出错: %{error}"
+
+msgid "Failed to add %{word}"
+msgstr "添加 %{word} 失败"
+
+msgid "Added %{word}"
+msgstr "添加了 %{word} ✓"
+
+msgid "New explanation generated"
+msgstr "新解释已生成"
+
+msgid "Generation failed, please try again"
+msgstr "生成失败，请再试"
+
+msgid "Generation failed"
+msgstr "生成失败"
+
+msgid "Evaluation failed"
+msgstr "评估失败"
+
+msgid "Paused %{word}"
+msgstr "暂停了 %{word}"
+
+msgid "No text to save"
+msgstr "没有文本可保存"
+
+msgid "Resume practice"
+msgstr "恢复练习"
+
+msgid "Pause practice"
+msgstr "暂停练习"
+
+msgid "Known"
+msgstr "已知"
+
+msgid "Mark as already known (100%)"
+msgstr "标记为已知 (100%)"
+
+msgid "Marked %{count} words as known"
+msgstr "已标记 %{count} 个词为已知"
+
+#: Shared components
+msgid "Play pronunciation"
+msgstr "播放发音"
+
+msgid "Learning these words can improve explanations:"
+msgstr "学这些词可以改进解释:"
+
+msgid "Adding..."
+msgstr "添加中..."
+
+msgid "Click to add to vocabulary"
+msgstr "点击添加到词汇"
+
+msgid "Explanation quality:"
+msgstr "解释质量:"
+
+msgid "Understanding"
+msgstr "理解"
+
+msgid "Delete %{word}?"
+msgstr "删除 %{word}?"
+
+msgid "Wrong"
+msgstr "错误"
+
+msgid "Correct answer: %{answer}"
+msgstr "正确答案: %{answer}"
+
+msgid "Write sentence"
+msgstr "写句子"
+
+msgid "Write a sentence using %{word}"
+msgstr "用 %{word} 写一个句子"
+
+msgid "Good!"
+msgstr "很好！👍"
+
+msgid "Needs improvement"
+msgstr "需要改进"
+
+msgid "Suggestion:"
+msgstr "建议:"
+
+msgid "Write your sentence..."
+msgstr "写你的句子..."
+
+msgid "Checking..."
+msgstr "检查中..."
+
+msgid "English"
+msgstr "英文"
+

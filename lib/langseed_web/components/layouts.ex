@@ -11,6 +11,14 @@ defmodule LangseedWeb.Layouts do
   # and other static content.
   embed_templates "layouts/*"
 
+  @languages [
+    {"zh", "中文", "🇨🇳"},
+    {"sv", "Svenska", "🇸🇪"},
+    {"en", "English", "🇬🇧"}
+  ]
+
+  def languages, do: @languages
+
   @doc """
   Renders your app layout.
 
@@ -41,25 +49,26 @@ defmodule LangseedWeb.Layouts do
             <span class="text-lg font-bold">LangSeed</span>
           </a>
         </div>
-        <div class="flex-none">
+        <div class="flex-none flex items-center gap-2">
+          <.language_selector current_scope={@current_scope} />
           <.theme_toggle />
         </div>
       </div>
       <div class="flex gap-1 px-4 pb-2">
         <a href="/" class="btn btn-sm btn-ghost">
-          <.icon name="hero-book-open" class="size-4" /> 词汇
+          <.icon name="hero-book-open" class="size-4" /> {gettext("Vocabulary")}
         </a>
         <a href="/graph" class="btn btn-sm btn-ghost">
-          <.icon name="hero-share" class="size-4" /> 图谱
+          <.icon name="hero-share" class="size-4" /> {gettext("Graph")}
         </a>
         <a href="/analyze" class="btn btn-sm btn-ghost">
-          <.icon name="hero-magnifying-glass" class="size-4" /> 分析
+          <.icon name="hero-magnifying-glass" class="size-4" /> {gettext("Analyze")}
         </a>
         <a href="/texts" class="btn btn-sm btn-ghost">
-          <.icon name="hero-document-text" class="size-4" /> 文本
+          <.icon name="hero-document-text" class="size-4" /> {gettext("Texts")}
         </a>
         <a href="/practice" class="btn btn-sm btn-ghost">
-          <.icon name="hero-academic-cap" class="size-4" /> 练习
+          <.icon name="hero-academic-cap" class="size-4" /> {gettext("Practice")}
         </a>
       </div>
     </header>
@@ -133,6 +142,52 @@ defmodule LangseedWeb.Layouts do
         {gettext("Attempting to reconnect")}
         <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
+    </div>
+    """
+  end
+
+  @doc """
+  Language selector dropdown for switching between languages.
+  """
+  attr :current_scope, :map, default: nil
+
+  def language_selector(assigns) do
+    current_language = if assigns.current_scope, do: assigns.current_scope.language, else: "zh"
+
+    {_code, label, flag} =
+      Enum.find(@languages, {"zh", "中文", "🇨🇳"}, fn {code, _, _} -> code == current_language end)
+
+    assigns =
+      assigns
+      |> assign(:current_language, current_language)
+      |> assign(:current_label, label)
+      |> assign(:current_flag, flag)
+      |> assign(:languages, @languages)
+
+    ~H"""
+    <div class="dropdown dropdown-end">
+      <div tabindex="0" role="button" class="btn btn-ghost btn-sm gap-1">
+        <span class="text-base">{@current_flag}</span>
+        <span class="hidden sm:inline text-xs">{@current_label}</span>
+        <.icon name="hero-chevron-down-micro" class="size-3" />
+      </div>
+      <ul
+        tabindex="0"
+        class="dropdown-content menu bg-base-100 rounded-box z-50 w-40 p-2 shadow-lg border border-base-300"
+      >
+        <%= for {code, label, flag} <- @languages do %>
+          <li>
+            <.link
+              href={~p"/language?language=#{code}"}
+              method="put"
+              class={["flex items-center gap-2", code == @current_language && "active"]}
+            >
+              <span class="text-base">{flag}</span>
+              <span>{label}</span>
+            </.link>
+          </li>
+        <% end %>
+      </ul>
     </div>
     """
   end
