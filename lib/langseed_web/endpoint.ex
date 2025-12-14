@@ -11,6 +11,9 @@ defmodule LangseedWeb.Endpoint do
     same_site: "Lax"
   ]
 
+  # Redirect www to non-www
+  plug :redirect_www
+
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
@@ -52,4 +55,22 @@ defmodule LangseedWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug LangseedWeb.Router
+
+  defp redirect_www(%{host: "www." <> host} = conn, _opts) do
+    url = "https://#{host}#{conn.request_path}"
+
+    url =
+      if conn.query_string != "" do
+        url <> "?" <> conn.query_string
+      else
+        url
+      end
+
+    conn
+    |> Plug.Conn.put_resp_header("location", url)
+    |> Plug.Conn.send_resp(301, "")
+    |> Plug.Conn.halt()
+  end
+
+  defp redirect_www(conn, _opts), do: conn
 end

@@ -15,6 +15,7 @@ kill_signal = 'SIGTERM'
 [env]
   PHX_HOST = 'langseed.com'
   PORT = '8080'
+  DNS_CLUSTER_QUERY = 'langseed.internal'
 
 [http_service]
   internal_port = 8080
