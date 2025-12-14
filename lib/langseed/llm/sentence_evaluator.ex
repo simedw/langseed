@@ -34,10 +34,12 @@ defmodule Langseed.LLM.SentenceEvaluator do
 
     """
     You are evaluating a #{language_name} sentence written by a language learner.
-    IMPORTANT: Write ALL feedback in #{language_name}. Do not use any other language.
+    IMPORTANT: Write ALL feedback in #{language_name} using ONLY words the learner knows.
 
     Target word they should use: "#{concept.word}" (meaning: #{concept.meaning})
     Learner's sentence: "#{user_sentence}"
+
+    Words the learner knows (use only these in your feedback): #{known_words_list}
 
     Check if:
     1. The sentence uses "#{concept.word}" correctly
@@ -45,9 +47,9 @@ defmodule Langseed.LLM.SentenceEvaluator do
     3. The sentence makes sense
 
     Respond ONLY with JSON (no markdown):
-    {"correct": true/false, "feedback": "your #{language_name} feedback here", "improved": "improved #{language_name} sentence if needed, or null"}
+    {"correct": true/false, "feedback": "your #{language_name} feedback here using only known words", "improved": "improved #{language_name} sentence if needed, or null"}
 
-    Be encouraging! Write your feedback ONLY in #{language_name}.
+    Be encouraging! Write your feedback ONLY in #{language_name} using ONLY words from the learner's vocabulary.
     """
   end
 

@@ -318,3 +318,37 @@ msgstr "检查中..."
 msgid "English"
 msgstr "英文"
 
+#: New messages from code review fixes
+msgid "Deleted %{word}"
+msgstr "删除了 %{word}"
+
+msgid "%{word} is already in your vocabulary"
+msgstr "%{word} 已在你的词汇中"
+
+msgid "Resumed %{word}"
+msgstr "恢复了 %{word}"
+
+msgid "Welcome %{name}! You have %{count} starter words to begin learning."
+msgstr "欢迎 %{name}！你有 %{count} 个基础词汇开始学习。"
+
+msgid "Welcome back, %{name}!"
+msgstr "欢迎回来, %{name}!"
+
+msgid "Failed to authenticate."
+msgstr "认证失败。"
+
+msgid "Failed to create account."
+msgstr "创建账户失败。"
+
+msgid "Saved: %{title}"
+msgstr "已保存: %{title}"
+
+msgid "Save failed"
+msgstr "保存失败"
+
+msgid "Update failed"
+msgstr "更新失败"
+
+msgid "Failed to update language"
+msgstr "更新语言失败"
+

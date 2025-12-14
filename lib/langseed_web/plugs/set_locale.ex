@@ -24,4 +24,3 @@ defmodule LangseedWeb.Plugs.SetLocale do
     end
   end
 end
-

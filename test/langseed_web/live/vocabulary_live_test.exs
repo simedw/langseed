@@ -7,7 +7,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
 
   describe "VocabularyLive - unauthenticated" do
     test "redirects to login when not authenticated", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/auth/google"}}} = live(conn, ~p"/")
+      assert {:error, {:redirect, %{to: "/auth/google"}}} = live(conn, ~p"/vocabulary")
     end
   end
 
@@ -15,7 +15,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
     setup :register_and_log_in_user
 
     test "mounts and displays empty state when no concepts", %{conn: conn} do
-      {:ok, view, html} = live(conn, ~p"/")
+      {:ok, view, html} = live(conn, ~p"/vocabulary")
 
       assert html =~ "词汇"
       assert html =~ "还没有词汇"
@@ -26,7 +26,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
       _concept1 = concept_fixture(user, %{word: "你好", understanding: 50})
       _concept2 = concept_fixture(user, %{word: "再见", understanding: 80})
 
-      {:ok, view, html} = live(conn, ~p"/")
+      {:ok, view, html} = live(conn, ~p"/vocabulary")
 
       assert html =~ "你好"
       assert html =~ "再见"
@@ -42,7 +42,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
     test "expand event opens concept card modal", %{conn: conn, user: user} do
       concept = concept_fixture(user, %{word: "你好", pinyin: "nǐ hǎo", meaning: "hello"})
 
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/vocabulary")
 
       # Click to expand
       view
@@ -59,7 +59,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
     test "collapse event closes concept card modal", %{conn: conn, user: user} do
       concept = concept_fixture(user, %{word: "你好"})
 
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/vocabulary")
 
       # Open modal
       view
@@ -79,7 +79,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
     test "delete event removes concept and shows flash", %{conn: conn, user: user} do
       concept = concept_fixture(user, %{word: "你好"})
 
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/vocabulary")
 
       # Verify concept exists
       assert has_element?(view, "button", "你好")
@@ -105,7 +105,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
     test "update_understanding event updates concept level", %{conn: conn, user: user} do
       concept = concept_fixture(user, %{word: "你好", understanding: 30})
 
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/vocabulary")
 
       # Open modal
       view
@@ -126,7 +126,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
       other_user = user_fixture()
       concept_fixture(other_user, %{word: "秘密"})
 
-      {:ok, _view, html} = live(conn, ~p"/")
+      {:ok, _view, html} = live(conn, ~p"/vocabulary")
 
       refute html =~ "秘密"
       assert html =~ "还没有词汇"
@@ -139,7 +139,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
           explanations: ["👋😊", "见面 说 ____"]
         })
 
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/vocabulary")
 
       view
       |> element("button[phx-value-id='#{concept.id}']")
@@ -157,7 +157,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
           desired_words: ["爱", "最"]
         })
 
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/vocabulary")
 
       view
       |> element("button[phx-value-id='#{concept.id}']")
@@ -179,7 +179,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
           desired_words: ["爱", "最"]
         })
 
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/vocabulary")
 
       view
       |> element("button[phx-value-id='#{concept.id}']")
@@ -204,7 +204,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
           desired_words: ["爱", "最"]
         })
 
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/vocabulary")
 
       view
       |> element("button[phx-value-id='#{concept.id}']")

@@ -6,6 +6,10 @@ defmodule LangseedWeb.TextAnalysisLiveTest do
   import Langseed.VocabularyFixtures
   import Langseed.LibraryFixtures
 
+  alias Langseed.Accounts.Scope
+
+  defp scope_for(user), do: %Scope{user: user, language: "zh"}
+
   describe "TextAnalysisLive - unauthenticated" do
     test "redirects to login when not authenticated", %{conn: conn} do
       assert {:error, {:redirect, %{to: "/auth/google"}}} = live(conn, ~p"/analyze")
@@ -65,7 +69,7 @@ defmodule LangseedWeb.TextAnalysisLiveTest do
 
       # Click to select a word
       view
-      |> element("span[phx-click='toggle_word'][phx-value-word='喜欢']")
+      |> element("ruby[phx-click='toggle_word'][phx-value-word='喜欢']")
       |> render_click()
 
       html = render(view)
@@ -74,7 +78,7 @@ defmodule LangseedWeb.TextAnalysisLiveTest do
 
       # Click again to deselect
       view
-      |> element("span[phx-click='toggle_word'][phx-value-word='喜欢']")
+      |> element("ruby[phx-click='toggle_word'][phx-value-word='喜欢']")
       |> render_click()
 
       _html = render(view)
@@ -117,7 +121,7 @@ defmodule LangseedWeb.TextAnalysisLiveTest do
 
       # Click on known word
       view
-      |> element("span[phx-click='show_concept'][phx-value-word='学习']")
+      |> element("ruby[phx-click='show_concept'][phx-value-word='学习']")
       |> render_click()
 
       html = render(view)
@@ -135,7 +139,7 @@ defmodule LangseedWeb.TextAnalysisLiveTest do
       |> render_change(%{"text" => "我喜欢学习"})
 
       view
-      |> element("span[phx-click='show_concept'][phx-value-word='学习']")
+      |> element("ruby[phx-click='show_concept'][phx-value-word='学习']")
       |> render_click()
 
       # Close the modal
@@ -161,7 +165,7 @@ defmodule LangseedWeb.TextAnalysisLiveTest do
       assert html =~ "已保存"
 
       # Should have a text in the database
-      texts = Langseed.Library.list_texts(user)
+      texts = Langseed.Library.list_texts(scope_for(user))
       assert length(texts) == 1
       assert hd(texts).content == "这是测试文本"
     end
@@ -226,7 +230,7 @@ defmodule LangseedWeb.TextAnalysisLiveTest do
       {:ok, _view, html} = live(conn, ~p"/analyze?text_id=#{text.id}")
 
       # Should show error flash, not the content
-      assert html =~ "文本不存在"
+      assert html =~ "Text not found"
       refute html =~ "秘密内容"
     end
   end

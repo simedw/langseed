@@ -18,6 +18,11 @@ defmodule Langseed.Accounts.Scope do
 
   alias Langseed.Accounts.User
 
+  @type t :: %__MODULE__{
+          user: User.t() | nil,
+          language: String.t()
+        }
+
   defstruct user: nil, language: "zh"
 
   @doc """

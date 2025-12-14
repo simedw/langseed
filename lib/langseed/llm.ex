@@ -21,7 +21,13 @@ defmodule Langseed.LLM do
 
   Returns {:ok, analysis} or {:error, reason}
   """
-  def analyze_word(user_id, word, context_sentence \\ nil, known_words \\ MapSet.new(), language \\ "zh") do
+  def analyze_word(
+        user_id,
+        word,
+        context_sentence \\ nil,
+        known_words \\ MapSet.new(),
+        language \\ "zh"
+      ) do
     WordAnalyzer.analyze(user_id, word, context_sentence, known_words, language)
   end
 
@@ -46,8 +52,20 @@ defmodule Langseed.LLM do
   Generates a fill-in-the-blank question with multiple choice options.
   Returns {:ok, %{sentence: ..., options: [...], correct_index: 0-3}} or {:error, reason}
   """
-  def generate_fill_blank_question(user_id, concept, known_words, distractor_words, language \\ "zh") do
-    QuestionGenerator.generate_fill_blank(user_id, concept, known_words, distractor_words, language)
+  def generate_fill_blank_question(
+        user_id,
+        concept,
+        known_words,
+        distractor_words,
+        language \\ "zh"
+      ) do
+    QuestionGenerator.generate_fill_blank(
+      user_id,
+      concept,
+      known_words,
+      distractor_words,
+      language
+    )
   end
 
   # Sentence Evaluation

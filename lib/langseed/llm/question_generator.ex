@@ -31,7 +31,15 @@ defmodule Langseed.LLM.QuestionGenerator do
     # Include the target word in allowed words
     allowed_words = MapSet.put(known_words, concept.word)
 
-    generate_yes_no_with_retry(user_id, concept, known_words, allowed_words, language, [], @max_retries)
+    generate_yes_no_with_retry(
+      user_id,
+      concept,
+      known_words,
+      allowed_words,
+      language,
+      [],
+      @max_retries
+    )
   end
 
   @doc """
@@ -171,7 +179,8 @@ defmodule Langseed.LLM.QuestionGenerator do
          previous_illegal,
          attempts
        ) do
-    prompt = build_fill_blank_prompt(concept, known_words, distractor_words, previous_illegal, language)
+    prompt =
+      build_fill_blank_prompt(concept, known_words, distractor_words, previous_illegal, language)
 
     with {:ok, data} <- call_llm(prompt, user_id, "fill_blank_question"),
          {:ok, result} <- parse_fill_blank(data),

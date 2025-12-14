@@ -101,7 +101,9 @@ defmodule LangseedWeb.SharedComponents do
     ~H"""
     <%= if length(@filtered_words) > 0 do %>
       <div class="mt-3 p-3 bg-info/10 rounded-lg">
-        <p class="text-xs opacity-60 mb-2">💡 {gettext("Learning these words can improve explanations:")}</p>
+        <p class="text-xs opacity-60 mb-2">
+          💡 {gettext("Learning these words can improve explanations:")}
+        </p>
         <div class="flex flex-wrap gap-1">
           <%= for word <- @filtered_words do %>
             <% is_importing = word in @importing_words %>
@@ -119,7 +121,9 @@ defmodule LangseedWeb.SharedComponents do
               phx-value-word={word}
               phx-value-context={@context || ""}
               disabled={is_importing}
-              title={if is_importing, do: gettext("Adding..."), else: gettext("Click to add to vocabulary")}
+              title={
+                if is_importing, do: gettext("Adding..."), else: gettext("Click to add to vocabulary")
+              }
             >
               <%= if is_importing do %>
                 <span class="loading loading-spinner loading-xs mr-1"></span>
@@ -155,7 +159,9 @@ defmodule LangseedWeb.SharedComponents do
 
   def concept_card(assigns) do
     # HSK level only makes sense for Chinese
-    hsk_level = if assigns.concept.language == "zh", do: HSK.lookup(assigns.concept.word), else: nil
+    hsk_level =
+      if assigns.concept.language == "zh", do: HSK.lookup(assigns.concept.word), else: nil
+
     assigns = assign(assigns, :hsk_level, hsk_level)
 
     ~H"""

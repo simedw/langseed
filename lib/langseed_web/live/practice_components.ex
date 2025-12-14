@@ -20,7 +20,10 @@ defmodule LangseedWeb.PracticeComponents do
         <h2 class="card-title justify-center">{gettext("Well done!")}</h2>
         <p class="opacity-70">{gettext("No words need practice")}</p>
         <p class="text-sm opacity-50 mt-2">
-          {gettext("Go to %{link} to add more words", link: ~s(<a href="/analyze" class="link link-primary">#{gettext("Analyze")}</a>)) |> Phoenix.HTML.raw()}
+          {gettext("Go to %{link} to add more words",
+            link: ~s(<a href="/analyze" class="link link-primary">#{gettext("Analyze")}</a>)
+          )
+          |> Phoenix.HTML.raw()}
         </p>
       </div>
     </div>
@@ -33,7 +36,8 @@ defmodule LangseedWeb.PracticeComponents do
   attr :message, :string, default: nil
 
   def loading_card(assigns) do
-    assigns = assign_new(assigns, :display_message, fn -> assigns.message || gettext("Loading...") end)
+    assigns =
+      assign_new(assigns, :display_message, fn -> assigns.message || gettext("Loading...") end)
 
     ~H"""
     <div class="card bg-base-200 shadow-lg">
@@ -192,7 +196,9 @@ defmodule LangseedWeb.PracticeComponents do
         <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-error"} mb-4"}>
           <span class="text-2xl">{if @feedback.correct, do: "✅", else: "❌"}</span>
           <div>
-            <p class="font-bold">{if @feedback.correct, do: gettext("Correct!"), else: gettext("Wrong")}</p>
+            <p class="font-bold">
+              {if @feedback.correct, do: gettext("Correct!"), else: gettext("Wrong")}
+            </p>
             <%= if @feedback.explanation && @feedback.explanation != "" do %>
               <p class="text-sm">{@feedback.explanation}</p>
             <% end %>
@@ -270,7 +276,9 @@ defmodule LangseedWeb.PracticeComponents do
         <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-error"} mt-4"}>
           <span class="text-2xl">{if @feedback.correct, do: "✅", else: "❌"}</span>
           <p class="font-bold">
-            {if @feedback.correct, do: gettext("Correct!"), else: gettext("Correct answer: %{answer}", answer: @feedback.correct_answer)}
+            {if @feedback.correct,
+              do: gettext("Correct!"),
+              else: gettext("Correct answer: %{answer}", answer: @feedback.correct_answer)}
           </p>
         </div>
       <% end %>
@@ -312,13 +320,18 @@ defmodule LangseedWeb.PracticeComponents do
         </div>
 
         <p class="text-center mb-4 opacity-70">
-          {gettext("Write a sentence using %{word}", word: ~s(<span class="font-bold text-primary">#{@concept.word}</span>)) |> Phoenix.HTML.raw()}
+          {gettext("Write a sentence using %{word}",
+            word: ~s(<span class="font-bold text-primary">#{@concept.word}</span>)
+          )
+          |> Phoenix.HTML.raw()}
         </p>
 
         <%= if @feedback do %>
           <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-warning"} mb-4"}>
             <div>
-              <p class="font-bold">{if @feedback.correct, do: gettext("Good!"), else: gettext("Needs improvement")}</p>
+              <p class="font-bold">
+                {if @feedback.correct, do: gettext("Good!"), else: gettext("Needs improvement")}
+              </p>
               <p>{@feedback.feedback}</p>
               <%= if @feedback.improved do %>
                 <p class="text-sm mt-2 opacity-70">{gettext("Suggestion:")} {@feedback.improved}</p>

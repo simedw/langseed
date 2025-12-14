@@ -8,7 +8,7 @@ defmodule LangseedWeb.AuthController do
 
   def callback(%{assigns: %{ueberauth_failure: _fails}} = conn, _params) do
     conn
-    |> put_flash(:error, "Failed to authenticate.")
+    |> put_flash(:error, gettext("Failed to authenticate."))
     |> redirect(to: ~p"/")
   end
 
@@ -25,19 +25,25 @@ defmodule LangseedWeb.AuthController do
             {:ok, word_count} = Seeds.create_for_user(user)
 
             conn
-            |> put_flash(:info, "欢迎 #{name}! 你有 #{word_count} 个基础词汇开始学习。")
+            |> put_flash(
+              :info,
+              gettext("Welcome %{name}! You have %{count} starter words to begin learning.",
+                name: name,
+                count: word_count
+              )
+            )
             |> UserAuth.log_in_user(user)
 
           {:error, _reason} ->
             conn
-            |> put_flash(:error, "Failed to create account.")
+            |> put_flash(:error, gettext("Failed to create account."))
             |> redirect(to: ~p"/")
         end
 
       user ->
         # Existing user
         conn
-        |> put_flash(:info, "欢迎回来, #{name || user.email}!")
+        |> put_flash(:info, gettext("Welcome back, %{name}!", name: name || user.email))
         |> UserAuth.log_in_user(user)
     end
   end

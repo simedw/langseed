@@ -44,7 +44,7 @@ defmodule LangseedWeb.Layouts do
     <header class="bg-base-200 border-b border-base-300">
       <div class="navbar px-4 sm:px-6 lg:px-8">
         <div class="flex-1">
-          <a href="/" class="flex items-center gap-2">
+          <a href="/vocabulary" class="flex items-center gap-2">
             <span class="text-2xl">🌱</span>
             <span class="text-lg font-bold">LangSeed</span>
           </a>
@@ -55,7 +55,7 @@ defmodule LangseedWeb.Layouts do
         </div>
       </div>
       <div class="flex gap-1 px-4 pb-2">
-        <a href="/" class="btn btn-sm btn-ghost">
+        <a href="/vocabulary" class="btn btn-sm btn-ghost">
           <.icon name="hero-book-open" class="size-4" /> {gettext("Vocabulary")}
         </a>
         <a href="/graph" class="btn btn-sm btn-ghost">
@@ -87,7 +87,7 @@ defmodule LangseedWeb.Layouts do
   def bottom_nav(assigns) do
     ~H"""
     <nav class="btm-nav btm-nav-md bg-base-200 border-t border-base-300">
-      <.nav_item href="/" icon="hero-book-open" label="Vocabulary" />
+      <.nav_item href="/vocabulary" icon="hero-book-open" label="Vocabulary" />
       <.nav_item href="/analyze" icon="hero-magnifying-glass" label="Analyze" />
       <.nav_item href="/practice" icon="hero-academic-cap" label="Practice" />
     </nav>

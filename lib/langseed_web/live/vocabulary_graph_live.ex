@@ -39,11 +39,14 @@ defmodule LangseedWeb.VocabularyGraphLive do
     concept = Vocabulary.get_concept!(scope, id)
     {:ok, updated_concept} = Vocabulary.toggle_paused(concept)
 
-    action = if updated_concept.paused, do: "Paused", else: "Resumed"
+    flash_message =
+      if updated_concept.paused,
+        do: gettext("Paused %{word}", word: concept.word),
+        else: gettext("Resumed %{word}", word: concept.word)
 
     {:noreply,
      socket
-     |> put_flash(:info, "#{action} #{concept.word}")
+     |> put_flash(:info, flash_message)
      |> assign(selected_concept: updated_concept)}
   end
 
@@ -54,7 +57,7 @@ defmodule LangseedWeb.VocabularyGraphLive do
       <div class="p-4">
         <div class="flex items-center justify-between mb-4">
           <h1 class="text-2xl font-bold">{gettext("Vocabulary Graph")}</h1>
-          <a href="/" class="btn btn-sm btn-ghost">
+          <a href="/vocabulary" class="btn btn-sm btn-ghost">
             <.icon name="hero-list-bullet" class="size-4" /> {gettext("List view")}
           </a>
         </div>
@@ -103,7 +106,11 @@ defmodule LangseedWeb.VocabularyGraphLive do
         </div>
 
         <div class="mt-4 text-sm opacity-60">
-          <p>💡 {gettext("Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green).")}</p>
+          <p>
+            💡 {gettext(
+              "Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green)."
+            )}
+          </p>
           <p>{gettext("Arrow direction: A → B means A is used to explain B.")}</p>
         </div>
       </div>

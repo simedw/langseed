@@ -96,13 +96,7 @@ defmodule LangseedWeb.PracticeLive do
   @impl true
   def handle_async(:evaluate_sentence, {:ok, {:ok, result}}, socket) do
     concept = socket.assigns.current_concept
-
-    # Update understanding based on result
-    if result.correct do
-      Practice.record_answer(concept, true)
-    else
-      Practice.record_answer(concept, false)
-    end
+    {:ok, _} = Practice.record_answer(concept, result.correct)
 
     {:noreply, assign(socket, feedback: result, loading: false)}
   end

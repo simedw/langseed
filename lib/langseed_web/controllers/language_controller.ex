@@ -10,12 +10,12 @@ defmodule LangseedWeb.LanguageController do
     case Accounts.update_selected_language(user, language) do
       {:ok, _user} ->
         conn
-        |> put_flash(:info, "Language updated")
+        |> put_flash(:info, gettext("Language updated"))
         |> redirect(to: redirect_to)
 
       {:error, _changeset} ->
         conn
-        |> put_flash(:error, "Failed to update language")
+        |> put_flash(:error, gettext("Failed to update language"))
         |> redirect(to: redirect_to)
     end
   end
@@ -31,4 +31,3 @@ defmodule LangseedWeb.LanguageController do
     end
   end
 end
-

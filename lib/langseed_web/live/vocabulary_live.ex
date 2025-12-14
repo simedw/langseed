@@ -12,15 +12,16 @@ defmodule LangseedWeb.VocabularyLive do
     known_words = Vocabulary.known_words(scope)
 
     {:ok,
-     assign(socket,
+     socket
+     |> assign(
        page_title: gettext("Vocabulary"),
-       concepts: concepts,
        concept_count: length(concepts),
        known_words: known_words,
        expanded_id: nil,
        expanded_concept: nil,
        importing_words: []
-     )}
+     )
+     |> stream(:concepts, concepts)}
   end
 
   @impl true
@@ -41,15 +42,14 @@ defmodule LangseedWeb.VocabularyLive do
     concept = Vocabulary.get_concept!(scope, id)
     {:ok, _} = Vocabulary.delete_concept(concept)
 
-    concepts = Vocabulary.list_concepts(scope)
     known_words = Vocabulary.known_words(scope)
 
     {:noreply,
      socket
-     |> put_flash(:info, "Deleted #{concept.word}")
+     |> put_flash(:info, gettext("Deleted %{word}", word: concept.word))
+     |> stream_delete(:concepts, concept)
      |> assign(
-       concepts: concepts,
-       concept_count: length(concepts),
+       concept_count: socket.assigns.concept_count - 1,
        known_words: known_words,
        expanded_id: nil,
        expanded_concept: nil
@@ -63,9 +63,10 @@ defmodule LangseedWeb.VocabularyLive do
     level = String.to_integer(value)
     {:ok, updated_concept} = Vocabulary.update_understanding(concept, level)
 
-    concepts = Vocabulary.list_concepts(scope)
-
-    {:noreply, assign(socket, concepts: concepts, expanded_concept: updated_concept)}
+    {:noreply,
+     socket
+     |> stream_insert(:concepts, updated_concept)
+     |> assign(expanded_concept: updated_concept)}
   end
 
   @impl true
@@ -74,7 +75,8 @@ defmodule LangseedWeb.VocabularyLive do
 
     # Check if word already exists
     if Vocabulary.word_known?(scope, word) do
-      {:noreply, put_flash(socket, :info, "#{word} is already in your vocabulary")}
+      {:noreply,
+       put_flash(socket, :info, gettext("%{word} is already in your vocabulary", word: word))}
     else
       # Import the word asynchronously
       {:noreply,
@@ -92,20 +94,25 @@ defmodule LangseedWeb.VocabularyLive do
     concept = Vocabulary.get_concept!(scope, id)
     {:ok, updated_concept} = Vocabulary.toggle_paused(concept)
 
-    concepts = Vocabulary.list_concepts(scope)
-    action = if updated_concept.paused, do: "Paused", else: "Resumed"
+    flash_message =
+      if updated_concept.paused,
+        do: gettext("Paused %{word}", word: concept.word),
+        else: gettext("Resumed %{word}", word: concept.word)
 
     {:noreply,
      socket
-     |> put_flash(:info, "#{action} #{concept.word}")
-     |> assign(concepts: concepts, expanded_concept: updated_concept)}
+     |> put_flash(:info, flash_message)
+     |> stream_insert(:concepts, updated_concept)
+     |> assign(expanded_concept: updated_concept)}
   end
 
   @impl true
   def handle_async({:import_word, word}, {:ok, {[_], []}}, socket) do
     scope = current_scope(socket)
-    concepts = Vocabulary.list_concepts(scope)
     known_words = Vocabulary.known_words(scope)
+
+    # Get the newly added concept to insert into stream
+    new_concept = Vocabulary.get_concept_by_word(scope, word)
 
     # Refresh the expanded concept if it's still open (to update desired_words display)
     expanded_concept =
@@ -115,16 +122,25 @@ defmodule LangseedWeb.VocabularyLive do
         nil
       end
 
-    {:noreply,
-     socket
-     |> put_flash(:success, "Added #{word}")
-     |> assign(
-       concepts: concepts,
-       concept_count: length(concepts),
-       known_words: known_words,
-       expanded_concept: expanded_concept,
-       importing_words: List.delete(socket.assigns.importing_words, word)
-     )}
+    socket =
+      socket
+      |> put_flash(:success, gettext("Added %{word}", word: word))
+      |> assign(
+        concept_count: socket.assigns.concept_count + 1,
+        known_words: known_words,
+        expanded_concept: expanded_concept,
+        importing_words: List.delete(socket.assigns.importing_words, word)
+      )
+
+    # Insert new concept at the beginning of the stream
+    socket =
+      if new_concept do
+        stream_insert(socket, :concepts, new_concept, at: 0)
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -153,17 +169,18 @@ defmodule LangseedWeb.VocabularyLive do
           <span class="badge badge-lg">{@concept_count}</span>
         </div>
 
-        <div class="flex flex-wrap gap-2">
-          <%= for concept <- @concepts do %>
-            <.concept_chip concept={concept} />
-          <% end %>
+        <div id="concepts" phx-update="stream" class="flex flex-wrap gap-2">
+          <.concept_chip :for={{dom_id, concept} <- @streams.concepts} id={dom_id} concept={concept} />
         </div>
 
         <%= if @concept_count == 0 do %>
           <div class="text-center py-12">
             <p class="text-lg opacity-70">{gettext("No vocabulary yet")}</p>
             <p class="text-sm opacity-50 mt-2">
-              {gettext("Go to %{link} to add words", link: ~s(<a href="/analyze" class="link link-primary">#{gettext("Analyze")}</a>)) |> Phoenix.HTML.raw()}
+              {gettext("Go to %{link} to add words",
+                link: ~s(<a href="/analyze" class="link link-primary">#{gettext("Analyze")}</a>)
+              )
+              |> Phoenix.HTML.raw()}
             </p>
           </div>
         <% end %>
@@ -189,13 +206,19 @@ defmodule LangseedWeb.VocabularyLive do
     """
   end
 
+  attr :id, :string, required: true
+  attr :concept, :map, required: true
+
   defp concept_chip(assigns) do
     # HSK level only for Chinese
-    hsk_level = if assigns.concept.language == "zh", do: HSK.lookup(assigns.concept.word), else: nil
+    hsk_level =
+      if assigns.concept.language == "zh", do: HSK.lookup(assigns.concept.word), else: nil
+
     assigns = assign(assigns, :hsk_level, hsk_level)
 
     ~H"""
     <button
+      id={@id}
       class={[
         "px-3 py-2 rounded-lg text-2xl font-bold transition-all hover:scale-105 cursor-pointer relative",
         @concept.paused && "opacity-50"

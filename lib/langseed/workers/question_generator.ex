@@ -6,6 +6,8 @@ defmodule Langseed.Workers.QuestionGenerator do
 
   use Oban.Worker, queue: :questions, max_attempts: 3
 
+  require Logger
+
   alias Langseed.Repo
   alias Langseed.Practice
   alias Langseed.Accounts.User
@@ -61,15 +63,11 @@ defmodule Langseed.Workers.QuestionGenerator do
   end
 
   defp generate_single_question(scope, concept) do
-    # Add some delay between API calls to avoid rate limiting
-    Process.sleep(500)
-
     case Practice.generate_question(scope, concept) do
       {:ok, _question} ->
         :ok
 
       {:error, reason} ->
-        require Logger
         Logger.warning("Failed to generate question for #{concept.word}: #{inspect(reason)}")
     end
   end

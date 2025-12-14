@@ -5,6 +5,10 @@ defmodule LangseedWeb.TextsLiveTest do
   import Langseed.AccountsFixtures
   import Langseed.LibraryFixtures
 
+  alias Langseed.Accounts.Scope
+
+  defp scope_for(user), do: %Scope{user: user, language: "zh"}
+
   describe "TextsLive - unauthenticated" do
     test "redirects to login when not authenticated", %{conn: conn} do
       assert {:error, {:redirect, %{to: "/auth/google"}}} = live(conn, ~p"/texts")
@@ -117,7 +121,7 @@ defmodule LangseedWeb.TextsLiveTest do
       refute html =~ "旧标题"
 
       # Verify in database
-      updated = Langseed.Library.get_text!(user, text.id)
+      updated = Langseed.Library.get_text!(scope_for(user), text.id)
       assert updated.title == "新标题"
     end
 
@@ -178,7 +182,7 @@ defmodule LangseedWeb.TextsLiveTest do
       refute html =~ "我的文本"
 
       # Other user's text should still exist
-      assert Langseed.Library.get_text(other_user, other_text.id) != nil
+      assert Langseed.Library.get_text(scope_for(other_user), other_text.id) != nil
     end
   end
 end

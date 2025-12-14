@@ -67,7 +67,10 @@ defmodule LangseedWeb.TextsLive do
           <div class="text-center py-12">
             <p class="text-lg opacity-70">{gettext("No saved texts")}</p>
             <p class="text-sm opacity-50 mt-2">
-              {gettext("Go to %{link} to save texts", link: ~s(<a href="/analyze" class="link link-primary">#{gettext("Analyze")}</a>)) |> Phoenix.HTML.raw()}
+              {gettext("Go to %{link} to save texts",
+                link: ~s(<a href="/analyze" class="link link-primary">#{gettext("Analyze")}</a>)
+              )
+              |> Phoenix.HTML.raw()}
             </p>
           </div>
         <% else %>

@@ -47,7 +47,7 @@ defmodule Langseed.Services.WordImporter do
     failed = results |> Enum.filter(&match?({:error, _}, &1)) |> Enum.map(&elem(&1, 1))
 
     # Trigger question generation for the user if any words were added
-    if length(added) > 0 && scope do
+    if not Enum.empty?(added) && scope do
       QuestionGenerator.enqueue(scope.user)
     end
 

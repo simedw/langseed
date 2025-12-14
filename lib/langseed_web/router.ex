@@ -21,11 +21,17 @@ defmodule LangseedWeb.Router do
   scope "/", LangseedWeb do
     pipe_through :browser
 
+    # Public landing page
+    live_session :public,
+      on_mount: [{LangseedWeb.UserAuth, :mount_current_scope}] do
+      live "/", LandingLive
+    end
+
     # All app routes require authentication
     live_session :authenticated,
       layout: {LangseedWeb.Layouts, :app},
       on_mount: [{LangseedWeb.UserAuth, :require_authenticated_user}] do
-      live "/", VocabularyLive
+      live "/vocabulary", VocabularyLive
       live "/graph", VocabularyGraphLive
       live "/analyze", TextAnalysisLive
       live "/texts", TextsLive

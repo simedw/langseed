@@ -61,7 +61,8 @@ defmodule Langseed.Vocabulary do
   Marks words as already known (100% understanding) without generating explanations.
   Returns {:ok, count} with the number of words added.
   """
-  @spec mark_words_as_known(Scope.t() | nil, [String.t()]) :: {:ok, integer()} | {:error, String.t()}
+  @spec mark_words_as_known(Scope.t() | nil, [String.t()]) ::
+          {:ok, integer()} | {:error, String.t()}
   def mark_words_as_known(%Scope{language: language} = scope, words) when is_list(words) do
     existing = known_words(scope)
 

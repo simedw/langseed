@@ -30,7 +30,13 @@ defmodule Langseed.LLM.WordAnalyzer do
   """
   @spec analyze(integer() | nil, String.t(), String.t() | nil, MapSet.t(), String.t()) ::
           {:ok, analysis()} | {:error, String.t()}
-  def analyze(user_id, word, context_sentence \\ nil, known_words \\ MapSet.new(), language \\ "zh") do
+  def analyze(
+        user_id,
+        word,
+        context_sentence \\ nil,
+        known_words \\ MapSet.new(),
+        language \\ "zh"
+      ) do
     # Include the word being analyzed in allowed words
     allowed_words = MapSet.put(known_words, word)
 
@@ -250,28 +256,29 @@ defmodule Langseed.LLM.WordAnalyzer do
     target_language = target_explanation_language(language)
 
     # Chinese needs pinyin, others don't
-    json_format = if language == "zh" do
-      """
-      {
-        "pinyin": "pinyin with tone marks",
-        "meaning": "English meaning",
-        "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
-        "explanations": ["explanation1", "explanation2", "explanation3"],
-        "explanation_quality": 1-5,
-        "desired_words": ["word1", "word2"]
-      }
-      """
-    else
-      """
-      {
-        "meaning": "English meaning",
-        "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
-        "explanations": ["explanation1", "explanation2", "explanation3"],
-        "explanation_quality": 1-5,
-        "desired_words": ["word1", "word2"]
-      }
-      """
-    end
+    json_format =
+      if language == "zh" do
+        """
+        {
+          "pinyin": "pinyin with tone marks",
+          "meaning": "English meaning",
+          "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
+          "explanations": ["explanation1", "explanation2", "explanation3"],
+          "explanation_quality": 1-5,
+          "desired_words": ["word1", "word2"]
+        }
+        """
+      else
+        """
+        {
+          "meaning": "English meaning",
+          "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
+          "explanations": ["explanation1", "explanation2", "explanation3"],
+          "explanation_quality": 1-5,
+          "desired_words": ["word1", "word2"]
+        }
+        """
+      end
 
     """
     Analyze this #{language_name} word: "#{safe_word}"

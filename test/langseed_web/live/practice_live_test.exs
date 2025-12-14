@@ -6,6 +6,9 @@ defmodule LangseedWeb.PracticeLiveTest do
 
   alias Langseed.Practice
   alias Langseed.Vocabulary
+  alias Langseed.Accounts.Scope
+
+  defp scope_for(user), do: %Scope{user: user, language: "zh"}
 
   describe "PracticeLive - unauthenticated" do
     test "redirects to login when not authenticated", %{conn: conn} do
@@ -62,7 +65,7 @@ defmodule LangseedWeb.PracticeLiveTest do
       |> render_click()
 
       # Concept should now have understanding = 1
-      updated = Vocabulary.get_concept!(user, concept.id)
+      updated = Vocabulary.get_concept!(scope_for(user), concept.id)
       assert updated.understanding == 1
 
       # Since the concept now has understanding=1, it goes to loading_quiz mode
@@ -208,11 +211,10 @@ defmodule LangseedWeb.PracticeLiveTest do
 
       # Switch to sentence mode
       view
-      |> element("button", "写句子练习")
+      |> element("button", "写句子")
       |> render_click()
 
       html = render(view)
-      assert html =~ "写句子"
       assert html =~ "写一个句子"
     end
   end
@@ -243,7 +245,7 @@ defmodule LangseedWeb.PracticeLiveTest do
 
       # Switch to sentence mode
       view
-      |> element("button", "写句子练习")
+      |> element("button", "写句子")
       |> render_click()
 
       html = render(view)
@@ -273,7 +275,7 @@ defmodule LangseedWeb.PracticeLiveTest do
       :timer.sleep(100)
 
       view
-      |> element("button", "写句子练习")
+      |> element("button", "写句子")
       |> render_click()
 
       # Type in the textarea

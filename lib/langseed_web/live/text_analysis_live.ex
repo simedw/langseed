@@ -152,6 +152,7 @@ defmodule LangseedWeb.TextAnalysisLive do
   def handle_event("toggle_hsk", _, socket) do
     # HSK is only relevant for Chinese
     scope = current_scope(socket)
+
     if scope && scope.language == "zh" do
       {:noreply, assign(socket, show_hsk: !socket.assigns.show_hsk)}
     else
@@ -243,14 +244,25 @@ defmodule LangseedWeb.TextAnalysisLive do
       if Enum.empty?(added) do
         socket
       else
-        put_flash(socket, :info, gettext("Added %{count} words: %{words}", count: length(added), words: Enum.join(added, ", ")))
+        put_flash(
+          socket,
+          :info,
+          gettext("Added %{count} words: %{words}",
+            count: length(added),
+            words: Enum.join(added, ", ")
+          )
+        )
       end
 
     socket =
       if Enum.empty?(failed) do
         socket
       else
-        put_flash(socket, :error, gettext("Failed to add: %{words}", words: Enum.join(failed, ", ")))
+        put_flash(
+          socket,
+          :error,
+          gettext("Failed to add: %{words}", words: Enum.join(failed, ", "))
+        )
       end
 
     {:noreply, socket}
@@ -282,18 +294,18 @@ defmodule LangseedWeb.TextAnalysisLive do
           current_text_id: saved_text.id,
           recent_texts: Library.list_recent_texts(scope, 5)
         )
-        |> put_flash(:info, "Saved: #{saved_text.title}")
+        |> put_flash(:info, gettext("Saved: %{title}", title: saved_text.title))
 
       {:updated, _} ->
         socket
         |> assign(recent_texts: Library.list_recent_texts(scope, 5))
-        |> put_flash(:info, "Updated")
+        |> put_flash(:info, gettext("Updated"))
 
       {:error, :create} ->
-        put_flash(socket, :error, "Save failed")
+        put_flash(socket, :error, gettext("Save failed"))
 
       {:error, :update} ->
-        put_flash(socket, :error, "Update failed")
+        put_flash(socket, :error, gettext("Update failed"))
     end
   end
 
@@ -371,7 +383,9 @@ defmodule LangseedWeb.TextAnalysisLive do
                       <% end %>
                       <li class="pt-1">
                         <a href="/texts" class="text-primary">
-                          <.icon name="hero-ellipsis-horizontal" class="size-4" /> {gettext("View all")}
+                          <.icon name="hero-ellipsis-horizontal" class="size-4" /> {gettext(
+                            "View all"
+                          )}
                         </a>
                       </li>
                     <% else %>
@@ -452,7 +466,9 @@ defmodule LangseedWeb.TextAnalysisLive do
                     class="btn btn-success flex-1"
                     phx-click="add_selected"
                   >
-                    <.icon name="hero-plus" class="size-5" /> {gettext("Add %{count} words", count: MapSet.size(@selected_words))}
+                    <.icon name="hero-plus" class="size-5" /> {gettext("Add %{count} words",
+                      count: MapSet.size(@selected_words)
+                    )}
                   </button>
                   <button
                     class="btn btn-outline btn-primary"
