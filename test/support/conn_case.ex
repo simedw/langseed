@@ -33,7 +33,9 @@ defmodule LangseedWeb.ConnCase do
 
   setup tags do
     Langseed.DataCase.setup_sandbox(tags)
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+    # Use example.com instead of www.example.com to avoid redirect_www plug
+    conn = %{Phoenix.ConnTest.build_conn() | host: "example.com"}
+    {:ok, conn: conn}
   end
 
   @doc """
