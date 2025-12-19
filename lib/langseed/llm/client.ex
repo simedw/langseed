@@ -12,7 +12,7 @@ defmodule Langseed.LLM.Client do
 
   alias Langseed.Analytics
 
-  @default_model "gemini-2.5-pro"
+  @default_model "gemini-3-flash-preview"
 
   defmodule Response do
     @moduledoc "Wrapper for LLM response with usage metadata"
