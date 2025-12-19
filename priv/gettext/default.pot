@@ -3,7 +3,6 @@
 ## `msgid`s here are often extracted from source code.
 ## Add new translations manually only if they're dynamic
 ## or not easily detectable.
-
 msgid ""
 msgstr ""
 
@@ -96,6 +95,7 @@ msgid "Write a sentence"
 msgstr ""
 
 #: Empty states
+#: Vocabulary page
 msgid "No vocabulary yet"
 msgstr ""
 
@@ -113,10 +113,6 @@ msgid "View all"
 msgstr ""
 
 msgid "New text"
-msgstr ""
-
-#: Vocabulary page
-msgid "No vocabulary yet"
 msgstr ""
 
 msgid "Go to %{link} to add words"
@@ -240,25 +236,7 @@ msgstr ""
 msgid "Enter text..."
 msgstr ""
 
-msgid "Save"
-msgstr ""
-
-msgid "Update"
-msgstr ""
-
 msgid "No text to save"
-msgstr ""
-
-msgid "Saved"
-msgstr ""
-
-msgid "Recent"
-msgstr ""
-
-msgid "View all"
-msgstr ""
-
-msgid "No saved texts"
 msgstr ""
 
 msgid "Known:"
@@ -305,4 +283,3 @@ msgstr ""
 
 msgid "Paused %{word}"
 msgstr ""
-
