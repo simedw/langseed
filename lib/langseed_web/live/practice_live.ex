@@ -6,6 +6,7 @@ defmodule LangseedWeb.PracticeLive do
   alias Langseed.Practice
   alias Langseed.Vocabulary
   alias Langseed.Services.WordImporter
+  alias Langseed.Language.Pinyin
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,6 +20,7 @@ defmodule LangseedWeb.PracticeLive do
        user_answer: nil,
        feedback: nil,
        sentence_input: "",
+       pinyin_input: "",
        loading: false,
        importing_words: []
      )
@@ -35,7 +37,7 @@ defmodule LangseedWeb.PracticeLive do
   end
 
   defp setup_concept(socket, scope, concept) do
-    mode = if concept.understanding == 0, do: :definition, else: :loading_quiz
+    mode = choose_practice_mode(concept)
 
     socket
     |> assign(
@@ -43,10 +45,35 @@ defmodule LangseedWeb.PracticeLive do
       mode: mode,
       question: nil,
       feedback: nil,
-      user_answer: nil
+      user_answer: nil,
+      pinyin_input: ""
     )
     |> maybe_start_quiz_generation(scope, concept, mode)
   end
+
+  # Choose practice mode based on concept state and language
+  defp choose_practice_mode(concept) do
+    cond do
+      # New words always show definition first
+      concept.understanding == 0 ->
+        :definition
+
+      # Chinese concepts with valid pinyin can have pinyin quiz (1 in 3 chance)
+      concept.language == "zh" and valid_pinyin?(concept.pinyin) ->
+        if Enum.random(1..3) == 1, do: :pinyin_quiz, else: :loading_quiz
+
+      # Default to regular quiz
+      true ->
+        :loading_quiz
+    end
+  end
+
+  # Check if pinyin is valid (not nil, empty, or placeholder)
+  defp valid_pinyin?(nil), do: false
+  defp valid_pinyin?(""), do: false
+  defp valid_pinyin?("-"), do: false
+  defp valid_pinyin?("?"), do: false
+  defp valid_pinyin?(_), do: true
 
   defp maybe_start_quiz_generation(socket, scope, concept, :loading_quiz) do
     socket
@@ -219,6 +246,31 @@ defmodule LangseedWeb.PracticeLive do
     {:noreply, assign(socket, sentence_input: sentence)}
   end
 
+  # Pinyin quiz handlers
+  @impl true
+  def handle_event("update_pinyin", %{"pinyin" => pinyin}, socket) do
+    {:noreply, assign(socket, pinyin_input: pinyin)}
+  end
+
+  @impl true
+  def handle_event("submit_pinyin", _, socket) do
+    input = socket.assigns.pinyin_input
+    concept = socket.assigns.current_concept
+    expected = concept.pinyin
+
+    correct = Pinyin.match?(input, expected)
+    Practice.record_answer(concept, correct)
+
+    feedback = %{
+      correct: correct,
+      expected_numbered: Pinyin.to_numbered(expected),
+      expected_toned: expected,
+      user_input: Pinyin.normalize(input)
+    }
+
+    {:noreply, assign(socket, feedback: feedback, user_answer: input)}
+  end
+
   @impl true
   def handle_event("submit_sentence", _, socket) do
     scope = current_scope(socket)
@@ -294,6 +346,12 @@ defmodule LangseedWeb.PracticeLive do
               question={@question}
               feedback={@feedback}
               user_answer={@user_answer}
+            />
+          <% :pinyin_quiz -> %>
+            <.pinyin_quiz_card
+              concept={@current_concept}
+              pinyin_input={@pinyin_input}
+              feedback={@feedback}
             />
           <% :sentence_writing -> %>
             <.sentence_card

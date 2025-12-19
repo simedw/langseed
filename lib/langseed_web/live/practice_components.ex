@@ -372,4 +372,83 @@ defmodule LangseedWeb.PracticeComponents do
     </div>
     """
   end
+
+  @doc """
+  Renders a card for pinyin quiz practice.
+  User sees the Chinese word and must type the pinyin with tones.
+  """
+  attr :concept, :map, required: true
+  attr :pinyin_input, :string, default: ""
+  attr :feedback, :map, default: nil
+
+  def pinyin_quiz_card(assigns) do
+    ~H"""
+    <div class="card bg-base-200 shadow-lg">
+      <div class="card-body">
+        <div class="flex justify-end -mt-2 -mr-2 mb-2">
+          <button
+            class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+            phx-click="pause_word"
+            title={gettext("Pause this word")}
+          >
+            <.icon name="hero-pause" class="size-4" /> {gettext("Pause")}
+          </button>
+        </div>
+
+        <div class="text-center mb-4">
+          <span class="badge badge-secondary mb-2">{gettext("Write pinyin")}</span>
+          <h2 class="text-5xl font-bold mb-2">{@concept.word}</h2>
+          <p class="text-sm opacity-60">{@concept.meaning}</p>
+        </div>
+
+        <p class="text-center text-sm opacity-70 mb-4">
+          {gettext("Type the pinyin with tone numbers (e.g., ni3 hao3)")}
+        </p>
+
+        <%= if @feedback do %>
+          <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-error"} mb-4"}>
+            <span class="text-2xl">{if @feedback.correct, do: "✅", else: "❌"}</span>
+            <div>
+              <%= if @feedback.correct do %>
+                <p class="font-bold">{gettext("Correct!")}</p>
+              <% else %>
+                <p class="font-bold">{@feedback.expected_toned}</p>
+                <p class="text-sm opacity-70">{@feedback.expected_numbered}</p>
+              <% end %>
+            </div>
+          </div>
+
+          <button class="btn btn-primary w-full" phx-click="next">
+            {gettext("Next")} <.icon name="hero-arrow-right" class="size-5" />
+          </button>
+        <% else %>
+          <form phx-submit="submit_pinyin" phx-change="update_pinyin">
+            <input
+              type="text"
+              class="input input-bordered w-full text-xl text-center mb-4"
+              placeholder={gettext("e.g., ni3 hao3")}
+              name="pinyin"
+              value={@pinyin_input}
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+
+            <button
+              type="submit"
+              class="btn btn-primary w-full"
+              disabled={String.trim(@pinyin_input) == ""}
+            >
+              <.icon name="hero-check" class="size-5" /> {gettext("Check")}
+            </button>
+          </form>
+
+          <button class="btn btn-ghost btn-sm w-full mt-2" phx-click="skip">
+            {gettext("Skip")}
+          </button>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
 end
