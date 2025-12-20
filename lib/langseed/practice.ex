@@ -41,15 +41,7 @@ defmodule Langseed.Practice do
     # Priority 1: Due SRS reviews (always prioritize reviews)
     case get_next_srs_review(scope, last_concept_id) do
       nil ->
-        # Priority 2: New definitions (if under session limit)
-        if session_new_count < @session_new_limit do
-          case get_concept_needing_definition(scope) do
-            nil -> nil
-            concept -> {:definition, concept}
-          end
-        else
-          nil
-        end
+        get_next_new_definition(scope, session_new_count)
 
       srs_record ->
         {:srs, srs_record}
@@ -57,6 +49,19 @@ defmodule Langseed.Practice do
   end
 
   def get_next_practice(nil, _opts), do: nil
+
+  defp get_next_new_definition(scope, session_new_count) do
+    # Priority 2: New definitions (if under session limit)
+    if session_new_count < @session_new_limit do
+      case get_concept_needing_definition(scope) do
+        nil -> nil
+        concept -> {:definition, concept}
+      end
+    else
+      nil
+    end
+  end
+
 
   @doc """
   Finds concepts with no SRS records (not seen definition yet).

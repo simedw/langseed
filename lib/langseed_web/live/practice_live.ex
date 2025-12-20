@@ -77,55 +77,73 @@ defmodule LangseedWeb.PracticeLive do
 
     case srs_record.question_type do
       "pinyin" ->
-        socket
-        |> assign(
-          current_concept: concept,
-          current_srs: srs_record,
-          mode: :pinyin_quiz,
-          question: nil,
-          feedback: nil,
-          user_answer: nil,
-          pinyin_input: ""
-        )
+        setup_pinyin_mode(socket, concept, srs_record)
 
       question_type when question_type in ["yes_no", "multiple_choice"] ->
-        # Try to get a pre-generated question
-        case Practice.get_unused_question(concept.id, question_type) do
-          nil ->
-            # Generate question async with timeout
-            socket
-            |> assign(
-              current_concept: concept,
-              current_srs: srs_record,
-              mode: :loading_quiz,
-              loading: true
-            )
-            |> start_async(:generate_question, fn ->
-              # 30 second timeout for LLM call
-              task =
-                Task.async(fn -> Practice.generate_question(scope, concept, question_type) end)
-
-              case Task.yield(task, 30_000) || Task.shutdown(task) do
-                {:ok, result} -> result
-                nil -> {:error, "Question generation timed out"}
-              end
-            end)
-
-          question ->
-            socket
-            |> assign(
-              current_concept: concept,
-              current_srs: srs_record,
-              mode: :quiz,
-              question: question,
-              feedback: nil,
-              user_answer: nil
-            )
-        end
+        setup_quiz_mode(socket, scope, concept, srs_record, question_type)
 
       _ ->
         # Unknown question type, skip
         load_next_practice(socket)
+    end
+  end
+
+  defp setup_pinyin_mode(socket, concept, srs_record) do
+    socket
+    |> assign(
+      current_concept: concept,
+      current_srs: srs_record,
+      mode: :pinyin_quiz,
+      question: nil,
+      feedback: nil,
+      user_answer: nil,
+      pinyin_input: ""
+    )
+  end
+
+  defp setup_quiz_mode(socket, scope, concept, srs_record, question_type) do
+    # Try to get a pre-generated question
+    case Practice.get_unused_question(concept.id, question_type) do
+      nil ->
+        start_question_generation(socket, scope, concept, srs_record, question_type)
+
+      question ->
+        assign_quiz_question(socket, concept, srs_record, question)
+    end
+  end
+
+  defp start_question_generation(socket, scope, concept, srs_record, question_type) do
+    socket
+    |> assign(
+      current_concept: concept,
+      current_srs: srs_record,
+      mode: :loading_quiz,
+      loading: true
+    )
+    |> start_async(:generate_question, fn ->
+      generate_question_with_timeout(scope, concept, question_type)
+    end)
+  end
+
+  defp assign_quiz_question(socket, concept, srs_record, question) do
+    socket
+    |> assign(
+      current_concept: concept,
+      current_srs: srs_record,
+      mode: :quiz,
+      question: question,
+      feedback: nil,
+      user_answer: nil
+    )
+  end
+
+  defp generate_question_with_timeout(scope, concept, question_type) do
+    # 30 second timeout for LLM call
+    task = Task.async(fn -> Practice.generate_question(scope, concept, question_type) end)
+
+    case Task.yield(task, 30_000) || Task.shutdown(task) do
+      {:ok, result} -> result
+      nil -> {:error, "Question generation timed out"}
     end
   end
 

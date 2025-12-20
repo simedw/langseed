@@ -25,14 +25,10 @@ defmodule Langseed.TimeFormatter do
   def format_relative(datetime, now) do
     diff_seconds = DateTime.diff(datetime, now, :second)
 
-    cond do
-      # In the past or within 1 minute = "now" (ready for review)
-      diff_seconds <= 60 ->
-        gettext("now")
-
-      # In the future
-      true ->
-        format_future(diff_seconds)
+    if diff_seconds <= 60 do
+      gettext("now")
+    else
+      format_future(diff_seconds)
     end
   end
 

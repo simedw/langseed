@@ -84,20 +84,7 @@ defmodule LangseedWeb.SharedComponents do
   attr :known_words, :any, default: nil
 
   def desired_words_section(assigns) do
-    # Filter out words that are already known
-    filtered_words =
-      if assigns.known_words do
-        Enum.reject(assigns.words, fn word ->
-          case assigns.known_words do
-            %MapSet{} -> MapSet.member?(assigns.known_words, word)
-            %{} -> Map.has_key?(assigns.known_words, word)
-            _ -> false
-          end
-        end)
-      else
-        assigns.words
-      end
-
+    filtered_words = filter_known_words(assigns.words, assigns.known_words)
     assigns = assign(assigns, :filtered_words, filtered_words)
 
     ~H"""
@@ -140,6 +127,21 @@ defmodule LangseedWeb.SharedComponents do
     <% end %>
     """
   end
+
+  defp filter_known_words(words, nil), do: words
+
+  defp filter_known_words(words, known_words) do
+    Enum.reject(words, fn word ->
+      word_is_known?(word, known_words)
+    end)
+  end
+
+  defp word_is_known?(word, %MapSet{} = known_words), do: MapSet.member?(known_words, word)
+
+  defp word_is_known?(word, known_words) when is_map(known_words),
+    do: Map.has_key?(known_words, word)
+
+  defp word_is_known?(_word, _known_words), do: false
 
   @doc """
   Renders a concept card modal.

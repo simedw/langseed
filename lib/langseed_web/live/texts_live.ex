@@ -87,25 +87,23 @@ defmodule LangseedWeb.TextsLive do
 
     uploaded_files =
       consume_uploaded_entries(socket, :text_file, fn %{path: path}, entry ->
-        case File.read(path) do
-          {:ok, content} ->
-            # Extract filename without extension as the title
-            title = Path.basename(entry.client_name, Path.extname(entry.client_name))
-
-            # Create the text entry
-            case Library.create_text(scope, %{content: content, title: title}) do
-              {:ok, text} ->
-                {:ok, text}
-
-              {:error, _changeset} ->
-                {:postpone, :error}
-            end
-
-          {:error, _reason} ->
-            {:postpone, :error}
-        end
+        process_uploaded_file(path, entry, scope)
       end)
 
+    handle_upload_result(socket, scope, uploaded_files)
+  end
+
+  defp process_uploaded_file(path, entry, scope) do
+    with {:ok, content} <- File.read(path),
+         title = Path.basename(entry.client_name, Path.extname(entry.client_name)),
+         {:ok, text} <- Library.create_text(scope, %{content: content, title: title}) do
+      {:ok, text}
+    else
+      {:error, _} -> {:postpone, :error}
+    end
+  end
+
+  defp handle_upload_result(socket, scope, uploaded_files) do
     # consume_uploaded_entries returns the value from {:ok, value}, so we get [text] not [{:ok, text}]
     case uploaded_files do
       [%Langseed.Library.Text{} = _text] ->

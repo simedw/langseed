@@ -80,18 +80,20 @@ defmodule Langseed.Language.Pinyin do
   defp extract_tone(syllable) do
     syllable
     |> String.graphemes()
-    |> Enum.reduce({[], nil}, fn char, {acc, tone} ->
-      case Map.get(@tone_marks, char) do
-        {base_char, tone_num} ->
-          {acc ++ [base_char], tone_num}
-
-        nil ->
-          # Handle ü without tone mark
-          char = if char == "ü", do: "v", else: char
-          {acc ++ [char], tone}
-      end
-    end)
+    |> Enum.reduce({[], nil}, &process_tone_char/2)
     |> then(fn {chars, tone} -> {Enum.join(chars), tone} end)
+  end
+
+  defp process_tone_char(char, {acc, tone}) do
+    case Map.get(@tone_marks, char) do
+      {base_char, tone_num} ->
+        {acc ++ [base_char], tone_num}
+
+      nil ->
+        # Handle ü without tone mark
+        normalized_char = if char == "ü", do: "v", else: char
+        {acc ++ [normalized_char], tone}
+    end
   end
 
   @doc """
