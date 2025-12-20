@@ -1,20 +1,295 @@
 defmodule Langseed.Practice do
   @moduledoc """
   The Practice context for managing vocabulary practice sessions.
-  Designed to be easily integrated with Oban for background question generation.
+  Uses a tier-based SRS (Spaced Repetition System) with independent tracking
+  for each question type (pinyin, yes_no, multiple_choice).
   """
 
   import Ecto.Query, warn: false
   alias Langseed.Repo
   alias Langseed.Practice.Question
+  alias Langseed.Practice.ConceptSRS
   alias Langseed.Vocabulary
   alias Langseed.Vocabulary.Concept
   alias Langseed.LLM
   alias Langseed.Accounts.Scope
 
+  @session_new_limit 20
+  @questions_without_pregeneration ["pinyin"]
+  # ============================================================================
+  # NEW SRS-BASED PRACTICE FLOW
+  # ============================================================================
+
+  @doc """
+  Gets the next practice item for a scope.
+
+  Returns:
+  - `{:definition, concept}` - New word needs definition shown
+  - `{:srs, srs_record}` - Due SRS review with preloaded concept
+  - `nil` - Nothing to practice
+
+  Options:
+  - `:last_concept_id` - Avoid showing this concept again (cooldown)
+  - `:session_new_count` - Number of new words shown this session
+  """
+  def get_next_practice(scope, opts \\ [])
+
+  def get_next_practice(%Scope{} = scope, opts) do
+    last_concept_id = Keyword.get(opts, :last_concept_id)
+    session_new_count = Keyword.get(opts, :session_new_count, 0)
+
+    # Priority 1: Due SRS reviews (always prioritize reviews)
+    case get_next_srs_review(scope, last_concept_id) do
+      nil ->
+        # Priority 2: New definitions (if under session limit)
+        if session_new_count < @session_new_limit do
+          case get_concept_needing_definition(scope) do
+            nil -> nil
+            concept -> {:definition, concept}
+          end
+        else
+          nil
+        end
+
+      srs_record ->
+        {:srs, srs_record}
+    end
+  end
+
+  def get_next_practice(nil, _opts), do: nil
+
+  @doc """
+  Finds concepts with no SRS records (not seen definition yet).
+  """
+  def get_concept_needing_definition(%Scope{user: user, language: language}) do
+    from(c in Concept,
+      left_join: srs in ConceptSRS,
+      on: srs.concept_id == c.id and srs.user_id == ^user.id,
+      where: c.user_id == ^user.id,
+      where: c.language == ^language,
+      where: c.paused == false,
+      where: is_nil(srs.id),
+      order_by: [asc: c.inserted_at],
+      limit: 1
+    )
+    |> Repo.one()
+  end
+
+  def get_concept_needing_definition(nil), do: nil
+
+  defp get_next_srs_review(%Scope{user: user, language: language}, last_concept_id) do
+    now = DateTime.utc_now()
+
+    base_query =
+      from(srs in ConceptSRS,
+        as: :srs,
+        join: c in Concept,
+        on: srs.concept_id == c.id,
+        where: srs.user_id == ^user.id,
+        where: c.language == ^language,
+        where: c.paused == false,
+        where: srs.tier < 7,
+        where: srs.next_review <= ^now,
+        preload: [concept: c]
+      )
+
+    # Try to get due item excluding last_concept_id (cooldown)
+    cooldown_query =
+      if last_concept_id do
+        base_query |> where([srs, c], c.id != ^last_concept_id)
+      else
+        base_query
+      end
+
+    # Priority 1: SRS with pre-generated questions
+    srs_with_question =
+      cooldown_query
+      |> where(
+        [srs],
+        srs.question_type in @questions_without_pregeneration or
+          exists(
+            from(q in Question,
+              where: q.concept_id == parent_as(:srs).concept_id,
+              where: q.question_type == parent_as(:srs).question_type,
+              where: q.user_id == ^user.id,
+              where: is_nil(q.used_at)
+            )
+          )
+      )
+      |> order_by([srs], asc: srs.next_review)
+      |> limit(1)
+      |> Repo.one()
+
+    # Priority 2: Any due SRS from cooldown set
+    # Priority 3: Allow same concept if cooldown blocked everything
+    srs_with_question ||
+      cooldown_query |> order_by([srs], asc: srs.next_review) |> limit(1) |> Repo.one() ||
+      if last_concept_id do
+        base_query |> order_by([srs], asc: srs.next_review) |> limit(1) |> Repo.one()
+      else
+        nil
+      end
+  end
+
+  @doc """
+  Initializes SRS records for a concept when user clicks "Understand".
+  Creates one record per question type based on language.
+  """
+  def initialize_srs_for_concept(%Concept{} = concept, user_id) do
+    question_types = ConceptSRS.question_types_for_language(concept.language)
+    now = DateTime.utc_now()
+
+    Enum.each(question_types, fn type ->
+      %ConceptSRS{}
+      |> ConceptSRS.changeset(%{
+        concept_id: concept.id,
+        user_id: user_id,
+        question_type: type,
+        tier: 0,
+        next_review: now
+      })
+      |> Repo.insert!()
+    end)
+
+    # Update concept understanding to reflect SRS state
+    update_concept_understanding(concept, user_id)
+
+    # Broadcast practice state change
+    broadcast_practice_updated(user_id, concept.language)
+  end
+
+  @doc """
+  Records an SRS answer and updates the tier/next_review.
+  """
+  def record_srs_answer(%ConceptSRS{} = srs_record, correct?) do
+    new_tier = ConceptSRS.update_tier(srs_record.tier, correct?)
+    next_review = ConceptSRS.calculate_next_review(new_tier)
+    streak_lapses = ConceptSRS.update_streak_and_lapses(srs_record, correct?)
+
+    attrs =
+      Map.merge(streak_lapses, %{
+        tier: new_tier,
+        next_review: next_review
+      })
+
+    result =
+      srs_record
+      |> ConceptSRS.changeset(attrs)
+      |> Repo.update()
+
+    # Update cached understanding on concept
+    case result do
+      {:ok, updated_srs} ->
+        update_concept_understanding_by_id(updated_srs.concept_id, updated_srs.user_id)
+
+        # Broadcast practice state change
+        # Get language from concept (either preloaded or fetch it)
+        language =
+          case srs_record.concept do
+            %Ecto.Association.NotLoaded{} ->
+              Repo.get!(Concept, updated_srs.concept_id).language
+
+            concept ->
+              concept.language
+          end
+
+        broadcast_practice_updated(updated_srs.user_id, language)
+
+        {:ok, updated_srs}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Checks if there are practice items ready (for notification indicator).
+  Shows indicator when ANY SRS items are due (even without pre-generated questions).
+  """
+  def has_practice_ready?(%Scope{user: user, language: language}) do
+    now = DateTime.utc_now()
+
+    # Check for any due SRS records
+    due_srs =
+      from(srs in ConceptSRS,
+        join: c in Concept,
+        on: srs.concept_id == c.id,
+        where: srs.user_id == ^user.id,
+        where: c.language == ^language,
+        where: c.paused == false,
+        where: srs.tier < 7,
+        where: srs.next_review <= ^now,
+        limit: 1
+      )
+      |> Repo.exists?()
+
+    if due_srs do
+      true
+    else
+      # Check for new definitions
+      from(c in Concept,
+        left_join: srs in ConceptSRS,
+        on: srs.concept_id == c.id and srs.user_id == ^user.id,
+        where: c.user_id == ^user.id,
+        where: c.language == ^language,
+        where: c.paused == false,
+        where: is_nil(srs.id),
+        limit: 1
+      )
+      |> Repo.exists?()
+    end
+  end
+
+  def has_practice_ready?(nil), do: false
+
+  @doc """
+  Calculates and updates the cached understanding for a concept.
+  """
+  def update_concept_understanding(%Concept{} = concept, user_id) do
+    update_concept_understanding_by_id(concept.id, user_id)
+  end
+
+  defp update_concept_understanding_by_id(concept_id, user_id) do
+    avg_tier =
+      from(s in ConceptSRS,
+        where: s.concept_id == ^concept_id,
+        where: s.user_id == ^user_id,
+        select: avg(s.tier)
+      )
+      |> Repo.one()
+
+    new_understanding =
+      case avg_tier do
+        nil -> 0
+        %Decimal{} = avg -> avg |> Decimal.to_float() |> Kernel./(7) |> Kernel.*(100) |> round()
+        avg when is_number(avg) -> round(avg / 7 * 100)
+      end
+
+    from(c in Concept, where: c.id == ^concept_id)
+    |> Repo.update_all(set: [understanding: new_understanding])
+  end
+
+  @doc """
+  Gets all SRS records for a concept (for progress display).
+  """
+  def get_srs_records_for_concept(concept_id, user_id) do
+    from(s in ConceptSRS,
+      where: s.concept_id == ^concept_id,
+      where: s.user_id == ^user_id,
+      order_by: [asc: s.question_type]
+    )
+    |> Repo.all()
+  end
+
+  # ============================================================================
+  # LEGACY FUNCTIONS (kept for backwards compatibility)
+  # ============================================================================
+
   @doc """
   Gets the next word to practice for a scope, prioritizing lowest understanding (0-60%).
   Returns nil if no words need practice.
+
+  DEPRECATED: Use get_next_practice/2 instead.
   """
   @spec get_next_concept(Scope.t() | nil) :: Concept.t() | nil
   def get_next_concept(%Scope{user: user, language: language}) do
@@ -82,7 +357,21 @@ defmodule Langseed.Practice do
   @spec get_unused_question(term()) :: Question.t() | nil
   def get_unused_question(concept_id) do
     Question
-    |> where([q], q.concept_id == ^concept_id and q.used == false)
+    |> where([q], q.concept_id == ^concept_id and is_nil(q.used_at))
+    |> order_by([q], asc: :inserted_at)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  @doc """
+  Gets an unused question for a concept and specific question type.
+  """
+  def get_unused_question(concept_id, question_type) do
+    Question
+    |> where(
+      [q],
+      q.concept_id == ^concept_id and q.question_type == ^question_type and is_nil(q.used_at)
+    )
     |> order_by([q], asc: :inserted_at)
     |> limit(1)
     |> Repo.one()
@@ -90,21 +379,38 @@ defmodule Langseed.Practice do
 
   @doc """
   Generates a question for a concept and stores it in the database.
-  Randomly picks between yes_no and fill_blank question types.
+  Randomly picks between yes_no and multiple_choice question types.
   """
   @spec generate_question(Scope.t() | nil, Concept.t()) ::
           {:ok, Question.t()} | {:error, String.t()}
   def generate_question(%Scope{} = scope, concept) do
     known_words = Vocabulary.known_words(scope)
-    question_type = Enum.random(["yes_no", "fill_blank"])
+    question_type = Enum.random(["yes_no", "multiple_choice"])
 
     case question_type do
       "yes_no" -> generate_yes_no(scope, concept, known_words)
-      "fill_blank" -> generate_fill_blank(scope, concept, known_words)
+      "multiple_choice" -> generate_multiple_choice(scope, concept, known_words)
     end
   end
 
   def generate_question(nil, _concept), do: {:error, "Authentication required"}
+
+  @doc """
+  Generates a question for a concept with a specific question type.
+  """
+  @spec generate_question(Scope.t() | nil, Concept.t(), String.t()) ::
+          {:ok, Question.t()} | {:error, String.t()}
+  def generate_question(%Scope{} = scope, concept, question_type) do
+    known_words = Vocabulary.known_words(scope)
+
+    case question_type do
+      "yes_no" -> generate_yes_no(scope, concept, known_words)
+      "multiple_choice" -> generate_multiple_choice(scope, concept, known_words)
+      _ -> {:error, "Unknown question type: #{question_type}"}
+    end
+  end
+
+  def generate_question(nil, _concept, _type), do: {:error, "Authentication required"}
 
   defp generate_yes_no(%Scope{user: user, language: language}, concept, known_words) do
     case LLM.generate_yes_no_question(user.id, concept, known_words, language) do
@@ -126,7 +432,7 @@ defmodule Langseed.Practice do
     end
   end
 
-  defp generate_fill_blank(%Scope{user: user, language: language}, concept, known_words) do
+  defp generate_multiple_choice(%Scope{user: user, language: language}, concept, known_words) do
     # Get distractor words (other concepts from the same user and language)
     base_query = Concept |> where([c], c.user_id == ^user.id and c.language == ^language)
 
@@ -153,7 +459,7 @@ defmodule Langseed.Practice do
       {:ok, data} ->
         attrs = %{
           concept_id: concept.id,
-          question_type: "fill_blank",
+          question_type: "multiple_choice",
           question_text: data.sentence,
           correct_answer: Integer.to_string(data.correct_index),
           options: data.options
@@ -179,12 +485,12 @@ defmodule Langseed.Practice do
   end
 
   @doc """
-  Marks a question as used.
+  Marks a question as used with a timestamp.
   """
   @spec mark_question_used(Question.t()) :: {:ok, Question.t()} | {:error, Ecto.Changeset.t()}
   def mark_question_used(question) do
     question
-    |> Question.changeset(%{used: true})
+    |> Question.changeset(%{used: true, used_at: DateTime.utc_now()})
     |> Repo.update()
   end
 
@@ -260,32 +566,80 @@ defmodule Langseed.Practice do
   @spec count_unused_questions(term()) :: integer()
   def count_unused_questions(concept_id) do
     Question
-    |> where([q], q.concept_id == ^concept_id and q.used == false)
+    |> where([q], q.concept_id == ^concept_id and is_nil(q.used_at))
+    |> Repo.aggregate(:count)
+  end
+
+  @doc """
+  Counts unused questions for a concept and specific question type.
+  """
+  def count_unused_questions(concept_id, question_type) do
+    Question
+    |> where(
+      [q],
+      q.concept_id == ^concept_id and q.question_type == ^question_type and is_nil(q.used_at)
+    )
     |> Repo.aggregate(:count)
   end
 
   @doc """
   Gets concepts needing more questions for a scope.
-  Returns concepts with understanding 0-60% that have fewer than target_count unused questions.
-  Questions are generated immediately for new words (0%) so they're ready when practiced.
+  Returns concepts with SRS records that have fewer than target_count unused questions.
   """
   @spec get_concepts_needing_questions(Scope.t() | nil, integer()) :: [{Concept.t(), integer()}]
   def get_concepts_needing_questions(%Scope{user: user, language: language}, target_count) do
     subquery =
       from q in Question,
-        where: q.used == false,
+        where: is_nil(q.used_at),
         group_by: q.concept_id,
         select: %{concept_id: q.concept_id, count: count(q.id)}
 
-    Concept
-    |> where([c], c.user_id == ^user.id and c.language == ^language)
-    |> where([c], c.understanding >= 0 and c.understanding <= 60)
-    |> where([c], c.paused == false)
-    |> join(:left, [c], q in subquery(subquery), on: c.id == q.concept_id)
-    |> where([c, q], is_nil(q.count) or q.count < ^target_count)
-    |> select([c, q], {c, coalesce(q.count, 0)})
+    # Get concepts with SRS records (have been through definition stage)
+    from(c in Concept,
+      join: srs in ConceptSRS,
+      on: srs.concept_id == c.id,
+      where: c.user_id == ^user.id and c.language == ^language,
+      where: srs.tier < 7,
+      where: c.paused == false,
+      left_join: q in subquery(subquery),
+      on: c.id == q.concept_id,
+      where: is_nil(q.count) or q.count < ^target_count,
+      distinct: c.id,
+      select: {c, coalesce(q.count, 0)}
+    )
     |> Repo.all()
   end
 
   def get_concepts_needing_questions(nil, _target_count), do: []
+
+  @doc """
+  Creates SRS records at tier 7 (graduated) for seed/known words.
+  """
+  def create_graduated_srs_for_concept(%Concept{} = concept, user_id) do
+    question_types = ConceptSRS.question_types_for_language(concept.language)
+
+    Enum.each(question_types, fn type ->
+      %ConceptSRS{}
+      |> ConceptSRS.changeset(%{
+        concept_id: concept.id,
+        user_id: user_id,
+        question_type: type,
+        tier: 7,
+        next_review: nil
+      })
+      |> Repo.insert!()
+    end)
+  end
+
+  # ============================================================================
+  # PUBSUB BROADCASTING
+  # ============================================================================
+
+  defp broadcast_practice_updated(user_id, language) do
+    Phoenix.PubSub.broadcast(
+      Langseed.PubSub,
+      "practice:#{user_id}:#{language}",
+      {:practice_updated, %{}}
+    )
+  end
 end

@@ -115,6 +115,14 @@ defmodule LangseedWeb do
           _ -> nil
         end
       end
+
+      # Helper to update practice_ready indicator
+      # Call this from your handle_info implementations
+      defp update_practice_ready(socket) do
+        scope = current_scope(socket)
+        practice_ready = Langseed.Practice.has_practice_ready?(scope)
+        Phoenix.Component.assign(socket, :practice_ready, practice_ready)
+      end
     end
   end
 

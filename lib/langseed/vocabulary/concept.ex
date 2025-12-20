@@ -15,6 +15,7 @@ defmodule Langseed.Vocabulary.Concept do
     # Multiple explanations using different approaches
     field :explanations, {:array, :string}, default: []
     field :example_sentence, :string
+    # Cached understanding (average of SRS tiers), updated after each answer
     field :understanding, :integer, default: 0
     # AI's satisfaction with the explanation (1-5 scale)
     field :explanation_quality, :integer
@@ -26,6 +27,7 @@ defmodule Langseed.Vocabulary.Concept do
     field :language, :string, default: "zh"
 
     belongs_to :user, Langseed.Accounts.User
+    has_many :srs_records, Langseed.Practice.ConceptSRS
 
     timestamps(type: :utc_datetime)
   end

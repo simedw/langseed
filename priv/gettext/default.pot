@@ -6,60 +6,107 @@
 msgid ""
 msgstr ""
 
-#: Navigation
+#: lib/langseed_web/components/layouts.ex:63
+#: lib/langseed_web/live/vocabulary_live.ex:18
+#: lib/langseed_web/live/vocabulary_live.ex:171
+#, elixir-autogen
 msgid "Vocabulary"
 msgstr ""
 
+#: lib/langseed_web/components/layouts.ex:66
+#: lib/langseed_web/live/vocabulary_graph_live.ex:16
+#, elixir-autogen
 msgid "Graph"
 msgstr ""
 
+#: lib/langseed_web/components/layouts.ex:69
+#: lib/langseed_web/live/practice_components.ex:24
+#: lib/langseed_web/live/text_analysis_live.ex:17
+#: lib/langseed_web/live/text_analysis_live.ex:333
+#: lib/langseed_web/live/texts_live.ex:140
+#: lib/langseed_web/live/vocabulary_live.ex:184
+#, elixir-autogen
 msgid "Analyze"
 msgstr ""
 
+#: lib/langseed_web/components/layouts.ex:72
+#: lib/langseed_web/live/texts_live.ex:13
+#: lib/langseed_web/live/texts_live.ex:133
+#, elixir-autogen
 msgid "Texts"
 msgstr ""
 
+#: lib/langseed_web/components/layouts.ex:76
+#: lib/langseed_web/live/practice_live.ex:16
+#: lib/langseed_web/live/practice_live.ex:411
+#, elixir-autogen
 msgid "Practice"
 msgstr ""
 
-#: Actions
+#: lib/langseed_web/live/text_analysis_live.ex:352
+#, elixir-autogen
 msgid "Save"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:352
+#, elixir-autogen
 msgid "Update"
 msgstr ""
 
+#: lib/langseed_web/components/shared_components.ex:290
+#, elixir-autogen
 msgid "Delete"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:360
+#, elixir-autogen
 msgid "Load"
 msgstr ""
 
 msgid "New"
 msgstr ""
 
+#: lib/langseed_web/live/texts_live.ex:346
+#, elixir-autogen
 msgid "Add"
 msgstr ""
 
+#: lib/langseed_web/live/texts_live.ex:339
+#, elixir-autogen
 msgid "Cancel"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:165
+#: lib/langseed_web/live/practice_components.ex:343
+#: lib/langseed_web/live/practice_components.ex:422
+#, elixir-autogen
 msgid "Next"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:122
+#: lib/langseed_web/live/practice_components.ex:368
+#: lib/langseed_web/live/practice_components.ex:447
+#, elixir-autogen
 msgid "Skip"
 msgstr ""
 
-#: Messages
+#: lib/langseed_web/controllers/language_controller.ex:13
+#, elixir-autogen
 msgid "Language updated"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:401
+#, elixir-autogen
 msgid "Saved"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:302
+#, elixir-autogen
 msgid "Updated"
 msgstr ""
 
+#: lib/langseed_web/live/texts_live.ex:38
+#, elixir-autogen
 msgid "Deleted"
 msgstr ""
 
@@ -69,33 +116,45 @@ msgstr ""
 msgid "Failed"
 msgstr ""
 
-#: Practice
+#: lib/langseed_web/live/practice_components.ex:111
+#, elixir-autogen
 msgid "I understand"
 msgstr ""
 
 msgid "New explanation"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:69
+#: lib/langseed_web/live/practice_components.ex:148
+#: lib/langseed_web/live/practice_components.ex:307
+#: lib/langseed_web/live/practice_components.ex:394
+#, elixir-autogen
 msgid "Pause"
 msgstr ""
 
 msgid "Resume"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:214
+#, elixir-autogen
 msgid "Yes"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:221
+#, elixir-autogen
 msgid "No"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:362
+#, elixir-autogen
 msgid "Submit"
 msgstr ""
 
 msgid "Write a sentence"
 msgstr ""
 
-#: Empty states
-#: Vocabulary page
+#: lib/langseed_web/live/vocabulary_live.ex:181
+#, elixir-autogen
 msgid "No vocabulary yet"
 msgstr ""
 
@@ -105,181 +164,597 @@ msgstr ""
 msgid "Go to Analyze to add words"
 msgstr ""
 
-#: Recent
+#: lib/langseed_web/live/text_analysis_live.ex:376
+#, elixir-autogen
 msgid "Recent"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:386
+#, elixir-autogen
 msgid "View all"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:372
+#, elixir-autogen
 msgid "New text"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_live.ex:183
+#, elixir-autogen
 msgid "Go to %{link} to add words"
 msgstr ""
 
-#: Graph page
+#: lib/langseed_web/live/vocabulary_graph_live.ex:59
+#, elixir-autogen
 msgid "Vocabulary Graph"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:67
+#, elixir-autogen
 msgid "Words"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:71
+#, elixir-autogen
 msgid "Connections"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:75
+#, elixir-autogen
 msgid "Isolated"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:77
+#, elixir-autogen
 msgid "Words without connections"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:83
+#, elixir-autogen
 msgid "Foundational words"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:84
+#, elixir-autogen
 msgid "Used to explain most other words"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:88
+#, elixir-autogen
 msgid "Complex words"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:89
+#, elixir-autogen
 msgid "Need most words to explain"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:148
+#, elixir-autogen
 msgid "No data"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:99
+#, elixir-autogen
 msgid "No vocabulary data yet"
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:110
+#, elixir-autogen
 msgid "Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green)."
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:114
+#, elixir-autogen
 msgid "Arrow direction: A → B means A is used to explain B."
 msgstr ""
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:61
+#, elixir-autogen
 msgid "List view"
 msgstr ""
 
-#: Texts page
+#: lib/langseed_web/live/text_analysis_live.ex:392
+#: lib/langseed_web/live/texts_live.ex:137
+#, elixir-autogen
 msgid "No saved texts"
 msgstr ""
 
+#: lib/langseed_web/live/texts_live.ex:139
+#, elixir-autogen
 msgid "Go to %{link} to save texts"
 msgstr ""
 
+#: lib/langseed_web/live/texts_live.ex:210
+#, elixir-autogen
 msgid "Read"
 msgstr ""
 
+#: lib/langseed_web/live/texts_live.ex:221
+#, elixir-autogen
 msgid "Delete this text?"
 msgstr ""
 
-#: Practice page
+#: lib/langseed_web/live/practice_components.ex:20
+#, elixir-autogen
 msgid "Well done!"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:21
+#, elixir-autogen
 msgid "No words need practice"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:23
+#, elixir-autogen
 msgid "Go to %{link} to add more words"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:40
+#, elixir-autogen
 msgid "Loading..."
 msgstr ""
 
+#: lib/langseed_web/live/practice_live.ex:419
+#, elixir-autogen
 msgid "Generating question..."
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:73
+#, elixir-autogen
 msgid "New word"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:67
+#: lib/langseed_web/live/practice_components.ex:146
+#: lib/langseed_web/live/practice_components.ex:305
+#: lib/langseed_web/live/practice_components.ex:392
+#, elixir-autogen
 msgid "Pause this word"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:119
+#, elixir-autogen
 msgid "Try another explanation"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:200
+#: lib/langseed_web/live/practice_components.ex:280
+#: lib/langseed_web/live/practice_components.ex:413
+#, elixir-autogen
 msgid "Correct!"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:200
+#, elixir-autogen
 msgid "Wrong"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:281
+#, elixir-autogen
 msgid "Correct answer: %{answer}"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:171
+#: lib/langseed_web/live/practice_components.ex:311
+#, elixir-autogen
 msgid "Write sentence"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:323
+#, elixir-autogen
 msgid "Write a sentence using %{word}"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:333
+#, elixir-autogen
 msgid "Good!"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:333
+#, elixir-autogen
 msgid "Needs improvement"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:337
+#, elixir-autogen
 msgid "Suggestion:"
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:349
+#, elixir-autogen
 msgid "Write your sentence..."
 msgstr ""
 
+#: lib/langseed_web/live/practice_components.ex:360
+#, elixir-autogen
 msgid "Checking..."
 msgstr ""
 
+#: lib/langseed_web/components/shared_components.ex:258
+#: lib/langseed_web/live/practice_components.ex:104
+#, elixir-autogen
 msgid "English"
 msgstr ""
 
-#: Text Analysis
+#: lib/langseed_web/live/text_analysis_live.ex:338
+#, elixir-autogen
 msgid "Enter text..."
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:135
+#, elixir-autogen
 msgid "No text to save"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:420
+#, elixir-autogen
 msgid "Known:"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:424
+#, elixir-autogen
 msgid "Unknown:"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:443
+#, elixir-autogen
 msgid "Select all unknown"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:469
+#, elixir-autogen
 msgid "Add %{count} words"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:487
+#, elixir-autogen
 msgid "Adding %{count}..."
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:250
+#, elixir-autogen
 msgid "Added %{count} words: %{words}"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:264
+#, elixir-autogen
 msgid "Failed to add: %{words}"
 msgstr ""
 
+#: lib/langseed_web/live/text_analysis_live.ex:279
+#, elixir-autogen
 msgid "Error adding: %{error}"
 msgstr ""
 
+#: lib/langseed_web/live/practice_live.ex:199
+#: lib/langseed_web/live/practice_live.ex:207
+#: lib/langseed_web/live/vocabulary_live.ex:153
+#: lib/langseed_web/live/vocabulary_live.ex:161
+#, elixir-autogen
 msgid "Failed to add %{word}"
 msgstr ""
 
 msgid "Added %{word} ✓"
 msgstr ""
 
+#: lib/langseed_web/live/practice_live.ex:145
+#, elixir-autogen
 msgid "New explanation generated"
 msgstr ""
 
+#: lib/langseed_web/live/practice_live.ex:153
+#, elixir-autogen
 msgid "Generation failed, please try again"
 msgstr ""
 
+#: lib/langseed_web/live/practice_live.ex:158
+#, elixir-autogen
 msgid "Generation failed"
 msgstr ""
 
+#: lib/langseed_web/live/practice_live.ex:179
+#: lib/langseed_web/live/practice_live.ex:184
+#, elixir-autogen
 msgid "Evaluation failed"
 msgstr ""
 
+#: lib/langseed_web/live/practice_live.ex:223
+#: lib/langseed_web/live/vocabulary_graph_live.ex:44
+#: lib/langseed_web/live/vocabulary_live.ex:102
+#, elixir-autogen
 msgid "Paused %{word}"
+msgstr ""
+
+#: lib/langseed_web/live/vocabulary_live.ex:82
+#, elixir-autogen, elixir-format
+msgid "%{word} is already in your vocabulary"
+msgstr ""
+
+#: lib/langseed_web/components/core_components.ex:368
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr ""
+
+#: lib/langseed_web/live/practice_live.ex:191
+#: lib/langseed_web/live/vocabulary_live.ex:130
+#, elixir-autogen, elixir-format
+msgid "Added %{word}"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:127
+#, elixir-autogen, elixir-format
+msgid "Adding..."
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:386
+#, elixir-autogen, elixir-format
+msgid "An error occurred"
+msgstr ""
+
+#: lib/langseed_web/components/layouts.ex:150
+#: lib/langseed_web/components/layouts.ex:162
+#, elixir-autogen, elixir-format
+msgid "Attempting to reconnect"
+msgstr ""
+
+#: lib/langseed_web/live/practice_components.ex:442
+#, elixir-autogen, elixir-format
+msgid "Check"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:280
+#, elixir-autogen, elixir-format
+msgid "Choose a file or drag it here"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:127
+#, elixir-autogen, elixir-format
+msgid "Click to add to vocabulary"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:260
+#, elixir-autogen, elixir-format
+msgid "Close"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:288
+#, elixir-autogen, elixir-format
+msgid "Delete %{word}?"
+msgstr ""
+
+#: lib/langseed_web/live/vocabulary_live.ex:52
+#, elixir-autogen, elixir-format
+msgid "Deleted %{word}"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:210
+#, elixir-autogen, elixir-format
+msgid "Explanation quality:"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:124
+#, elixir-autogen, elixir-format
+msgid "Failed to add text"
+msgstr ""
+
+#: lib/langseed_web/controllers/auth_controller.ex:11
+#, elixir-autogen, elixir-format
+msgid "Failed to authenticate."
+msgstr ""
+
+#: lib/langseed_web/controllers/auth_controller.ex:39
+#, elixir-autogen, elixir-format
+msgid "Failed to create account."
+msgstr ""
+
+#: lib/langseed_web/controllers/language_controller.ex:18
+#, elixir-autogen, elixir-format
+msgid "Failed to update language"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:383
+#, elixir-autogen, elixir-format
+msgid "File is too large (max 10 MB)"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:384
+#, elixir-autogen, elixir-format
+msgid "File type not supported"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:478
+#, elixir-autogen, elixir-format
+msgid "Known"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:107
+#, elixir-autogen, elixir-format
+msgid "Learning these words can improve explanations:"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:476
+#, elixir-autogen, elixir-format
+msgid "Mark as already known (100%)"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:215
+#, elixir-autogen, elixir-format
+msgid "Marked %{count} words as known"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:285
+#, elixir-autogen, elixir-format
+msgid "Maximum file size: 10 MB"
+msgstr ""
+
+#: lib/langseed/time_formatter.ex:77
+#, elixir-autogen, elixir-format
+msgid "Multiple Choice"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:385
+#, elixir-autogen, elixir-format
+msgid "Only one file at a time"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:277
+#, elixir-autogen, elixir-format
+msgid "Pause practice"
+msgstr ""
+
+#: lib/langseed/time_formatter.ex:75
+#, elixir-autogen, elixir-format
+msgid "Pinyin"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:28
+#, elixir-autogen, elixir-format
+msgid "Play pronunciation"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:310
+#, elixir-autogen, elixir-format
+msgid "Practice Progress"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:275
+#, elixir-autogen, elixir-format
+msgid "Resume practice"
+msgstr ""
+
+#: lib/langseed_web/live/vocabulary_graph_live.ex:45
+#: lib/langseed_web/live/vocabulary_live.ex:103
+#, elixir-autogen, elixir-format
+msgid "Resumed %{word}"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:305
+#, elixir-autogen, elixir-format
+msgid "Save failed"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:297
+#, elixir-autogen, elixir-format
+msgid "Saved: %{title}"
+msgstr ""
+
+#: lib/langseed_web/components/layouts.ex:157
+#, elixir-autogen, elixir-format
+msgid "Something went wrong!"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:282
+#, elixir-autogen, elixir-format
+msgid "Supported formats: .txt, .md, .markdown, .text"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:115
+#, elixir-autogen, elixir-format
+msgid "Text added successfully"
+msgstr ""
+
+#: lib/langseed_web/live/practice_components.ex:405
+#, elixir-autogen, elixir-format
+msgid "Type the pinyin with tone numbers (e.g., ni3 hao3)"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:235
+#, elixir-autogen, elixir-format
+msgid "Understanding"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:308
+#, elixir-autogen, elixir-format
+msgid "Update failed"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:254
+#, elixir-autogen, elixir-format
+msgid "Upload Text File"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:158
+#, elixir-autogen, elixir-format
+msgid "Upload text"
+msgstr ""
+
+#: lib/langseed_web/components/layouts.ex:145
+#, elixir-autogen, elixir-format
+msgid "We can't find the internet"
+msgstr ""
+
+#: lib/langseed_web/controllers/auth_controller.ex:30
+#, elixir-autogen, elixir-format
+msgid "Welcome %{name}! You have %{count} starter words to begin learning."
+msgstr ""
+
+#: lib/langseed_web/controllers/auth_controller.ex:46
+#, elixir-autogen, elixir-format
+msgid "Welcome back, %{name}!"
+msgstr ""
+
+#: lib/langseed_web/live/practice_components.ex:399
+#, elixir-autogen, elixir-format
+msgid "Write pinyin"
+msgstr ""
+
+#: lib/langseed/time_formatter.ex:76
+#, elixir-autogen, elixir-format
+msgid "Yes/No"
+msgstr ""
+
+#: lib/langseed_web/components/core_components.ex:74
+#, elixir-autogen, elixir-format
+msgid "close"
+msgstr ""
+
+#: lib/langseed_web/live/practice_components.ex:429
+#, elixir-autogen, elixir-format
+msgid "e.g., ni3 hao3"
+msgstr ""
+
+#: lib/langseed/time_formatter.ex:23
+#, elixir-autogen, elixir-format
+msgid "graduated"
+msgstr ""
+
+#: lib/langseed/time_formatter.ex:59
+#, elixir-autogen, elixir-format
+msgid "in %{count} day"
+msgid_plural "in %{count} days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/langseed/time_formatter.ex:55
+#, elixir-autogen, elixir-format
+msgid "in %{count} hour"
+msgid_plural "in %{count} hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/langseed/time_formatter.ex:51
+#, elixir-autogen, elixir-format
+msgid "in %{count} min"
+msgid_plural "in %{count} min"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/langseed/time_formatter.ex:67
+#, elixir-autogen, elixir-format
+msgid "in %{count} month"
+msgid_plural "in %{count} months"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/langseed/time_formatter.ex:63
+#, elixir-autogen, elixir-format
+msgid "in %{count} week"
+msgid_plural "in %{count} weeks"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/langseed/time_formatter.ex:31
+#, elixir-autogen, elixir-format
+msgid "now"
 msgstr ""

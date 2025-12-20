@@ -9,6 +9,8 @@ defmodule LangseedWeb.SharedComponents do
   import LangseedWeb.CoreComponents, only: [icon: 1]
 
   alias Langseed.HSK
+  alias Langseed.TimeFormatter
+  alias Langseed.Practice.ConceptSRS
 
   @doc """
   Renders a speak button that triggers text-to-speech.
@@ -147,13 +149,16 @@ defmodule LangseedWeb.SharedComponents do
   - `show_example_sentence` - Show example sentence (default: false)
   - `show_understanding_slider` - Show understanding slider (default: false)
   - `show_delete_button` - Show delete button (default: false)
+  - `show_srs_progress` - Show SRS progress per question type (default: false)
   """
   attr :concept, :map, required: true
+  attr :srs_records, :list, default: []
   attr :show_desired_words, :boolean, default: false
   attr :show_example_sentence, :boolean, default: false
   attr :show_understanding_slider, :boolean, default: false
   attr :show_delete_button, :boolean, default: false
   attr :show_pause_button, :boolean, default: false
+  attr :show_srs_progress, :boolean, default: false
   attr :importing_words, :list, default: []
   attr :known_words, :any, default: nil
 
@@ -244,6 +249,10 @@ defmodule LangseedWeb.SharedComponents do
             </div>
           <% end %>
 
+          <%= if @show_srs_progress && length(@srs_records) > 0 do %>
+            <.srs_progress_display srs_records={@srs_records} />
+          <% end %>
+
           <details class="mt-3">
             <summary class="text-xs opacity-40 cursor-pointer hover:opacity-60">
               👁️ {gettext("English")}
@@ -285,6 +294,74 @@ defmodule LangseedWeb.SharedComponents do
           <% end %>
         </div>
       </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders SRS progress for each question type.
+  Shows the tier (as a progress bar) and next review time.
+  """
+  attr :srs_records, :list, required: true
+
+  def srs_progress_display(assigns) do
+    ~H"""
+    <div class="mt-4 p-3 bg-base-200 rounded-lg">
+      <p class="text-xs opacity-60 mb-2">{gettext("Practice Progress")}</p>
+      <div class="space-y-2">
+        <%= for srs <- @srs_records do %>
+          <.srs_type_row srs={srs} />
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  attr :srs, :map, required: true
+
+  defp srs_type_row(assigns) do
+    tier = assigns.srs.tier
+    percent = ConceptSRS.tier_to_percent(tier)
+    next_review = TimeFormatter.format_relative(assigns.srs.next_review)
+    question_type = Langseed.Practice.ConceptSRS.format_question_type(assigns.srs.question_type)
+
+    is_due =
+      assigns.srs.next_review &&
+        DateTime.compare(assigns.srs.next_review, DateTime.utc_now()) != :gt
+
+    is_graduated = tier >= 7
+
+    assigns =
+      assigns
+      |> assign(:percent, percent)
+      |> assign(:next_review, next_review)
+      |> assign(:question_type, question_type)
+      |> assign(:is_due, is_due)
+      |> assign(:is_graduated, is_graduated)
+
+    ~H"""
+    <div class="flex items-center gap-2">
+      <span class="text-xs w-24 shrink-0">{@question_type}</span>
+      <div class="flex-1 h-2 bg-base-300 rounded-full overflow-hidden">
+        <div
+          class={[
+            "h-full rounded-full transition-all",
+            cond do
+              @is_graduated -> "bg-success"
+              @percent >= 50 -> "bg-warning"
+              true -> "bg-error"
+            end
+          ]}
+          style={"width: #{@percent}%"}
+        />
+      </div>
+      <span class={[
+        "text-xs w-20 shrink-0",
+        @is_due && "text-error font-medium",
+        @is_graduated && "text-success"
+      ]}>
+        {@next_review}
+      </span>
     </div>
     """
   end

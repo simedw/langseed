@@ -3,57 +3,107 @@ msgid ""
 msgstr ""
 "Language: zh\n"
 
-#: Navigation
+#: lib/langseed_web/components/layouts.ex:63
+#: lib/langseed_web/live/vocabulary_live.ex:18
+#: lib/langseed_web/live/vocabulary_live.ex:171
+#, elixir-autogen
 msgid "Vocabulary"
 msgstr "词汇"
 
+#: lib/langseed_web/components/layouts.ex:66
+#: lib/langseed_web/live/vocabulary_graph_live.ex:16
+#, elixir-autogen
 msgid "Graph"
 msgstr "图谱"
 
+#: lib/langseed_web/components/layouts.ex:69
+#: lib/langseed_web/live/practice_components.ex:24
+#: lib/langseed_web/live/text_analysis_live.ex:17
+#: lib/langseed_web/live/text_analysis_live.ex:333
+#: lib/langseed_web/live/texts_live.ex:140
+#: lib/langseed_web/live/vocabulary_live.ex:184
+#, elixir-autogen
 msgid "Analyze"
 msgstr "分析"
 
+#: lib/langseed_web/components/layouts.ex:72
+#: lib/langseed_web/live/texts_live.ex:13
+#: lib/langseed_web/live/texts_live.ex:133
+#, elixir-autogen
 msgid "Texts"
 msgstr "文本"
 
+#: lib/langseed_web/components/layouts.ex:76
+#: lib/langseed_web/live/practice_live.ex:16
+#: lib/langseed_web/live/practice_live.ex:411
+#, elixir-autogen
 msgid "Practice"
 msgstr "练习"
 
-#: Actions
+#: lib/langseed_web/live/text_analysis_live.ex:352
+#, elixir-autogen
 msgid "Save"
 msgstr "保存"
 
+#: lib/langseed_web/live/text_analysis_live.ex:352
+#, elixir-autogen
 msgid "Update"
 msgstr "更新"
 
+#: lib/langseed_web/components/shared_components.ex:290
+#, elixir-autogen
 msgid "Delete"
 msgstr "删除"
 
+#: lib/langseed_web/live/text_analysis_live.ex:360
+#, elixir-autogen
 msgid "Load"
 msgstr "加载"
 
 msgid "New"
 msgstr "新建"
 
+#: lib/langseed_web/live/texts_live.ex:346
+#, elixir-autogen
 msgid "Add"
 msgstr "添加"
 
+#: lib/langseed_web/live/texts_live.ex:339
+#, elixir-autogen
 msgid "Cancel"
 msgstr "取消"
 
+#: lib/langseed_web/live/practice_components.ex:165
+#: lib/langseed_web/live/practice_components.ex:343
+#: lib/langseed_web/live/practice_components.ex:422
+#, elixir-autogen
 msgid "Next"
 msgstr "下一个"
 
+#: lib/langseed_web/live/practice_components.ex:122
+#: lib/langseed_web/live/practice_components.ex:368
+#: lib/langseed_web/live/practice_components.ex:447
+#, elixir-autogen
 msgid "Skip"
 msgstr "跳过"
 
-#: Messages
+#: lib/langseed_web/controllers/language_controller.ex:13
+#, elixir-autogen
 msgid "Language updated"
 msgstr "语言已更新"
 
+#: lib/langseed_web/live/text_analysis_live.ex:401
+#, elixir-autogen
+msgid "Saved"
+msgstr "已保存"
+
+#: lib/langseed_web/live/text_analysis_live.ex:302
+#, elixir-autogen
 msgid "Updated"
 msgstr "已更新"
 
+#: lib/langseed_web/live/texts_live.ex:38
+#, elixir-autogen
 msgid "Deleted"
 msgstr "已删除"
 
@@ -63,32 +113,45 @@ msgstr "已添加"
 msgid "Failed"
 msgstr "失败"
 
-#: Practice
+#: lib/langseed_web/live/practice_components.ex:111
+#, elixir-autogen
 msgid "I understand"
 msgstr "我懂了"
 
 msgid "New explanation"
 msgstr "新解释"
 
+#: lib/langseed_web/live/practice_components.ex:69
+#: lib/langseed_web/live/practice_components.ex:148
+#: lib/langseed_web/live/practice_components.ex:307
+#: lib/langseed_web/live/practice_components.ex:394
+#, elixir-autogen
 msgid "Pause"
 msgstr "暂停"
 
 msgid "Resume"
 msgstr "恢复"
 
+#: lib/langseed_web/live/practice_components.ex:214
+#, elixir-autogen
 msgid "Yes"
 msgstr "是"
 
+#: lib/langseed_web/live/practice_components.ex:221
+#, elixir-autogen
 msgid "No"
 msgstr "否"
 
+#: lib/langseed_web/live/practice_components.ex:362
+#, elixir-autogen
 msgid "Submit"
 msgstr "提交"
 
 msgid "Write a sentence"
 msgstr "写一个句子"
 
-#: Empty states
+#: lib/langseed_web/live/vocabulary_live.ex:181
+#, elixir-autogen
 msgid "No vocabulary yet"
 msgstr "还没有词汇"
 
@@ -98,257 +161,593 @@ msgstr "没有保存的文本"
 msgid "Go to Analyze to add words"
 msgstr "去分析添加"
 
-#: Recent
+#: lib/langseed_web/live/text_analysis_live.ex:376
+#, elixir-autogen
 msgid "Recent"
 msgstr "最近"
 
+#: lib/langseed_web/live/text_analysis_live.ex:386
+#, elixir-autogen
 msgid "View all"
 msgstr "查看全部"
 
+#: lib/langseed_web/live/text_analysis_live.ex:372
+#, elixir-autogen
 msgid "New text"
 msgstr "新文本"
 
-#: Vocabulary page
+#: lib/langseed_web/live/vocabulary_live.ex:183
+#, elixir-autogen
 msgid "Go to %{link} to add words"
 msgstr "去 %{link} 添加"
 
-#: Graph page
+#: lib/langseed_web/live/vocabulary_graph_live.ex:59
+#, elixir-autogen
 msgid "Vocabulary Graph"
 msgstr "词汇图谱"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:67
+#, elixir-autogen
 msgid "Words"
 msgstr "词汇"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:71
+#, elixir-autogen
 msgid "Connections"
 msgstr "关联"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:75
+#, elixir-autogen
 msgid "Isolated"
 msgstr "孤立词"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:77
+#, elixir-autogen
 msgid "Words without connections"
 msgstr "没有关联的词"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:83
+#, elixir-autogen
 msgid "Foundational words"
 msgstr "基础词汇"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:84
+#, elixir-autogen
 msgid "Used to explain most other words"
 msgstr "用来解释最多其他词"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:88
+#, elixir-autogen
 msgid "Complex words"
 msgstr "复杂词汇"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:89
+#, elixir-autogen
 msgid "Need most words to explain"
 msgstr "需要最多词来解释"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:148
+#, elixir-autogen
 msgid "No data"
 msgstr "暂无数据"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:99
+#, elixir-autogen
 msgid "No vocabulary data yet"
 msgstr "暂无词汇数据"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:110
+#, elixir-autogen
 msgid "Click nodes to see details. Drag to adjust position. Color shows understanding level (red → yellow → green)."
 msgstr "点击节点查看详情。拖动可调整位置。颜色表示理解程度（红→黄→绿）。"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:114
+#, elixir-autogen
 msgid "Arrow direction: A → B means A is used to explain B."
 msgstr "箭头方向：A → B 表示 A 被用来解释 B。"
 
+#: lib/langseed_web/live/vocabulary_graph_live.ex:61
+#, elixir-autogen
 msgid "List view"
 msgstr "列表视图"
 
-#: Texts page
+#: lib/langseed_web/live/text_analysis_live.ex:392
+#: lib/langseed_web/live/texts_live.ex:137
+#, elixir-autogen
 msgid "No saved texts"
 msgstr "还没有保存的文本"
 
+#: lib/langseed_web/live/texts_live.ex:139
+#, elixir-autogen
 msgid "Go to %{link} to save texts"
 msgstr "去 %{link} 页面保存文本"
 
+#: lib/langseed_web/live/texts_live.ex:210
+#, elixir-autogen
 msgid "Read"
 msgstr "读"
 
+#: lib/langseed_web/live/texts_live.ex:221
+#, elixir-autogen
 msgid "Delete this text?"
 msgstr "删除这个文本?"
 
-#: Practice page
+#: lib/langseed_web/live/practice_components.ex:20
+#, elixir-autogen
 msgid "Well done!"
 msgstr "做得好！"
 
+#: lib/langseed_web/live/practice_components.ex:21
+#, elixir-autogen
 msgid "No words need practice"
 msgstr "没有需要练习的词汇了"
 
+#: lib/langseed_web/live/practice_components.ex:23
+#, elixir-autogen
 msgid "Go to %{link} to add more words"
 msgstr "去 %{link} 添加更多词汇"
 
+#: lib/langseed_web/live/practice_components.ex:40
+#, elixir-autogen
 msgid "Loading..."
 msgstr "加载中..."
 
+#: lib/langseed_web/live/practice_live.ex:419
+#, elixir-autogen
 msgid "Generating question..."
 msgstr "生成问题中..."
 
+#: lib/langseed_web/live/practice_components.ex:73
+#, elixir-autogen
 msgid "New word"
 msgstr "新词"
 
+#: lib/langseed_web/live/practice_components.ex:67
+#: lib/langseed_web/live/practice_components.ex:146
+#: lib/langseed_web/live/practice_components.ex:305
+#: lib/langseed_web/live/practice_components.ex:392
+#, elixir-autogen
 msgid "Pause this word"
 msgstr "暂停这个词"
 
+#: lib/langseed_web/live/practice_components.ex:119
+#, elixir-autogen
 msgid "Try another explanation"
 msgstr "换一个解释"
 
+#: lib/langseed_web/live/practice_components.ex:200
+#: lib/langseed_web/live/practice_components.ex:280
+#: lib/langseed_web/live/practice_components.ex:413
+#, elixir-autogen
 msgid "Correct!"
 msgstr "正确！"
 
-#: Text Analysis
-msgid "Enter text..."
-msgstr "输入中文..."
-
-msgid "Saved"
-msgstr "已保存"
-
-msgid "Known:"
-msgstr "知道:"
-
-msgid "Unknown:"
-msgstr "不知道:"
-
-msgid "Select all unknown"
-msgstr "全选不知道"
-
-msgid "Add %{count} words"
-msgstr "添加 %{count} 个词"
-
-msgid "Adding %{count}..."
-msgstr "添加中 %{count} 个..."
-
-msgid "Added %{count} words: %{words}"
-msgstr "添加了 %{count} 个词: %{words}"
-
-msgid "Failed to add: %{words}"
-msgstr "添加失败: %{words}"
-
-msgid "Error adding: %{error}"
-msgstr "添加出错: %{error}"
-
-msgid "Failed to add %{word}"
-msgstr "添加 %{word} 失败"
-
-msgid "Added %{word}"
-msgstr "添加了 %{word} ✓"
-
-msgid "New explanation generated"
-msgstr "新解释已生成"
-
-msgid "Generation failed, please try again"
-msgstr "生成失败，请再试"
-
-msgid "Generation failed"
-msgstr "生成失败"
-
-msgid "Evaluation failed"
-msgstr "评估失败"
-
-msgid "Paused %{word}"
-msgstr "暂停了 %{word}"
-
-msgid "No text to save"
-msgstr "没有文本可保存"
-
-msgid "Resume practice"
-msgstr "恢复练习"
-
-msgid "Pause practice"
-msgstr "暂停练习"
-
-msgid "Known"
-msgstr "已知"
-
-msgid "Mark as already known (100%)"
-msgstr "标记为已知 (100%)"
-
-msgid "Marked %{count} words as known"
-msgstr "已标记 %{count} 个词为已知"
-
-#: Shared components
-msgid "Play pronunciation"
-msgstr "播放发音"
-
-msgid "Learning these words can improve explanations:"
-msgstr "学这些词可以改进解释:"
-
-msgid "Adding..."
-msgstr "添加中..."
-
-msgid "Click to add to vocabulary"
-msgstr "点击添加到词汇"
-
-msgid "Explanation quality:"
-msgstr "解释质量:"
-
-msgid "Understanding"
-msgstr "理解"
-
-msgid "Delete %{word}?"
-msgstr "删除 %{word}?"
-
+#: lib/langseed_web/live/practice_components.ex:200
+#, elixir-autogen
 msgid "Wrong"
 msgstr "错误"
 
+#: lib/langseed_web/live/practice_components.ex:281
+#, elixir-autogen
 msgid "Correct answer: %{answer}"
 msgstr "正确答案: %{answer}"
 
+#: lib/langseed_web/live/practice_components.ex:171
+#: lib/langseed_web/live/practice_components.ex:311
+#, elixir-autogen
 msgid "Write sentence"
 msgstr "写句子"
 
+#: lib/langseed_web/live/practice_components.ex:323
+#, elixir-autogen
 msgid "Write a sentence using %{word}"
 msgstr "用 %{word} 写一个句子"
 
+#: lib/langseed_web/live/practice_components.ex:333
+#, elixir-autogen
 msgid "Good!"
 msgstr "很好！👍"
 
+#: lib/langseed_web/live/practice_components.ex:333
+#, elixir-autogen
 msgid "Needs improvement"
 msgstr "需要改进"
 
+#: lib/langseed_web/live/practice_components.ex:337
+#, elixir-autogen
 msgid "Suggestion:"
 msgstr "建议:"
 
+#: lib/langseed_web/live/practice_components.ex:349
+#, elixir-autogen
 msgid "Write your sentence..."
 msgstr "写你的句子..."
 
+#: lib/langseed_web/live/practice_components.ex:360
+#, elixir-autogen
 msgid "Checking..."
 msgstr "检查中..."
 
+#: lib/langseed_web/components/shared_components.ex:258
+#: lib/langseed_web/live/practice_components.ex:104
+#, elixir-autogen
 msgid "English"
 msgstr "英文"
 
-#: New messages from code review fixes
+#: lib/langseed_web/live/text_analysis_live.ex:338
+#, elixir-autogen
+msgid "Enter text..."
+msgstr "输入中文..."
+
+#: lib/langseed_web/live/text_analysis_live.ex:135
+#, elixir-autogen
+msgid "No text to save"
+msgstr "没有文本可保存"
+
+#: lib/langseed_web/live/text_analysis_live.ex:420
+#, elixir-autogen
+msgid "Known:"
+msgstr "知道:"
+
+#: lib/langseed_web/live/text_analysis_live.ex:424
+#, elixir-autogen
+msgid "Unknown:"
+msgstr "不知道:"
+
+#: lib/langseed_web/live/text_analysis_live.ex:443
+#, elixir-autogen
+msgid "Select all unknown"
+msgstr "全选不知道"
+
+#: lib/langseed_web/live/text_analysis_live.ex:469
+#, elixir-autogen
+msgid "Add %{count} words"
+msgstr "添加 %{count} 个词"
+
+#: lib/langseed_web/live/text_analysis_live.ex:487
+#, elixir-autogen
+msgid "Adding %{count}..."
+msgstr "添加中 %{count} 个..."
+
+#: lib/langseed_web/live/text_analysis_live.ex:250
+#, elixir-autogen
+msgid "Added %{count} words: %{words}"
+msgstr "添加了 %{count} 个词: %{words}"
+
+#: lib/langseed_web/live/text_analysis_live.ex:264
+#, elixir-autogen
+msgid "Failed to add: %{words}"
+msgstr "添加失败: %{words}"
+
+#: lib/langseed_web/live/text_analysis_live.ex:279
+#, elixir-autogen
+msgid "Error adding: %{error}"
+msgstr "添加出错: %{error}"
+
+#: lib/langseed_web/live/practice_live.ex:199
+#: lib/langseed_web/live/practice_live.ex:207
+#: lib/langseed_web/live/vocabulary_live.ex:153
+#: lib/langseed_web/live/vocabulary_live.ex:161
+#, elixir-autogen
+msgid "Failed to add %{word}"
+msgstr "添加 %{word} 失败"
+
+#, fuzzy
+msgid "Added %{word} ✓"
+msgstr "添加了 %{word} ✓"
+
+#: lib/langseed_web/live/practice_live.ex:145
+#, elixir-autogen
+msgid "New explanation generated"
+msgstr "新解释已生成"
+
+#: lib/langseed_web/live/practice_live.ex:153
+#, elixir-autogen
+msgid "Generation failed, please try again"
+msgstr "生成失败，请再试"
+
+#: lib/langseed_web/live/practice_live.ex:158
+#, elixir-autogen
+msgid "Generation failed"
+msgstr "生成失败"
+
+#: lib/langseed_web/live/practice_live.ex:179
+#: lib/langseed_web/live/practice_live.ex:184
+#, elixir-autogen
+msgid "Evaluation failed"
+msgstr "评估失败"
+
+#: lib/langseed_web/live/practice_live.ex:223
+#: lib/langseed_web/live/vocabulary_graph_live.ex:44
+#: lib/langseed_web/live/vocabulary_live.ex:102
+#, elixir-autogen
+msgid "Paused %{word}"
+msgstr "暂停了 %{word}"
+
+#: lib/langseed_web/live/vocabulary_live.ex:82
+#, elixir-autogen, elixir-format
+msgid "%{word} is already in your vocabulary"
+msgstr ""
+
+#: lib/langseed_web/components/core_components.ex:368
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr ""
+
+#: lib/langseed_web/live/practice_live.ex:191
+#: lib/langseed_web/live/vocabulary_live.ex:130
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Added %{word}"
+msgstr "添加了 %{word} ✓"
+
+#: lib/langseed_web/components/shared_components.ex:127
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Adding..."
+msgstr "加载中..."
+
+#: lib/langseed_web/live/texts_live.ex:386
+#, elixir-autogen, elixir-format
+msgid "An error occurred"
+msgstr ""
+
+#: lib/langseed_web/components/layouts.ex:150
+#: lib/langseed_web/components/layouts.ex:162
+#, elixir-autogen, elixir-format
+msgid "Attempting to reconnect"
+msgstr ""
+
+#: lib/langseed_web/live/practice_components.ex:442
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Check"
+msgstr "检查中..."
+
+#: lib/langseed_web/live/texts_live.ex:280
+#, elixir-autogen, elixir-format
+msgid "Choose a file or drag it here"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:127
+#, elixir-autogen, elixir-format
+msgid "Click to add to vocabulary"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:260
+#, elixir-autogen, elixir-format
+msgid "Close"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:288
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Delete %{word}?"
+msgstr "已删除"
+
+#: lib/langseed_web/live/vocabulary_live.ex:52
+#, elixir-autogen, elixir-format
 msgid "Deleted %{word}"
 msgstr "删除了 %{word}"
 
-msgid "%{word} is already in your vocabulary"
-msgstr "%{word} 已在你的词汇中"
+#: lib/langseed_web/components/shared_components.ex:210
+#, elixir-autogen, elixir-format
+msgid "Explanation quality:"
+msgstr ""
 
-msgid "Resumed %{word}"
-msgstr "恢复了 %{word}"
+#: lib/langseed_web/live/texts_live.ex:124
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Failed to add text"
+msgstr "添加 %{word} 失败"
 
-msgid "Welcome %{name}! You have %{count} starter words to begin learning."
-msgstr "欢迎 %{name}！你有 %{count} 个基础词汇开始学习。"
-
-msgid "Welcome back, %{name}!"
-msgstr "欢迎回来, %{name}!"
-
+#: lib/langseed_web/controllers/auth_controller.ex:11
+#, elixir-autogen, elixir-format
 msgid "Failed to authenticate."
-msgstr "认证失败。"
+msgstr ""
 
+#: lib/langseed_web/controllers/auth_controller.ex:39
+#, elixir-autogen, elixir-format
 msgid "Failed to create account."
-msgstr "创建账户失败。"
+msgstr ""
 
-msgid "Saved: %{title}"
-msgstr "已保存: %{title}"
-
-msgid "Save failed"
-msgstr "保存失败"
-
-msgid "Update failed"
-msgstr "更新失败"
-
+#: lib/langseed_web/controllers/language_controller.ex:18
+#, elixir-autogen, elixir-format
 msgid "Failed to update language"
-msgstr "更新语言失败"
+msgstr ""
 
+#: lib/langseed_web/live/texts_live.ex:383
+#, elixir-autogen, elixir-format
+msgid "File is too large (max 10 MB)"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:384
+#, elixir-autogen, elixir-format
+msgid "File type not supported"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:478
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Known"
+msgstr "知道:"
+
+#: lib/langseed_web/components/shared_components.ex:107
+#, elixir-autogen, elixir-format
+msgid "Learning these words can improve explanations:"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:476
+#, elixir-autogen, elixir-format
+msgid "Mark as already known (100%)"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:215
+#, elixir-autogen, elixir-format
+msgid "Marked %{count} words as known"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:285
+#, elixir-autogen, elixir-format
+msgid "Maximum file size: 10 MB"
+msgstr ""
+
+#: lib/langseed/time_formatter.ex:77
+#, elixir-autogen, elixir-format
+msgid "Multiple Choice"
+msgstr "选择题"
+
+#: lib/langseed_web/live/texts_live.ex:385
+#, elixir-autogen, elixir-format
+msgid "Only one file at a time"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:277
+#, elixir-autogen, elixir-format
+msgid "Pause practice"
+msgstr ""
+
+#: lib/langseed/time_formatter.ex:75
+#, elixir-autogen, elixir-format
+msgid "Pinyin"
+msgstr "拼音"
+
+#: lib/langseed_web/components/shared_components.ex:28
+#, elixir-autogen, elixir-format
+msgid "Play pronunciation"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:310
+#, elixir-autogen, elixir-format
+msgid "Practice Progress"
+msgstr "练习进度"
+
+#: lib/langseed_web/components/shared_components.ex:275
+#, elixir-autogen, elixir-format
+msgid "Resume practice"
+msgstr ""
+
+#: lib/langseed_web/live/vocabulary_graph_live.ex:45
+#: lib/langseed_web/live/vocabulary_live.ex:103
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Resumed %{word}"
+msgstr "暂停了 %{word}"
+
+#: lib/langseed_web/live/text_analysis_live.ex:305
+#, elixir-autogen, elixir-format
+msgid "Save failed"
+msgstr ""
+
+#: lib/langseed_web/live/text_analysis_live.ex:297
+#, elixir-autogen, elixir-format
+msgid "Saved: %{title}"
+msgstr ""
+
+#: lib/langseed_web/components/layouts.ex:157
+#, elixir-autogen, elixir-format
+msgid "Something went wrong!"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:282
+#, elixir-autogen, elixir-format
+msgid "Supported formats: .txt, .md, .markdown, .text"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:115
+#, elixir-autogen, elixir-format
+msgid "Text added successfully"
+msgstr ""
+
+#: lib/langseed_web/live/practice_components.ex:405
+#, elixir-autogen, elixir-format
+msgid "Type the pinyin with tone numbers (e.g., ni3 hao3)"
+msgstr ""
+
+#: lib/langseed_web/components/shared_components.ex:235
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Understanding"
+msgstr "我懂了"
+
+#: lib/langseed_web/live/text_analysis_live.ex:308
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Update failed"
+msgstr "更新"
+
+#: lib/langseed_web/live/texts_live.ex:254
+#, elixir-autogen, elixir-format
+msgid "Upload Text File"
+msgstr ""
+
+#: lib/langseed_web/live/texts_live.ex:158
+#, elixir-autogen, elixir-format
+msgid "Upload text"
+msgstr ""
+
+#: lib/langseed_web/components/layouts.ex:145
+#, elixir-autogen, elixir-format
+msgid "We can't find the internet"
+msgstr ""
+
+#: lib/langseed_web/controllers/auth_controller.ex:30
+#, elixir-autogen, elixir-format
+msgid "Welcome %{name}! You have %{count} starter words to begin learning."
+msgstr ""
+
+#: lib/langseed_web/controllers/auth_controller.ex:46
+#, elixir-autogen, elixir-format
+msgid "Welcome back, %{name}!"
+msgstr ""
+
+#: lib/langseed_web/live/practice_components.ex:399
+#, elixir-autogen, elixir-format
+msgid "Write pinyin"
+msgstr ""
+
+#: lib/langseed/time_formatter.ex:76
+#, elixir-autogen, elixir-format
+msgid "Yes/No"
+msgstr "是非题"
+
+#: lib/langseed_web/components/core_components.ex:74
+#, elixir-autogen, elixir-format
+msgid "close"
+msgstr ""
+
+#: lib/langseed_web/live/practice_components.ex:429
+#, elixir-autogen, elixir-format
+msgid "e.g., ni3 hao3"
+msgstr ""
+
+#: lib/langseed/time_formatter.ex:23
+#, elixir-autogen, elixir-format
+msgid "graduated"
+msgstr "已掌握"
+
+#: lib/langseed/time_formatter.ex:59
+#, elixir-autogen, elixir-format
+msgid "in %{count} day"
+msgid_plural "in %{count} days"
+msgstr[0] "%{count}天后"
+
+#: lib/langseed/time_formatter.ex:55
+#, elixir-autogen, elixir-format
+msgid "in %{count} hour"
+msgid_plural "in %{count} hours"
+msgstr[0] "%{count}小时后"
+
+#: lib/langseed/time_formatter.ex:51
+#, elixir-autogen, elixir-format
+msgid "in %{count} min"
+msgid_plural "in %{count} min"
+msgstr[0] "%{count}分钟后"
+
+#: lib/langseed/time_formatter.ex:67
+#, elixir-autogen, elixir-format
+msgid "in %{count} month"
+msgid_plural "in %{count} months"
+msgstr[0] "%{count}个月后"
+
+#: lib/langseed/time_formatter.ex:63
+#, elixir-autogen, elixir-format
+msgid "in %{count} week"
+msgid_plural "in %{count} weeks"
+msgstr[0] "%{count}周后"
+
+#: lib/langseed/time_formatter.ex:31
+#, elixir-autogen, elixir-format
+msgid "now"
+msgstr "现在"

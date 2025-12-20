@@ -9,6 +9,7 @@ defmodule LangseedWeb.UserAuth do
 
   alias Langseed.Accounts
   alias Langseed.Accounts.Scope
+  alias Langseed.Practice
 
   @doc """
   LiveView on_mount callback to assign current_scope to the socket.
@@ -22,7 +23,23 @@ defmodule LangseedWeb.UserAuth do
     socket = mount_current_scope(socket, session)
 
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
-      {:cont, socket}
+      scope = socket.assigns.current_scope
+
+      # Subscribe to practice updates for this user/language
+      Phoenix.PubSub.subscribe(
+        Langseed.PubSub,
+        "practice:#{scope.user.id}:#{scope.language}"
+      )
+
+      # Check if there are practice items ready
+      practice_ready = Practice.has_practice_ready?(scope)
+
+      # Schedule periodic check for due reviews (every 30 seconds)
+      if Phoenix.LiveView.connected?(socket) do
+        Process.send_after(self(), :check_practice_ready, 30_000)
+      end
+
+      {:cont, Phoenix.Component.assign(socket, :practice_ready, practice_ready)}
     else
       socket =
         socket

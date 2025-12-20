@@ -151,7 +151,7 @@ defmodule LangseedWeb.PracticeComponents do
         <%= case @question.question_type do %>
           <% "yes_no" -> %>
             <.yes_no_question question={@question} feedback={@feedback} user_answer={@user_answer} />
-          <% "fill_blank" -> %>
+          <% type when type in ["fill_blank", "multiple_choice"] -> %>
             <.fill_blank_question
               question={@question}
               feedback={@feedback}

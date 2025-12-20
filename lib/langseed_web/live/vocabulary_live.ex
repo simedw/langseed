@@ -2,6 +2,7 @@ defmodule LangseedWeb.VocabularyLive do
   use LangseedWeb, :live_view
 
   alias Langseed.Vocabulary
+  alias Langseed.Practice
   alias Langseed.Services.WordImporter
   alias Langseed.HSK
 
@@ -19,6 +20,7 @@ defmodule LangseedWeb.VocabularyLive do
        known_words: known_words,
        expanded_id: nil,
        expanded_concept: nil,
+       srs_records: [],
        importing_words: []
      )
      |> stream(:concepts, concepts)}
@@ -28,12 +30,15 @@ defmodule LangseedWeb.VocabularyLive do
   def handle_event("expand", %{"id" => id}, socket) do
     scope = current_scope(socket)
     concept = Vocabulary.get_concept!(scope, id)
-    {:noreply, assign(socket, expanded_id: id, expanded_concept: concept)}
+    srs_records = Practice.get_srs_records_for_concept(concept.id, scope.user.id)
+
+    {:noreply,
+     assign(socket, expanded_id: id, expanded_concept: concept, srs_records: srs_records)}
   end
 
   @impl true
   def handle_event("collapse", _, socket) do
-    {:noreply, assign(socket, expanded_id: nil, expanded_concept: nil)}
+    {:noreply, assign(socket, expanded_id: nil, expanded_concept: nil, srs_records: [])}
   end
 
   @impl true
@@ -159,6 +164,27 @@ defmodule LangseedWeb.VocabularyLive do
      |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
   end
 
+  # ============================================================================
+  # HANDLE_INFO - Practice Ready Updates
+  # ============================================================================
+
+  @impl true
+  def handle_info(:check_practice_ready, socket) do
+    # Schedule next check
+    Process.send_after(self(), :check_practice_ready, 30_000)
+
+    {:noreply, update_practice_ready(socket)}
+  end
+
+  @impl true
+  def handle_info({:practice_updated, _data}, socket) do
+    {:noreply, update_practice_ready(socket)}
+  end
+
+  # ============================================================================
+  # RENDER
+  # ============================================================================
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -194,11 +220,13 @@ defmodule LangseedWeb.VocabularyLive do
       />
       <.concept_card
         concept={@expanded_concept}
+        srs_records={@srs_records}
         show_desired_words={true}
         show_example_sentence={true}
         show_understanding_slider={true}
         show_delete_button={true}
         show_pause_button={true}
+        show_srs_progress={true}
         importing_words={@importing_words}
         known_words={@known_words}
       />

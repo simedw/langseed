@@ -1,7 +1,7 @@
 defmodule Langseed.Workers.QuestionGenerator do
   @moduledoc """
-  Background worker that pre-generates questions for words that need practice.
-  Ensures each word with <= 60% understanding has at least 4 unused questions ready.
+  Background worker that pre-generates questions for concepts with active SRS records.
+  Ensures each concept has at least target_count unused questions per question type.
   """
 
   use Oban.Worker, queue: :questions, max_attempts: 3
@@ -10,10 +10,11 @@ defmodule Langseed.Workers.QuestionGenerator do
 
   alias Langseed.Repo
   alias Langseed.Practice
+  alias Langseed.Practice.ConceptSRS
   alias Langseed.Accounts.User
   alias Langseed.Accounts.Scope
 
-  @target_questions_per_word 4
+  @target_questions_per_type 2
   @supported_languages ["zh", "en", "sv"]
 
   @impl Oban.Worker
@@ -51,25 +52,42 @@ defmodule Langseed.Workers.QuestionGenerator do
   end
 
   defp generate_missing_questions_for_scope(%Scope{} = scope) do
-    Practice.get_concepts_needing_questions(scope, @target_questions_per_word)
-    |> Enum.each(fn {concept, current_count} ->
-      generate_questions_for_concept(scope, concept, current_count)
+    # Get concepts with active SRS records (not graduated)
+    Practice.get_concepts_needing_questions(scope, @target_questions_per_type)
+    |> Enum.each(fn {concept, _current_count} ->
+      generate_questions_for_concept(scope, concept)
     end)
   end
 
-  defp generate_questions_for_concept(scope, concept, current_count) do
-    needed = @target_questions_per_word - current_count
-    Enum.each(1..needed//1, fn _ -> generate_single_question(scope, concept) end)
+  defp generate_questions_for_concept(scope, concept) do
+    # Get question types appropriate for this language (skip pinyin for non-Chinese)
+    question_types = ConceptSRS.question_types_for_language(concept.language)
+    # Only generate for types that need LLM generation (not pinyin)
+    llm_question_types = Enum.filter(question_types, &(&1 != "pinyin"))
+
+    Enum.each(llm_question_types, fn question_type ->
+      current_count = Practice.count_unused_questions(concept.id, question_type)
+
+      if current_count < @target_questions_per_type do
+        generate_questions_for_type(scope, concept, question_type, current_count)
+      end
+    end)
   end
 
-  defp generate_single_question(scope, concept) do
-    case Practice.generate_question(scope, concept) do
-      {:ok, _question} ->
-        :ok
+  defp generate_questions_for_type(scope, concept, question_type, current_count) do
+    needed = @target_questions_per_type - current_count
 
-      {:error, reason} ->
-        Logger.warning("Failed to generate question for #{concept.word}: #{inspect(reason)}")
-    end
+    Enum.each(1..needed//1, fn _ ->
+      case Practice.generate_question(scope, concept, question_type) do
+        {:ok, _question} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.warning(
+            "Failed to generate #{question_type} question for #{concept.word}: #{inspect(reason)}"
+          )
+      end
+    end)
   end
 
   @doc """

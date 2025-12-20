@@ -6,6 +6,7 @@ defmodule Langseed.Vocabulary do
   import Ecto.Query, warn: false
   alias Langseed.Repo
   alias Langseed.Vocabulary.Concept
+  alias Langseed.Practice.ConceptSRS
   alias Langseed.Accounts.Scope
 
   @doc """
@@ -63,7 +64,8 @@ defmodule Langseed.Vocabulary do
   """
   @spec mark_words_as_known(Scope.t() | nil, [String.t()]) ::
           {:ok, integer()} | {:error, String.t()}
-  def mark_words_as_known(%Scope{language: language} = scope, words) when is_list(words) do
+  def mark_words_as_known(%Scope{user: user, language: language} = scope, words)
+      when is_list(words) do
     existing = known_words(scope)
 
     # Build base attrs - pinyin only for Chinese
@@ -80,7 +82,15 @@ defmodule Langseed.Vocabulary do
       words
       |> Enum.reject(&MapSet.member?(existing, &1))
       |> Enum.map(fn word ->
-        create_concept(scope, Map.put(base_attrs, :word, word))
+        case create_concept(scope, Map.put(base_attrs, :word, word)) do
+          {:ok, concept} ->
+            # Create graduated SRS records for seed words (tier 7 = 100%)
+            create_graduated_srs_for_concept(concept, user.id)
+            {:ok, concept}
+
+          error ->
+            error
+        end
       end)
 
     added_count = Enum.count(results, &match?({:ok, _}, &1))
@@ -88,6 +98,23 @@ defmodule Langseed.Vocabulary do
   end
 
   def mark_words_as_known(nil, _words), do: {:error, "Authentication required"}
+
+  # Creates SRS records at tier 7 (graduated/known) for seed words
+  defp create_graduated_srs_for_concept(%Concept{} = concept, user_id) do
+    question_types = ConceptSRS.question_types_for_language(concept.language)
+
+    Enum.each(question_types, fn type ->
+      %ConceptSRS{}
+      |> ConceptSRS.changeset(%{
+        concept_id: concept.id,
+        user_id: user_id,
+        question_type: type,
+        tier: 7,
+        next_review: nil
+      })
+      |> Repo.insert!()
+    end)
+  end
 
   @doc """
   Updates a concept.

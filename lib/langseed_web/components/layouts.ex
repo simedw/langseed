@@ -39,6 +39,10 @@ defmodule LangseedWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
+  attr :practice_ready, :boolean,
+    default: false,
+    doc: "whether there are practice items ready"
+
   def app(assigns) do
     ~H"""
     <header class="bg-base-200 border-b border-base-300">
@@ -67,8 +71,14 @@ defmodule LangseedWeb.Layouts do
         <a href="/texts" class="btn btn-sm btn-ghost">
           <.icon name="hero-document-text" class="size-4" /> {gettext("Texts")}
         </a>
-        <a href="/practice" class="btn btn-sm btn-ghost">
-          <.icon name="hero-academic-cap" class="size-4" /> {gettext("Practice")}
+        <a href="/practice" class="btn btn-sm btn-ghost relative group">
+          <.icon
+            name="hero-academic-cap"
+            class={["size-4", @practice_ready && "animate-pulse text-primary"]}
+          />
+          <span class={[@practice_ready && "animate-pulse text-primary font-semibold"]}>
+            {gettext("Practice")}
+          </span>
         </a>
       </div>
     </header>
@@ -84,21 +94,35 @@ defmodule LangseedWeb.Layouts do
   @doc """
   Mobile-friendly bottom navigation bar.
   """
+  attr :practice_ready, :boolean, default: false
+
   def bottom_nav(assigns) do
     ~H"""
     <nav class="btm-nav btm-nav-md bg-base-200 border-t border-base-300">
       <.nav_item href="/vocabulary" icon="hero-book-open" label="Vocabulary" />
       <.nav_item href="/analyze" icon="hero-magnifying-glass" label="Analyze" />
-      <.nav_item href="/practice" icon="hero-academic-cap" label="Practice" />
+      <.nav_item
+        href="/practice"
+        icon="hero-academic-cap"
+        label="Practice"
+        indicator={@practice_ready}
+      />
     </nav>
     """
   end
 
+  attr :href, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :indicator, :boolean, default: false
+
   defp nav_item(assigns) do
     ~H"""
-    <a href={@href} class="text-base-content hover:bg-base-300 transition-colors">
-      <.icon name={@icon} class="size-5" />
-      <span class="btm-nav-label text-xs">{@label}</span>
+    <a href={@href} class="text-base-content hover:bg-base-300 transition-colors relative">
+      <.icon name={@icon} class={["size-5", @indicator && "animate-pulse text-primary"]} />
+      <span class={["btm-nav-label text-xs", @indicator && "animate-pulse text-primary font-semibold"]}>
+        {@label}
+      </span>
     </a>
     """
   end

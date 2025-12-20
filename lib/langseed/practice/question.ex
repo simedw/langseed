@@ -1,11 +1,11 @@
 defmodule Langseed.Practice.Question do
   @moduledoc """
-  Schema for practice questions (yes/no, fill-blank, sentence) linked to concepts.
+  Schema for practice questions (yes/no, multiple-choice, sentence) linked to concepts.
   """
   use Ecto.Schema
   import Ecto.Changeset
 
-  @question_types ~w(yes_no fill_blank sentence)
+  @question_types ~w(yes_no multiple_choice sentence)
 
   schema "questions" do
     field :question_type, :string
@@ -13,7 +13,10 @@ defmodule Langseed.Practice.Question do
     field :correct_answer, :string
     field :options, {:array, :string}, default: []
     field :explanation, :string
+    # Legacy field - use used_at for new code
     field :used, :boolean, default: false
+    # Timestamp when question was used (race-condition safe)
+    field :used_at, :utc_datetime
 
     belongs_to :concept, Langseed.Vocabulary.Concept
     belongs_to :user, Langseed.Accounts.User
@@ -31,6 +34,7 @@ defmodule Langseed.Practice.Question do
       :options,
       :explanation,
       :used,
+      :used_at,
       :user_id
     ])
     |> validate_required([:concept_id, :question_type, :question_text])

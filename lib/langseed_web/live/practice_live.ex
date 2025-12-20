@@ -15,6 +15,7 @@ defmodule LangseedWeb.PracticeLive do
      |> assign(
        page_title: gettext("Practice"),
        current_concept: nil,
+       current_srs: nil,
        mode: :loading,
        question: nil,
        user_answer: nil,
@@ -22,66 +23,115 @@ defmodule LangseedWeb.PracticeLive do
        sentence_input: "",
        pinyin_input: "",
        loading: false,
-       importing_words: []
+       importing_words: [],
+       session_new_count: 0,
+       last_concept_id: nil
      )
-     |> load_next_concept()}
+     |> load_next_practice()}
   end
 
-  defp load_next_concept(socket) do
+  # ============================================================================
+  # SRS-BASED PRACTICE FLOW
+  # ============================================================================
+
+  defp load_next_practice(socket) do
     scope = current_scope(socket)
+    last_concept_id = socket.assigns.last_concept_id
+    session_new_count = socket.assigns.session_new_count
 
-    case Practice.get_next_concept(scope) do
-      nil -> assign(socket, mode: :no_words, current_concept: nil)
-      concept -> setup_concept(socket, scope, concept)
-    end
+    result =
+      case Practice.get_next_practice(scope,
+             last_concept_id: last_concept_id,
+             session_new_count: session_new_count
+           ) do
+        nil ->
+          assign(socket, mode: :no_words, current_concept: nil, current_srs: nil)
+
+        {:definition, concept} ->
+          setup_definition_mode(socket, concept)
+
+        {:srs, srs_record} ->
+          setup_srs_practice(socket, scope, srs_record)
+      end
+
+    # Update practice_ready indicator in layout
+    practice_ready = Practice.has_practice_ready?(scope)
+    assign(result, :practice_ready, practice_ready)
   end
 
-  defp setup_concept(socket, scope, concept) do
-    mode = choose_practice_mode(concept)
-
+  defp setup_definition_mode(socket, concept) do
     socket
     |> assign(
       current_concept: concept,
-      mode: mode,
+      current_srs: nil,
+      mode: :definition,
       question: nil,
       feedback: nil,
       user_answer: nil,
       pinyin_input: ""
     )
-    |> maybe_start_quiz_generation(scope, concept, mode)
   end
 
-  # Choose practice mode based on concept state and language
-  defp choose_practice_mode(concept) do
-    cond do
-      # New words always show definition first
-      concept.understanding == 0 ->
-        :definition
+  defp setup_srs_practice(socket, scope, srs_record) do
+    concept = srs_record.concept
 
-      # Chinese concepts with valid pinyin can have pinyin quiz (1 in 3 chance)
-      concept.language == "zh" and valid_pinyin?(concept.pinyin) ->
-        if Enum.random(1..3) == 1, do: :pinyin_quiz, else: :loading_quiz
+    case srs_record.question_type do
+      "pinyin" ->
+        socket
+        |> assign(
+          current_concept: concept,
+          current_srs: srs_record,
+          mode: :pinyin_quiz,
+          question: nil,
+          feedback: nil,
+          user_answer: nil,
+          pinyin_input: ""
+        )
 
-      # Default to regular quiz
-      true ->
-        :loading_quiz
+      question_type when question_type in ["yes_no", "multiple_choice"] ->
+        # Try to get a pre-generated question
+        case Practice.get_unused_question(concept.id, question_type) do
+          nil ->
+            # Generate question async with timeout
+            socket
+            |> assign(
+              current_concept: concept,
+              current_srs: srs_record,
+              mode: :loading_quiz,
+              loading: true
+            )
+            |> start_async(:generate_question, fn ->
+              # 30 second timeout for LLM call
+              task =
+                Task.async(fn -> Practice.generate_question(scope, concept, question_type) end)
+
+              case Task.yield(task, 30_000) || Task.shutdown(task) do
+                {:ok, result} -> result
+                nil -> {:error, "Question generation timed out"}
+              end
+            end)
+
+          question ->
+            socket
+            |> assign(
+              current_concept: concept,
+              current_srs: srs_record,
+              mode: :quiz,
+              question: question,
+              feedback: nil,
+              user_answer: nil
+            )
+        end
+
+      _ ->
+        # Unknown question type, skip
+        load_next_practice(socket)
     end
   end
 
-  # Check if pinyin is valid (not nil, empty, or placeholder)
-  defp valid_pinyin?(nil), do: false
-  defp valid_pinyin?(""), do: false
-  defp valid_pinyin?("-"), do: false
-  defp valid_pinyin?("?"), do: false
-  defp valid_pinyin?(_), do: true
-
-  defp maybe_start_quiz_generation(socket, scope, concept, :loading_quiz) do
-    socket
-    |> assign(loading: true)
-    |> start_async(:generate_question, fn -> Practice.get_or_generate_question(scope, concept) end)
-  end
-
-  defp maybe_start_quiz_generation(socket, _scope, _concept, _mode), do: socket
+  # ============================================================================
+  # ASYNC HANDLERS
+  # ============================================================================
 
   @impl true
   def handle_async(:generate_question, {:ok, {:ok, question}}, socket) do
@@ -122,8 +172,38 @@ defmodule LangseedWeb.PracticeLive do
 
   @impl true
   def handle_async(:evaluate_sentence, {:ok, {:ok, result}}, socket) do
+    srs_record = socket.assigns.current_srs
     concept = socket.assigns.current_concept
-    {:ok, _} = Practice.record_answer(concept, result.correct)
+
+    # Record SRS answer if we have an SRS record
+    result_recorded =
+      if srs_record do
+        case Practice.record_srs_answer(srs_record, result.correct) do
+          {:ok, _} ->
+            :ok
+
+          {:error, changeset} ->
+            require Logger
+
+            Logger.error(
+              "Failed to record SRS answer for concept #{concept.id}: #{inspect(changeset)}"
+            )
+
+            :error
+        end
+      else
+        # Legacy fallback
+        case Practice.record_answer(concept, result.correct) do
+          {:ok, _} -> :ok
+          {:error, _} -> :error
+        end
+      end
+
+    socket =
+      case result_recorded do
+        :ok -> socket
+        :error -> put_flash(socket, :warning, gettext("Answer recorded but progress not saved"))
+      end
 
     {:noreply, assign(socket, feedback: result, loading: false)}
   end
@@ -162,6 +242,10 @@ defmodule LangseedWeb.PracticeLive do
      |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
   end
 
+  # ============================================================================
+  # EVENT HANDLERS
+  # ============================================================================
+
   # Pause word handler
   @impl true
   def handle_event("pause_word", _, socket) do
@@ -171,16 +255,35 @@ defmodule LangseedWeb.PracticeLive do
     {:noreply,
      socket
      |> put_flash(:info, gettext("Paused %{word}", word: concept.word))
-     |> load_next_concept()}
+     |> load_next_practice()}
   end
 
   # Definition mode handlers
   @impl true
   def handle_event("understand", _, socket) do
+    scope = current_scope(socket)
     concept = socket.assigns.current_concept
-    Practice.mark_understood(concept)
 
-    {:noreply, load_next_concept(socket)}
+    # Initialize SRS records for this concept
+    # Handle gracefully if concept was deleted
+    try do
+      Practice.initialize_srs_for_concept(concept, scope.user.id)
+
+      {:noreply,
+       socket
+       |> assign(
+         session_new_count: socket.assigns.session_new_count + 1,
+         last_concept_id: concept.id
+       )
+       |> load_next_practice()}
+    rescue
+      Ecto.InvalidChangesetError ->
+        # Concept was likely deleted, just load next practice
+        {:noreply,
+         socket
+         |> put_flash(:info, gettext("Word no longer available"))
+         |> load_next_practice()}
+    end
   end
 
   @impl true
@@ -198,18 +301,33 @@ defmodule LangseedWeb.PracticeLive do
 
   @impl true
   def handle_event("skip", _, socket) do
-    {:noreply, load_next_concept(socket)}
+    {:noreply, load_next_practice(socket)}
   end
 
-  # Quiz mode handlers
+  # Quiz mode handlers - Yes/No questions
   @impl true
   def handle_event("answer_yes_no", %{"answer" => answer}, socket) do
     question = socket.assigns.question
-    concept = socket.assigns.current_concept
+    srs_record = socket.assigns.current_srs
     correct = question.correct_answer == answer
 
     Practice.mark_question_used(question)
-    Practice.record_answer(concept, correct)
+
+    # Record SRS answer
+    socket =
+      if srs_record do
+        case Practice.record_srs_answer(srs_record, correct) do
+          {:ok, _} ->
+            socket
+
+          {:error, changeset} ->
+            require Logger
+            Logger.error("Failed to record SRS answer: #{inspect(changeset)}")
+            put_flash(socket, :warning, gettext("Progress not saved"))
+        end
+      else
+        socket
+      end
 
     feedback = %{
       correct: correct,
@@ -217,18 +335,40 @@ defmodule LangseedWeb.PracticeLive do
       correct_answer: question.correct_answer
     }
 
-    {:noreply, assign(socket, feedback: feedback, user_answer: answer)}
+    {:noreply,
+     socket
+     |> assign(
+       feedback: feedback,
+       user_answer: answer,
+       last_concept_id: socket.assigns.current_concept.id
+     )}
   end
 
+  # Quiz mode handlers - Multiple Choice questions (formerly fill_blank)
   @impl true
   def handle_event("answer_fill_blank", %{"index" => index_str}, socket) do
     question = socket.assigns.question
-    concept = socket.assigns.current_concept
+    srs_record = socket.assigns.current_srs
     index = String.to_integer(index_str)
     correct = question.correct_answer == index_str
 
     Practice.mark_question_used(question)
-    Practice.record_answer(concept, correct)
+
+    # Record SRS answer
+    socket =
+      if srs_record do
+        case Practice.record_srs_answer(srs_record, correct) do
+          {:ok, _} ->
+            socket
+
+          {:error, changeset} ->
+            require Logger
+            Logger.error("Failed to record SRS answer: #{inspect(changeset)}")
+            put_flash(socket, :warning, gettext("Progress not saved"))
+        end
+      else
+        socket
+      end
 
     correct_word = Enum.at(question.options, String.to_integer(question.correct_answer))
 
@@ -238,7 +378,13 @@ defmodule LangseedWeb.PracticeLive do
       selected_index: index
     }
 
-    {:noreply, assign(socket, feedback: feedback, user_answer: index)}
+    {:noreply,
+     socket
+     |> assign(
+       feedback: feedback,
+       user_answer: index,
+       last_concept_id: socket.assigns.current_concept.id
+     )}
   end
 
   @impl true
@@ -256,10 +402,26 @@ defmodule LangseedWeb.PracticeLive do
   def handle_event("submit_pinyin", _, socket) do
     input = socket.assigns.pinyin_input
     concept = socket.assigns.current_concept
+    srs_record = socket.assigns.current_srs
     expected = concept.pinyin
 
     correct = Pinyin.match?(input, expected)
-    Practice.record_answer(concept, correct)
+
+    # Record SRS answer
+    socket =
+      if srs_record do
+        case Practice.record_srs_answer(srs_record, correct) do
+          {:ok, _} ->
+            socket
+
+          {:error, changeset} ->
+            require Logger
+            Logger.error("Failed to record SRS answer: #{inspect(changeset)}")
+            put_flash(socket, :warning, gettext("Progress not saved"))
+        end
+      else
+        socket
+      end
 
     feedback = %{
       correct: correct,
@@ -268,7 +430,9 @@ defmodule LangseedWeb.PracticeLive do
       user_input: Pinyin.normalize(input)
     }
 
-    {:noreply, assign(socket, feedback: feedback, user_answer: input)}
+    {:noreply,
+     socket
+     |> assign(feedback: feedback, user_answer: input, last_concept_id: concept.id)}
   end
 
   @impl true
@@ -294,7 +458,7 @@ defmodule LangseedWeb.PracticeLive do
     {:noreply,
      socket
      |> assign(sentence_input: "", feedback: nil, user_answer: nil)
-     |> load_next_concept()}
+     |> load_next_practice()}
   end
 
   @impl true
@@ -302,6 +466,7 @@ defmodule LangseedWeb.PracticeLive do
     {:noreply, assign(socket, mode: :sentence_writing)}
   end
 
+  # Desired word handlers
   # Desired word handlers
   @impl true
   def handle_event("add_desired_word", %{"word" => word, "context" => context}, socket) do
@@ -319,6 +484,27 @@ defmodule LangseedWeb.PracticeLive do
        end)}
     end
   end
+
+  # ============================================================================
+  # HANDLE_INFO - Practice Ready Updates
+  # ============================================================================
+
+  @impl true
+  def handle_info(:check_practice_ready, socket) do
+    # Schedule next check
+    Process.send_after(self(), :check_practice_ready, 30_000)
+
+    {:noreply, update_practice_ready(socket)}
+  end
+
+  @impl true
+  def handle_info({:practice_updated, _data}, socket) do
+    {:noreply, update_practice_ready(socket)}
+  end
+
+  # ============================================================================
+  # RENDER
+  # ============================================================================
 
   @impl true
   def render(assigns) do
