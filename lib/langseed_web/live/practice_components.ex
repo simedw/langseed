@@ -316,7 +316,6 @@ defmodule LangseedWeb.PracticeComponents do
           <%= if @concept.language == "zh" && @concept.pinyin && @concept.pinyin != "" && @concept.pinyin != "-" do %>
             <p class="text-lg text-primary">{@concept.pinyin}</p>
           <% end %>
-          <p class="text-sm opacity-60 mt-1">{@concept.meaning}</p>
         </div>
 
         <p class="text-center mb-4 opacity-70">
@@ -398,7 +397,6 @@ defmodule LangseedWeb.PracticeComponents do
         <div class="text-center mb-4">
           <span class="badge badge-secondary mb-2">{gettext("Write pinyin")}</span>
           <h2 class="text-5xl font-bold mb-2">{@concept.word}</h2>
-          <p class="text-sm opacity-60">{@concept.meaning}</p>
         </div>
 
         <p class="text-center text-sm opacity-70 mb-4">

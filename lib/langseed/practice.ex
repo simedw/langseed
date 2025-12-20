@@ -62,7 +62,6 @@ defmodule Langseed.Practice do
     end
   end
 
-
   @doc """
   Finds concepts with no SRS records (not seen definition yet).
   """
