@@ -63,6 +63,7 @@ defmodule Langseed.MixProject do
       {:req, "~> 0.5"},
       {:req_llm, "~> 1.0"},
       {:jieba, "~> 0.3.1"},
+      {:hanyutils, "~> 0.3.0"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},

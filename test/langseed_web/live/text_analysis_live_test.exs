@@ -125,7 +125,9 @@ defmodule LangseedWeb.TextAnalysisLiveTest do
       |> render_click()
 
       html = render(view)
-      assert html =~ "xué xí"
+      # Pinyin is now rendered with colored spans per syllable
+      assert html =~ "xué"
+      assert html =~ "xí"
       assert html =~ "to study"
     end
 

@@ -7,7 +7,9 @@ defmodule LangseedWeb.PracticeComponents do
   use Gettext, backend: LangseedWeb.Gettext
 
   import LangseedWeb.CoreComponents, only: [icon: 1]
-  import LangseedWeb.SharedComponents, only: [speak_button: 1, desired_words_section: 1]
+
+  import LangseedWeb.SharedComponents,
+    only: [speak_button: 1, desired_words_section: 1, colored_pinyin: 1]
 
   @doc """
   Renders a card shown when there are no words to practice.
@@ -404,17 +406,35 @@ defmodule LangseedWeb.PracticeComponents do
         </p>
 
         <%= if @feedback do %>
-          <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-error"} mb-4"}>
-            <span class="text-2xl">{if @feedback.correct, do: "✅", else: "❌"}</span>
-            <div>
-              <%= if @feedback.correct do %>
-                <p class="font-bold">{gettext("Correct!")}</p>
-              <% else %>
-                <p class="font-bold">{@feedback.expected_toned}</p>
-                <p class="text-sm opacity-70">{@feedback.expected_numbered}</p>
-              <% end %>
+          <%= if @feedback.correct do %>
+            <div class="alert alert-success mb-4">
+              <span class="text-2xl">✅</span>
+              <p class="font-bold">{gettext("Correct!")}</p>
             </div>
-          </div>
+          <% else %>
+            <div class="space-y-3 mb-4">
+              <%!-- User's wrong answer - red background --%>
+              <div class="flex items-center gap-3 p-3 bg-error/20 border border-error/40 rounded-lg">
+                <span class="text-xl">❌</span>
+                <div>
+                  <span class="text-xs opacity-60">{gettext("You typed:")}</span>
+                  <p class="font-mono text-lg line-through">{@feedback.user_input}</p>
+                </div>
+              </div>
+
+              <%!-- Correct answer - neutral background so colors are visible --%>
+              <div class="flex items-center gap-3 p-3 bg-base-300 rounded-lg">
+                <span class="text-xl">✓</span>
+                <div>
+                  <span class="text-xs opacity-60">{gettext("Correct answer:")}</span>
+                  <p class="text-xl font-bold">
+                    <.colored_pinyin pinyin={@feedback.expected_toned} />
+                  </p>
+                  <p class="text-sm opacity-60 font-mono">{@feedback.expected_numbered}</p>
+                </div>
+              </div>
+            </div>
+          <% end %>
 
           <button class="btn btn-primary w-full" phx-click="next">
             {gettext("Next")} <.icon name="hero-arrow-right" class="size-5" />

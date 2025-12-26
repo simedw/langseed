@@ -53,7 +53,9 @@ defmodule LangseedWeb.VocabularyLiveTest do
       assert has_element?(view, "div.fixed.inset-0.bg-black\\/50")
       html = render(view)
       assert html =~ "你好"
-      assert html =~ "nǐ hǎo"
+      # Pinyin is now rendered with colored spans per syllable
+      assert html =~ "nǐ"
+      assert html =~ "hǎo"
     end
 
     test "collapse event closes concept card modal", %{conn: conn, user: user} do

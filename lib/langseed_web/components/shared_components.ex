@@ -9,6 +9,7 @@ defmodule LangseedWeb.SharedComponents do
   import LangseedWeb.CoreComponents, only: [icon: 1]
 
   alias Langseed.HSK
+  alias Langseed.Language.Pinyin
   alias Langseed.TimeFormatter
   alias Langseed.Practice.ConceptSRS
 
@@ -50,6 +51,35 @@ defmodule LangseedWeb.SharedComponents do
     </span>
     """
   end
+
+  @doc """
+  Renders pinyin with each syllable colored according to its tone.
+
+  - Tone 1: blue
+  - Tone 2: yellow
+  - Tone 3: green
+  - Tone 4: red
+  - Neutral/no tone: default text color
+  """
+  attr :pinyin, :string, required: true
+  attr :class, :string, default: ""
+
+  def colored_pinyin(assigns) do
+    syllables = Pinyin.syllables_with_tones(assigns.pinyin)
+    assigns = assign(assigns, :syllables, syllables)
+
+    ~H"""
+    <span class={@class}>
+      <span :for={{syllable, tone} <- @syllables} class={tone_color_class(tone)}>{syllable}</span>
+    </span>
+    """
+  end
+
+  defp tone_color_class(1), do: "text-blue-500"
+  defp tone_color_class(2), do: "text-yellow-500"
+  defp tone_color_class(3), do: "text-green-500"
+  defp tone_color_class(4), do: "text-red-500"
+  defp tone_color_class(_), do: ""
 
   @doc """
   Calculates the understanding level color (red -> yellow -> green gradient).
@@ -185,7 +215,7 @@ defmodule LangseedWeb.SharedComponents do
                 <.speak_button text={@concept.word} />
               </div>
               <%= if @concept.language == "zh" && @concept.pinyin && @concept.pinyin != "" && @concept.pinyin != "-" do %>
-                <p class="text-xl text-primary mt-1">{@concept.pinyin}</p>
+                <p class="text-xl mt-1"><.colored_pinyin pinyin={@concept.pinyin} /></p>
               <% end %>
               <div class="flex gap-1">
                 <span class="badge badge-sm badge-ghost">{@concept.part_of_speech}</span>
