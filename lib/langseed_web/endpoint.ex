@@ -4,11 +4,16 @@ defmodule LangseedWeb.Endpoint do
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
+  #
+  # Note: we set a `max_age` so the cookie survives browser restarts.
+  # This should align with `Langseed.Accounts.UserToken` session validity.
+  @session_max_age_in_seconds 14 * 24 * 60 * 60
   @session_options [
     store: :cookie,
     key: "_langseed_key",
     signing_salt: "rX77hzhl",
-    same_site: "Lax"
+    same_site: "Lax",
+    max_age: @session_max_age_in_seconds
   ]
 
   # Redirect www to non-www
