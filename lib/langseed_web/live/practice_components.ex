@@ -9,7 +9,7 @@ defmodule LangseedWeb.PracticeComponents do
   import LangseedWeb.CoreComponents, only: [icon: 1]
 
   import LangseedWeb.SharedComponents,
-    only: [speak_button: 1, desired_words_section: 1, colored_pinyin: 1]
+    only: [speak_button: 1, desired_words_section: 1, colored_pinyin: 1, audio_url_for_concept: 1]
 
   @doc """
   Renders a card shown when there are no words to practice.
@@ -76,7 +76,9 @@ defmodule LangseedWeb.PracticeComponents do
           <div class="flex items-center justify-center gap-2">
             <h2 class="text-5xl font-bold">{@concept.word}</h2>
             <.speak_button
+              id={"speak-new-word-#{@concept.id}"}
               text={@concept.word}
+              audio_url={audio_url_for_concept(@concept)}
               concept_id={@concept.id}
               language={@concept.language}
             />
@@ -196,6 +198,10 @@ defmodule LangseedWeb.PracticeComponents do
   Renders an audio player with auto-play and replay functionality.
   Shows a loading spinner while audio is being generated.
   When show_generate_button is true and no audio exists, shows a button to generate on demand.
+
+  Uses the unified AudioPlayer hook from app.js which handles:
+  - Auto-play on mount (if enabled)
+  - Server-triggered playback via "play-audio" event
   """
   attr :audio_url, :string, default: nil
   attr :audio_loading, :boolean, default: false
@@ -209,7 +215,7 @@ defmodule LangseedWeb.PracticeComponents do
           <% @audio_loading -> %>
             <span class="loading loading-spinner loading-sm text-primary"></span>
           <% @audio_url -> %>
-            <div id="audio-player" phx-hook=".AudioPlayer" phx-update="ignore">
+            <div id="audio-player" phx-hook="AudioPlayer" phx-update="ignore">
               <audio id="practice-audio" src={@audio_url} class="hidden"></audio>
               <button
                 class="btn btn-circle btn-sm btn-ghost"
@@ -230,27 +236,6 @@ defmodule LangseedWeb.PracticeComponents do
         <% end %>
       </div>
     <% end %>
-    <script :type={Phoenix.LiveView.ColocatedHook} name=".AudioPlayer">
-      export default {
-        mounted() {
-          const audio = this.el.querySelector('audio');
-          const isAutoplayEnabled = () => localStorage.getItem("phx:audio-autoplay") !== "false";
-
-          // Auto-play on mount if source present and autoplay enabled
-          if (audio && audio.src && audio.src !== window.location.href && isAutoplayEnabled()) {
-            audio.play().catch(e => console.log('Auto-play prevented:', e));
-          }
-
-          // Handle server-triggered playback (always play when explicitly triggered)
-          this.handleEvent("play-audio", ({url}) => {
-            if (audio && url) {
-              audio.src = url;
-              audio.play().catch(e => console.log('Play failed:', e));
-            }
-          });
-        }
-      }
-    </script>
     """
   end
 
@@ -387,7 +372,9 @@ defmodule LangseedWeb.PracticeComponents do
           <div class="flex items-center justify-center gap-2">
             <h2 class="text-3xl font-bold">{@concept.word}</h2>
             <.speak_button
+              id={"speak-sentence-#{@concept.id}"}
               text={@concept.word}
+              audio_url={audio_url_for_concept(@concept)}
               concept_id={@concept.id}
               language={@concept.language}
             />

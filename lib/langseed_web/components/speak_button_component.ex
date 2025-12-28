@@ -22,6 +22,7 @@ defmodule LangseedWeb.SpeakButtonComponent do
       data-language={@language}
       class="btn btn-ghost btn-circle btn-sm speak-btn"
       title={audio_title(@audio_url)}
+      disabled={@loading}
     >
       <%= if @loading do %>
         <span class="loading loading-spinner loading-sm"></span>
@@ -72,26 +73,11 @@ defmodule LangseedWeb.SpeakButtonComponent do
 
   @impl true
   def handle_event("speak", _, socket) do
-    audio_url = socket.assigns[:audio_url]
-    concept_id = socket.assigns[:concept_id]
-    id = socket.assigns.id
-    text = socket.assigns.text
-    language = socket.assigns.language
-
-    cond do
-      # Already have audio URL - just play it
-      audio_url && audio_url != "" ->
-        {:noreply, push_event(socket, "speak-audio-play", %{id: id, url: audio_url})}
-
-      # Have concept_id - generate on-demand
-      concept_id ->
-        send(self(), {:generate_speak_audio, id, text, concept_id, language})
-        {:noreply, assign(socket, loading: true)}
-
-      # No concept_id - let JS hook handle browser TTS
-      true ->
-        {:noreply,
-         push_event(socket, "speak-browser-tts", %{id: id, text: text, language: language})}
+    # Ignore clicks while already loading (prevent duplicate generation)
+    if socket.assigns[:loading] do
+      {:noreply, socket}
+    else
+      handle_speak_click(socket)
     end
   end
 
@@ -118,6 +104,31 @@ defmodule LangseedWeb.SpeakButtonComponent do
       })
 
     {:noreply, socket}
+  end
+
+  # Private helper for handling speak button clicks
+  defp handle_speak_click(socket) do
+    audio_url = socket.assigns[:audio_url]
+    concept_id = socket.assigns[:concept_id]
+    id = socket.assigns.id
+    text = socket.assigns.text
+    language = socket.assigns.language
+
+    cond do
+      # Already have audio URL - just play it
+      audio_url && audio_url != "" ->
+        {:noreply, push_event(socket, "speak-audio-play", %{id: id, url: audio_url})}
+
+      # Have concept_id - generate on-demand
+      concept_id ->
+        send(self(), {:generate_speak_audio, id, text, concept_id, language})
+        {:noreply, assign(socket, loading: true)}
+
+      # No concept_id - let JS hook handle browser TTS
+      true ->
+        {:noreply,
+         push_event(socket, "speak-browser-tts", %{id: id, text: text, language: language})}
+    end
   end
 
   # Returns URL if non-empty, nil otherwise

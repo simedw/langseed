@@ -93,39 +93,26 @@ defmodule Langseed.Workers.QuestionGenerator do
     end)
   end
 
-  # Pre-generate and cache audio for the question sentence
+  # Pre-generate and cache audio for the question sentence.
+  # Only runs when storage caching is enabled (TTS + R2 configured).
   defp pre_generate_audio(question, language) do
-    sentence = build_audio_sentence(question)
+    # Skip pre-generation if caching is not available (would just waste API calls)
+    if Audio.cache_available?() do
+      sentence = Langseed.Practice.QuestionAudio.sentence_for_question(question)
 
-    case Audio.generate_sentence_audio(sentence, language) do
-      {:ok, url} when not is_nil(url) ->
-        Logger.debug("Pre-cached audio for question #{question.id}")
+      case Audio.generate_sentence_audio(sentence, language) do
+        {:ok, url} when not is_nil(url) ->
+          Logger.debug("Pre-cached audio for question #{question.id}")
 
-      {:ok, nil} ->
-        # No TTS for this language, that's fine
-        :ok
+        {:ok, nil} ->
+          # No TTS for this language, that's fine
+          :ok
 
-      {:error, reason} ->
-        Logger.warning(
-          "Failed to pre-generate audio for question #{question.id}: #{inspect(reason)}"
-        )
-    end
-  end
-
-  # Build the full sentence to generate audio for
-  defp build_audio_sentence(question) do
-    case question.question_type do
-      "yes_no" ->
-        # Yes/no questions use the question text directly
-        question.question_text
-
-      "multiple_choice" ->
-        # Multiple choice has a blank - fill it with the correct answer
-        correct_word = Enum.at(question.options, String.to_integer(question.correct_answer))
-        String.replace(question.question_text, "____", correct_word || "")
-
-      _ ->
-        question.question_text
+        {:error, reason} ->
+          Logger.warning(
+            "Failed to pre-generate audio for question #{question.id}: #{inspect(reason)}"
+          )
+      end
     end
   end
 

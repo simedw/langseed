@@ -16,9 +16,18 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
+# Helper to treat empty strings as not configured (nil)
+get_env_non_empty = fn key ->
+  case System.get_env(key) do
+    nil -> nil
+    "" -> nil
+    value -> value
+  end
+end
+
 # Configure Gemini API key for LLM integration and TTS
 # req_llm expects google_api_key or GOOGLE_API_KEY env var
-google_ai_api_key = System.get_env("GOOGLE_AI_API_KEY")
+google_ai_api_key = get_env_non_empty.("GOOGLE_AI_API_KEY")
 
 config :req_llm, google_api_key: google_ai_api_key
 
@@ -32,17 +41,24 @@ config :langseed,
     )
 
 # Cloudflare R2 Storage (optional - for audio caching)
+# All four env vars are required and non-empty for R2 storage to be enabled
 r2_config = %{
-  account_id: System.get_env("R2_ACCOUNT_ID"),
-  access_key_id: System.get_env("R2_ACCESS_KEY_ID"),
-  secret_access_key: System.get_env("R2_SECRET_ACCESS_KEY"),
-  bucket: System.get_env("R2_BUCKET_NAME")
+  account_id: get_env_non_empty.("R2_ACCOUNT_ID"),
+  access_key_id: get_env_non_empty.("R2_ACCESS_KEY_ID"),
+  secret_access_key: get_env_non_empty.("R2_SECRET_ACCESS_KEY"),
+  bucket: get_env_non_empty.("R2_BUCKET_NAME")
 }
+
+r2_fully_configured? =
+  r2_config.account_id != nil &&
+    r2_config.access_key_id != nil &&
+    r2_config.secret_access_key != nil &&
+    r2_config.bucket != nil
 
 config :langseed,
   r2_storage: r2_config,
   storage_provider:
-    if(r2_config.access_key_id,
+    if(r2_fully_configured?,
       do: Langseed.Audio.Providers.R2Storage,
       else: Langseed.Audio.Providers.NoopStorage
     )

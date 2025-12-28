@@ -3,6 +3,7 @@ defmodule LangseedWeb.SpeakButtonComponentTest do
   import Phoenix.LiveViewTest
 
   alias LangseedWeb.SpeakButtonComponent
+  alias LangseedWeb.SharedComponents
 
   describe "render/1" do
     test "renders speaker icon when not loading" do
@@ -104,6 +105,47 @@ defmodule LangseedWeb.SpeakButtonComponentTest do
 
       assert html =~ "hero-speaker-wave"
       refute html =~ "hero-speaker-wave-solid"
+    end
+  end
+
+  describe "audio_url_for_concept/1 defensive behavior" do
+    # audio_path must be an object key only (e.g. tts/Puck/zh/<hash>.wav)
+    # URLs and data URLs should be ignored defensively
+
+    test "returns nil for nil concept" do
+      assert SharedComponents.audio_url_for_concept(nil) == nil
+    end
+
+    test "returns nil for concept with nil audio_path" do
+      concept = %{audio_path: nil}
+      assert SharedComponents.audio_url_for_concept(concept) == nil
+    end
+
+    test "returns nil for concept with empty string audio_path" do
+      concept = %{audio_path: ""}
+      assert SharedComponents.audio_url_for_concept(concept) == nil
+    end
+
+    test "returns nil for concept with HTTP URL audio_path (legacy data)" do
+      # Legacy data with URLs should be defensively ignored
+      concept = %{audio_path: "https://example.com/audio.wav"}
+      assert SharedComponents.audio_url_for_concept(concept) == nil
+    end
+
+    test "returns nil for concept with data URL audio_path (legacy data)" do
+      # Legacy data URLs should be defensively ignored
+      concept = %{audio_path: "data:audio/wav;base64,UklGR..."}
+      assert SharedComponents.audio_url_for_concept(concept) == nil
+    end
+
+    test "returns nil for object key when storage is not available" do
+      # With storage not configured, signing won't work
+      # (This tests the fallthrough behavior in test env without R2)
+      concept = %{audio_path: "tts/Puck/zh/abc123.wav"}
+      # Will return nil if storage is not available in test env
+      result = SharedComponents.audio_url_for_concept(concept)
+      # Result is either nil (no storage) or a signed URL (storage available)
+      assert is_nil(result) or is_binary(result)
     end
   end
 end

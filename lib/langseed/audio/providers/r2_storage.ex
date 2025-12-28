@@ -11,8 +11,17 @@ defmodule Langseed.Audio.Providers.R2Storage do
   @impl true
   def available?() do
     config = get_config()
-    config[:access_key_id] != nil && config[:secret_access_key] != nil
+
+    # Require all four config values to be non-nil and non-empty
+    non_empty?(config[:account_id]) &&
+      non_empty?(config[:bucket]) &&
+      non_empty?(config[:access_key_id]) &&
+      non_empty?(config[:secret_access_key])
   end
+
+  defp non_empty?(nil), do: false
+  defp non_empty?(""), do: false
+  defp non_empty?(_value), do: true
 
   @impl true
   def store_audio(audio_data, path, content_type) do
@@ -66,6 +75,7 @@ defmodule Langseed.Audio.Providers.R2Storage do
   defp get_bucket_or_error do
     case get_config()[:bucket] do
       nil -> {:error, :not_configured}
+      "" -> {:error, :not_configured}
       bucket -> {:ok, bucket}
     end
   end

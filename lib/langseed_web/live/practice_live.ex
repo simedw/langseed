@@ -569,7 +569,6 @@ defmodule LangseedWeb.PracticeLive do
   end
 
   # Desired word handlers
-  # Desired word handlers
   @impl true
   def handle_event("add_desired_word", %{"word" => word, "context" => context}, socket) do
     scope = current_scope(socket)
@@ -603,26 +602,11 @@ defmodule LangseedWeb.PracticeLive do
   # Generate audio for question (handles all question types)
   defp generate_audio_for_question(socket, question) do
     language = socket.assigns.current_concept.language
-    sentence = build_audio_sentence(question)
+    sentence = Langseed.Practice.QuestionAudio.sentence_for_question(question)
 
     start_async(socket, :generate_audio, fn ->
       Langseed.Audio.generate_sentence_audio(sentence, language)
     end)
-  end
-
-  # Build the sentence to generate audio for based on question type
-  defp build_audio_sentence(question) do
-    case question.question_type do
-      "yes_no" ->
-        question.question_text
-
-      "multiple_choice" ->
-        correct_word = Enum.at(question.options, String.to_integer(question.correct_answer))
-        String.replace(question.question_text, "____", correct_word || "")
-
-      _ ->
-        question.question_text
-    end
   end
 
   # ============================================================================

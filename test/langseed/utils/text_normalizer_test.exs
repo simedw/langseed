@@ -102,5 +102,40 @@ defmodule Langseed.Utils.TextNormalizerTest do
       assert hash == String.downcase(hash)
       assert Regex.match?(~r/^[a-f0-9]+$/, hash)
     end
+
+    test "generates same hash for maps with same content regardless of construction order" do
+      # Create maps in different ways to test deterministic serialization
+      map1 = %{voice_name: "Puck", language: "zh", rate: 1.0}
+      map2 = %{language: "zh", rate: 1.0, voice_name: "Puck"}
+      map3 = Map.new([{:rate, 1.0}, {:voice_name, "Puck"}, {:language, "zh"}])
+
+      hash1 = TextNormalizer.generate_audio_hash("你好", "zh", map1)
+      hash2 = TextNormalizer.generate_audio_hash("你好", "zh", map2)
+      hash3 = TextNormalizer.generate_audio_hash("你好", "zh", map3)
+
+      assert hash1 == hash2
+      assert hash2 == hash3
+    end
+
+    test "handles nested maps deterministically" do
+      map1 = %{voice: %{name: "Puck", style: "calm"}, rate: 1.0}
+      map2 = %{rate: 1.0, voice: %{style: "calm", name: "Puck"}}
+
+      hash1 = TextNormalizer.generate_audio_hash("test", "en", map1)
+      hash2 = TextNormalizer.generate_audio_hash("test", "en", map2)
+
+      assert hash1 == hash2
+    end
+
+    test "handles atom and string keys consistently" do
+      # Both should produce the same hash since we convert keys to strings
+      map_atom = %{voice_name: "Puck"}
+      map_string = %{"voice_name" => "Puck"}
+
+      hash_atom = TextNormalizer.generate_audio_hash("test", "en", map_atom)
+      hash_string = TextNormalizer.generate_audio_hash("test", "en", map_string)
+
+      assert hash_atom == hash_string
+    end
   end
 end

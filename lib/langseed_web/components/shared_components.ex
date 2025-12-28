@@ -8,10 +8,46 @@ defmodule LangseedWeb.SharedComponents do
 
   import LangseedWeb.CoreComponents, only: [icon: 1]
 
+  alias Langseed.Audio
   alias Langseed.HSK
   alias Langseed.Language.Pinyin
   alias Langseed.TimeFormatter
   alias Langseed.Practice.ConceptSRS
+
+  @doc """
+  Gets a pre-signed audio URL for a concept if it has a cached audio_path.
+  Returns nil if no audio_path or if storage is not available.
+  This is safe to call during render (presigned URL generation is local/fast).
+
+  Note: `audio_path` must be a storage object key (e.g. `tts/Puck/zh/<hash>.wav`).
+  If it looks like a URL or data URL (legacy data), this returns nil defensively.
+  """
+  @spec audio_url_for_concept(map() | nil) :: String.t() | nil
+  def audio_url_for_concept(nil), do: nil
+  def audio_url_for_concept(%{audio_path: nil}), do: nil
+  def audio_url_for_concept(%{audio_path: ""}), do: nil
+
+  def audio_url_for_concept(%{audio_path: path}) when is_binary(path) do
+    # Defensively ignore legacy URL/data-URL values - audio_path should be object key only
+    if looks_like_url?(path) do
+      nil
+    else
+      case Audio.get_signed_url(path) do
+        {:ok, url} when not is_nil(url) -> url
+        _ -> nil
+      end
+    end
+  end
+
+  def audio_url_for_concept(_), do: nil
+
+  # Check if a path looks like a URL or data URL (not a valid object key)
+  defp looks_like_url?(path) do
+    String.starts_with?(path, "http://") or
+      String.starts_with?(path, "https://") or
+      String.starts_with?(path, "data:") or
+      String.contains?(path, "://")
+  end
 
   @doc """
   Renders a speak button that triggers text-to-speech.
@@ -20,26 +56,20 @@ defmodule LangseedWeb.SharedComponents do
   If `concept_id` is provided and no audio_url, generates audio on-demand.
   Otherwise, falls back to browser's speechSynthesis API.
 
-  Note: The parent LiveView must include these handle_info callbacks:
+  ## Options
+  - `id` - Required component ID. Must be unique within the page.
+           Use a pattern like "speak-{context}-{concept_id}" to ensure uniqueness.
 
-      def handle_info({:generate_speak_audio, component_id, text, concept_id, language}, socket) do
-        LangseedWeb.AudioHelpers.handle_generate_speak_audio(socket, component_id, text, concept_id, language)
-      end
-
-      def handle_info({:speak_audio_result, component_id, result}, socket) do
-        LangseedWeb.AudioHelpers.handle_speak_audio_result(socket, component_id, result)
-      end
+  Note: The parent LiveView must `use LangseedWeb.AudioHelpers` to handle
+  the `:generate_speak_audio` and `:speak_audio_result` messages.
   """
+  attr :id, :string, required: true
   attr :text, :string, required: true
   attr :audio_url, :string, default: nil
   attr :concept_id, :integer, default: nil
   attr :language, :string, default: "zh"
 
   def speak_button(assigns) do
-    # Generate a unique ID for the component
-    id = "speak-#{:erlang.phash2({assigns.text, assigns.concept_id})}"
-    assigns = assign(assigns, :id, id)
-
     ~H"""
     <.live_component
       module={LangseedWeb.SpeakButtonComponent}
@@ -232,7 +262,9 @@ defmodule LangseedWeb.SharedComponents do
               <div class="flex items-center gap-2">
                 <span class="text-4xl font-bold">{@concept.word}</span>
                 <.speak_button
+                  id={"speak-modal-#{@concept.id}"}
                   text={@concept.word}
+                  audio_url={audio_url_for_concept(@concept)}
                   concept_id={@concept.id}
                   language={@concept.language}
                 />

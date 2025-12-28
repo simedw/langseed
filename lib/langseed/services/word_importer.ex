@@ -117,22 +117,19 @@ defmodule Langseed.Services.WordImporter do
     end
   end
 
-  # Generate audio for the word if TTS is available
-  # Stores the stable R2 object path, NOT the signed URL (which expires)
+  # Generate audio for the word if TTS is available.
+  # Only persists audio_path when storage is configured (not in data URL mode).
   defp generate_and_store_audio(concept) do
     alias Langseed.Audio
 
-    if Audio.available?() && concept.language == "zh" do
-      case Audio.generate_word_audio(concept) do
-        {:ok, _signed_url} ->
-          # Persist the stable path (not the signed URL)
-          path = Audio.audio_path_for(concept.word, concept.language)
-          Audio.persist_audio_path(concept, path)
-
-        _ ->
-          # Fail silently - audio is optional
-          :ok
-      end
+    with true <- Audio.available?() && concept.language == "zh",
+         {:ok, _signed_url} <- Audio.generate_word_audio(concept),
+         true <- Audio.cache_available?() do
+      path = Audio.audio_path_for(concept.word, concept.language)
+      Audio.persist_audio_path(concept, path)
+    else
+      # Fail silently - audio is optional
+      _ -> :ok
     end
   end
 

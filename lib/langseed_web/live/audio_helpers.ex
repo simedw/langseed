@@ -62,8 +62,11 @@ defmodule LangseedWeb.AudioHelpers do
       case Audio.generate_audio(text, language) do
         {:ok, url} when not is_nil(url) ->
           Logger.debug("Audio generated successfully")
-          # Cache the object key (path), not the signed URL
-          maybe_cache_audio_path(text, language, concept_id)
+          # Only cache audio_path when storage is available (not in data URL mode)
+          if Audio.cache_available?() do
+            maybe_cache_audio_path(text, language, concept_id)
+          end
+
           {:ok, url}
 
         {:ok, nil} ->

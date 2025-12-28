@@ -182,17 +182,27 @@ const Hooks = {
   },
   
   /**
-   * AudioPlayer hook - handles audio playback for speak buttons.
-   * Events are filtered by component id to prevent multiple buttons playing at once.
+   * AudioPlayer hook - unified audio playback for speak buttons and practice audio.
    *
    * Events handled:
-   * - speak-audio-play: Play audio from a URL (from SpeakButtonComponent)
-   * - speak-browser-tts: Fall back to browser TTS (when TTS generation fails)
+   * - speak-audio-play: Play audio from a URL (from SpeakButtonComponent, id-filtered)
+   * - speak-browser-tts: Fall back to browser TTS (when TTS generation fails, id-filtered)
+   * - play-audio: Play audio from a URL (from PracticeLive, no id filter)
    */
   AudioPlayer: {
     mounted() {
       // Create a reusable audio element
       this.audio = new Audio()
+
+      // Check if autoplay is enabled (used for Practice audio)
+      const isAutoplayEnabled = () => localStorage.getItem("phx:audio-autoplay") !== "false"
+
+      // Auto-play on mount if element has audio data and autoplay enabled
+      // Note: Browsers block autoplay until user interaction - this is expected and handled silently
+      const existingAudio = this.el.querySelector('audio')
+      if (existingAudio && existingAudio.src && existingAudio.src !== window.location.href && isAutoplayEnabled()) {
+        existingAudio.play().catch(() => {})  // Silently ignore autoplay restrictions
+      }
 
       // Handle audio playback from LiveComponent (filtered by id)
       this.handleEvent("speak-audio-play", ({id, url}) => {
@@ -201,7 +211,7 @@ const Hooks = {
         
         this.el.dataset.audioUrl = url
         this.audio.src = url
-        this.audio.play().catch(e => console.log('Audio play failed:', e))
+        this.audio.play().catch(() => {})  // Silently ignore play failures
       })
 
       // Handle browser TTS fallback from LiveComponent (filtered by id)
@@ -210,6 +220,19 @@ const Hooks = {
         if (id && id !== this.el.id) return
         
         this.playBrowserTTS(text, language)
+      })
+
+      // Handle play-audio from PracticeLive (no id filter, for quiz audio)
+      this.handleEvent("play-audio", ({url}) => {
+        const audioEl = this.el.querySelector('audio')
+        if (audioEl && url) {
+          audioEl.src = url
+          audioEl.play().catch(() => {})  // Silently ignore play failures
+        } else if (url) {
+          // Fallback if no audio element in DOM
+          this.audio.src = url
+          this.audio.play().catch(() => {})  // Silently ignore play failures
+        }
       })
     },
 
@@ -233,20 +256,37 @@ const Hooks = {
   },
 
   // Syncs audio autoplay preference from localStorage to server
+  // Note: Not all LiveViews handle this event - only PracticeLive cares about it.
+  // The push is fire-and-forget; we catch errors to avoid timeout noise.
   AudioAutoplaySync: {
     mounted() {
-      this.sendPreference()
+      // Don't push on mount - LiveViews that care will read from their own state.
+      // Only sync on toggle changes to avoid timeout errors on pages without handlers.
       
       // Listen for changes (when user toggles)
-      window.addEventListener("phx:toggle-audio-autoplay", () => {
+      // Store handler reference for cleanup in destroyed()
+      this.toggleHandler = () => {
         // Small delay to let localStorage update first
         setTimeout(() => this.sendPreference(), 50)
-      })
+      }
+      window.addEventListener("phx:toggle-audio-autoplay", this.toggleHandler)
+    },
+    
+    destroyed() {
+      // Clean up window event listener to prevent accumulation on navigation
+      if (this.toggleHandler) {
+        window.removeEventListener("phx:toggle-audio-autoplay", this.toggleHandler)
+      }
     },
     
     sendPreference() {
       const enabled = localStorage.getItem("phx:audio-autoplay") !== "false"
-      this.pushEvent("audio_autoplay_changed", { enabled })
+      // Fire-and-forget: catch promise rejection for pages without handlers
+      // pushEvent returns a promise that rejects on timeout if server has no handler
+      Promise.resolve(this.pushEvent("audio_autoplay_changed", { enabled }))
+        .catch(() => {
+          // Ignore - not all pages handle this event (only PracticeLive)
+        })
     }
   }
 }

@@ -54,6 +54,15 @@ defmodule Langseed.Audio do
   end
 
   @doc """
+  Returns whether audio caching is available (both TTS and storage configured).
+  Use this to decide whether to persist audio_path to the database.
+  """
+  @spec cache_available?() :: boolean()
+  def cache_available?() do
+    tts_available?() && storage_available?()
+  end
+
+  @doc """
   Generates audio for a word/concept.
   """
   def generate_word_audio(concept) do

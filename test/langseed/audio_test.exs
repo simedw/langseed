@@ -29,6 +29,30 @@ defmodule Langseed.AudioTest do
     end
   end
 
+  describe "cache_available?/0" do
+    test "returns boolean" do
+      result = Audio.cache_available?()
+      assert is_boolean(result)
+    end
+
+    test "requires both TTS and storage to be true" do
+      # cache_available? should be true only when both TTS AND storage are available
+      tts = Audio.tts_available?()
+      storage = Audio.storage_available?()
+      cache = Audio.cache_available?()
+
+      # If either is false, cache should be false
+      if not tts or not storage do
+        refute cache
+      end
+
+      # If both are true, cache should be true
+      if tts and storage do
+        assert cache
+      end
+    end
+  end
+
   describe "generate_word_audio/1 with NoOp providers" do
     setup do
       user = Langseed.AccountsFixtures.user_fixture()

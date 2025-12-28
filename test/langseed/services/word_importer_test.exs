@@ -41,12 +41,16 @@ defmodule Langseed.Services.WordImporterTest do
       %{scope: scope, concept: concept}
     end
 
-    test "concept can be updated with audio_path", %{concept: concept} do
-      # Test that audio_path field works correctly
-      {:ok, updated} =
-        Vocabulary.update_concept(concept, %{audio_path: "https://example.com/audio.wav"})
+    test "concept can be updated with audio_path (object key format)", %{concept: concept} do
+      # audio_path must be a storage object key, not a URL or data URL
+      object_key = "tts/Puck/zh/abc123def456.wav"
 
-      assert updated.audio_path == "https://example.com/audio.wav"
+      {:ok, updated} = Vocabulary.update_concept(concept, %{audio_path: object_key})
+
+      assert updated.audio_path == object_key
+      # Verify it's a valid object key format (not a URL)
+      refute String.contains?(updated.audio_path, "://")
+      refute String.starts_with?(updated.audio_path, "data:")
     end
 
     test "audio_path is nil by default", %{concept: concept} do
@@ -106,11 +110,16 @@ defmodule Langseed.Services.WordImporterTest do
       assert updated.audio_path == path
     end
 
-    test "audio_path can be a data URL", %{concept: concept} do
-      # Simulate a base64 audio data URL (truncated for test)
-      data_url = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9"
-      {:ok, updated} = Vocabulary.update_concept(concept, %{audio_path: data_url})
-      assert updated.audio_path == data_url
+    test "audio_path must follow object key format (not URL or data URL)" do
+      # Document the expected format: tts/{voice}/{language}/{hash}.wav
+      # This is the ONLY valid format for audio_path
+      valid_path = "tts/Puck/zh/abc123def456.wav"
+
+      assert String.starts_with?(valid_path, "tts/")
+      assert String.ends_with?(valid_path, ".wav")
+      refute String.contains?(valid_path, "://")
+      refute String.starts_with?(valid_path, "data:")
+      refute String.contains?(valid_path, "?")
     end
   end
 

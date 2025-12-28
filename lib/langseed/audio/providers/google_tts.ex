@@ -16,7 +16,12 @@ defmodule Langseed.Audio.Providers.GoogleTTS do
 
   @impl true
   def available?() do
-    get_api_key() != nil
+    # Check for both nil and empty string to be defensive
+    case get_api_key() do
+      nil -> false
+      "" -> false
+      _key -> true
+    end
   end
 
   @impl true
@@ -44,6 +49,7 @@ defmodule Langseed.Audio.Providers.GoogleTTS do
   defp get_api_key_or_error do
     case get_api_key() do
       nil -> {:error, :not_configured}
+      "" -> {:error, :not_configured}
       key -> {:ok, key}
     end
   end
@@ -90,6 +96,7 @@ defmodule Langseed.Audio.Providers.GoogleTTS do
 
   # Gemini streaming response returns an array of chunks
   # Each chunk may contain audio data in inlineData
+  # Always returns audio/wav to ensure consistency with storage keys.
   defp extract_audio_from_response(body) when is_list(body) do
     audio_parts =
       body
@@ -105,27 +112,73 @@ defmodule Langseed.Audio.Providers.GoogleTTS do
       mime_type = get_in(hd(audio_parts), ["inlineData", "mimeType"]) || "audio/wav"
 
       # Combine all audio chunks and decode from base64
+      # Use IO.iodata_to_binary for binary-safe concatenation (audio may contain non-UTF8 bytes)
       combined_audio =
         audio_parts
         |> Enum.map(fn part -> part["inlineData"]["data"] end)
-        |> Enum.map(&Base.decode64!/1)
-        |> Enum.join()
+        |> Enum.map(&decode_base64_safe/1)
+        |> collect_decoded_chunks()
 
-      # Convert L16 PCM to WAV (browsers can't play raw PCM)
-      if String.starts_with?(mime_type, "audio/L16") or
-           String.starts_with?(mime_type, "audio/l16") do
-        # Parse sample rate from mime type (e.g., "audio/L16;rate=24000")
-        sample_rate = parse_sample_rate(mime_type)
-        wav_data = pcm_to_wav(combined_audio, sample_rate)
-        {:ok, wav_data, "audio/wav"}
-      else
-        {:ok, combined_audio, mime_type}
+      case combined_audio do
+        {:error, reason} ->
+          {:error, reason}
+
+        {:ok, audio_binary} ->
+          # Convert to WAV - Gemini typically returns L16 PCM which needs a WAV header.
+          # Always output audio/wav to match storage key expectations.
+          normalize_to_wav(audio_binary, mime_type)
       end
     end
   end
 
   defp extract_audio_from_response(body) do
     {:error, "Unexpected response format: #{inspect(body)}"}
+  end
+
+  # Safely decode base64 without raising
+  defp decode_base64_safe(data) do
+    case Base.decode64(data) do
+      {:ok, decoded} -> {:ok, decoded}
+      :error -> {:error, "Invalid base64 data in audio chunk"}
+    end
+  end
+
+  # Collect decoded chunks, returning error if any failed
+  defp collect_decoded_chunks(results) do
+    case Enum.find(results, &match?({:error, _}, &1)) do
+      {:error, reason} ->
+        {:error, reason}
+
+      nil ->
+        binary =
+          results
+          |> Enum.map(fn {:ok, data} -> data end)
+          |> IO.iodata_to_binary()
+
+        {:ok, binary}
+    end
+  end
+
+  # Normalize audio to WAV format for consistent storage and playback.
+  defp normalize_to_wav(audio_binary, mime_type) do
+    cond do
+      # L16 PCM needs a WAV header
+      String.starts_with?(mime_type, "audio/L16") or String.starts_with?(mime_type, "audio/l16") ->
+        sample_rate = parse_sample_rate(mime_type)
+        wav_data = pcm_to_wav(audio_binary, sample_rate)
+        {:ok, wav_data, "audio/wav"}
+
+      # Already WAV - pass through
+      mime_type == "audio/wav" or mime_type == "audio/wave" ->
+        {:ok, audio_binary, "audio/wav"}
+
+      # Unknown format - return as-is but label as wav (storage keys are .wav)
+      # This is a fallback; Gemini TTS should always return L16 PCM.
+      true ->
+        require Logger
+        Logger.warning("Unexpected TTS MIME type: #{mime_type}, returning as audio/wav")
+        {:ok, audio_binary, "audio/wav"}
+    end
   end
 
   # Parse sample rate from MIME type like "audio/L16;rate=24000"
