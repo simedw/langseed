@@ -24,22 +24,41 @@ mix setup
 iex -S mix phx.server
 ```
 
-Requires a `.env` file:
+Requires a `.env` file with **required** credentials:
 
 ```bash
-# Gemini API
+# Gemini API (required for core functionality)
 GOOGLE_AI_API_KEY=...
 
-# Google SSO
+# Google SSO (required for authentication)
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 ```
+
+### Audio/TTS Features
+
+Text-to-speech for Chinese practice uses Gemini TTS with your existing `GOOGLE_AI_API_KEY` - no additional configuration needed!
+
+**Optional: R2 Storage (Recommended for Production)**
+
+```bash
+# Cloudflare R2 (for audio caching and de-duplication)
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=...
+```
+
+Without R2, audio is generated on-demand and served as data URLs (works but no caching).
+With R2, audio is cached after first generation for instant playback and lower API costs.
 
 ## Tech stack
 
 - Elixir / Phoenix LiveView
 - PostgreSQL
 - Tailwind CSS + daisyUI
+- Gemini TTS (uses existing API key)
+- Cloudflare R2 (optional, for audio caching)
 
 ## License
 

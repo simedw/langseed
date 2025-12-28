@@ -1,5 +1,6 @@
 defmodule LangseedWeb.VocabularyLive do
   use LangseedWeb, :live_view
+  use LangseedWeb.AudioHelpers
 
   alias Langseed.Vocabulary
   alias Langseed.Practice

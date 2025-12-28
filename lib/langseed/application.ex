@@ -12,6 +12,8 @@ defmodule Langseed.Application do
       Langseed.Repo,
       {DNSCluster, query: Application.get_env(:langseed, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Langseed.PubSub},
+      # Task supervisor for async audio generation
+      {Task.Supervisor, name: Langseed.TaskSupervisor},
       # HSK level lookup service
       Langseed.HSK,
       # Oban for background jobs

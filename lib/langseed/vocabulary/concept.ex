@@ -25,6 +25,8 @@ defmodule Langseed.Vocabulary.Concept do
     field :paused, :boolean, default: false
     # Language code (e.g., "zh", "ja", "ko", "en", "sv")
     field :language, :string, default: "zh"
+    # Path to cached audio file in storage (optional)
+    field :audio_path, :string
 
     belongs_to :user, Langseed.Accounts.User
     has_many :srs_records, Langseed.Practice.ConceptSRS
@@ -47,6 +49,7 @@ defmodule Langseed.Vocabulary.Concept do
       :desired_words,
       :paused,
       :language,
+      :audio_path,
       :user_id
     ])
     |> validate_required([:word, :meaning, :part_of_speech])

@@ -181,28 +181,72 @@ const Hooks = {
     }
   },
   
-  Speak: {
+  /**
+   * AudioPlayer hook - handles audio playback for speak buttons.
+   * Events are filtered by component id to prevent multiple buttons playing at once.
+   *
+   * Events handled:
+   * - speak-audio-play: Play audio from a URL (from SpeakButtonComponent)
+   * - speak-browser-tts: Fall back to browser TTS (when TTS generation fails)
+   */
+  AudioPlayer: {
     mounted() {
-      this.el.addEventListener("click", () => {
-        const text = this.el.dataset.text
-        if (text && window.speechSynthesis) {
-          // Cancel any ongoing speech
-          window.speechSynthesis.cancel()
-          
-          const utterance = new SpeechSynthesisUtterance(text)
-          utterance.lang = "zh-CN"
-          utterance.rate = 0.8 // Slightly slower for learning
-          
-          // Try to find a Chinese voice
-          const voices = window.speechSynthesis.getVoices()
-          const chineseVoice = voices.find(v => v.lang.startsWith("zh"))
-          if (chineseVoice) {
-            utterance.voice = chineseVoice
-          }
-          
-          window.speechSynthesis.speak(utterance)
-        }
+      // Create a reusable audio element
+      this.audio = new Audio()
+
+      // Handle audio playback from LiveComponent (filtered by id)
+      this.handleEvent("speak-audio-play", ({id, url}) => {
+        // Only play if event is for this specific button
+        if (id && id !== this.el.id) return
+        
+        this.el.dataset.audioUrl = url
+        this.audio.src = url
+        this.audio.play().catch(e => console.log('Audio play failed:', e))
       })
+
+      // Handle browser TTS fallback from LiveComponent (filtered by id)
+      this.handleEvent("speak-browser-tts", ({id, text, language}) => {
+        // Only play if event is for this specific button
+        if (id && id !== this.el.id) return
+        
+        this.playBrowserTTS(text, language)
+      })
+    },
+
+    playBrowserTTS(text, language) {
+      if (text && window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+
+        const utterance = new SpeechSynthesisUtterance(text)
+        utterance.lang = language === "zh" ? "zh-CN" : language
+        utterance.rate = 0.8
+
+        const voices = window.speechSynthesis.getVoices()
+        const matchingVoice = voices.find(v => v.lang.startsWith(language))
+        if (matchingVoice) {
+          utterance.voice = matchingVoice
+        }
+
+        window.speechSynthesis.speak(utterance)
+      }
+    }
+  },
+
+  // Syncs audio autoplay preference from localStorage to server
+  AudioAutoplaySync: {
+    mounted() {
+      this.sendPreference()
+      
+      // Listen for changes (when user toggles)
+      window.addEventListener("phx:toggle-audio-autoplay", () => {
+        // Small delay to let localStorage update first
+        setTimeout(() => this.sendPreference(), 50)
+      })
+    },
+    
+    sendPreference() {
+      const enabled = localStorage.getItem("phx:audio-autoplay") !== "false"
+      this.pushEvent("audio_autoplay_changed", { enabled })
     }
   }
 }

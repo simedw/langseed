@@ -123,6 +123,15 @@ defmodule LangseedWeb.TextsLive do
     end
   end
 
+  # Handle practice_ready check (scheduled by user_auth on mount)
+  @impl true
+  def handle_info(:check_practice_ready, socket) do
+    Process.send_after(self(), :check_practice_ready, 30_000)
+    scope = current_scope(socket)
+    practice_ready = Langseed.Practice.has_practice_ready?(scope)
+    {:noreply, assign(socket, :practice_ready, practice_ready)}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""

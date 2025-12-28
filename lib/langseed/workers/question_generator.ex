@@ -2,12 +2,14 @@ defmodule Langseed.Workers.QuestionGenerator do
   @moduledoc """
   Background worker that pre-generates questions for concepts with active SRS records.
   Ensures each concept has at least target_count unused questions per question type.
+  Also pre-generates audio for questions to eliminate playback delay.
   """
 
   use Oban.Worker, queue: :questions, max_attempts: 3
 
   require Logger
 
+  alias Langseed.Audio
   alias Langseed.Repo
   alias Langseed.Practice
   alias Langseed.Practice.ConceptSRS
@@ -79,8 +81,9 @@ defmodule Langseed.Workers.QuestionGenerator do
 
     Enum.each(1..needed//1, fn _ ->
       case Practice.generate_question(scope, concept, question_type) do
-        {:ok, _question} ->
-          :ok
+        {:ok, question} ->
+          # Pre-generate audio to eliminate playback delay during practice
+          pre_generate_audio(question, concept.language)
 
         {:error, reason} ->
           Logger.warning(
@@ -88,6 +91,42 @@ defmodule Langseed.Workers.QuestionGenerator do
           )
       end
     end)
+  end
+
+  # Pre-generate and cache audio for the question sentence
+  defp pre_generate_audio(question, language) do
+    sentence = build_audio_sentence(question)
+
+    case Audio.generate_sentence_audio(sentence, language) do
+      {:ok, url} when not is_nil(url) ->
+        Logger.debug("Pre-cached audio for question #{question.id}")
+
+      {:ok, nil} ->
+        # No TTS for this language, that's fine
+        :ok
+
+      {:error, reason} ->
+        Logger.warning(
+          "Failed to pre-generate audio for question #{question.id}: #{inspect(reason)}"
+        )
+    end
+  end
+
+  # Build the full sentence to generate audio for
+  defp build_audio_sentence(question) do
+    case question.question_type do
+      "yes_no" ->
+        # Yes/no questions use the question text directly
+        question.question_text
+
+      "multiple_choice" ->
+        # Multiple choice has a blank - fill it with the correct answer
+        correct_word = Enum.at(question.options, String.to_integer(question.correct_answer))
+        String.replace(question.question_text, "____", correct_word || "")
+
+      _ ->
+        question.question_text
+    end
   end
 
   @doc """

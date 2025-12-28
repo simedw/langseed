@@ -16,9 +16,36 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
-# Configure Gemini API key for LLM integration
+# Configure Gemini API key for LLM integration and TTS
 # req_llm expects google_api_key or GOOGLE_API_KEY env var
-config :req_llm, google_api_key: System.get_env("GOOGLE_AI_API_KEY")
+google_ai_api_key = System.get_env("GOOGLE_AI_API_KEY")
+
+config :req_llm, google_api_key: google_ai_api_key
+
+# Store the API key for use by TTS provider (reuses same key as LLM)
+config :langseed,
+  google_ai_api_key: google_ai_api_key,
+  tts_provider:
+    if(google_ai_api_key,
+      do: Langseed.Audio.Providers.GoogleTTS,
+      else: Langseed.Audio.Providers.NoopTTS
+    )
+
+# Cloudflare R2 Storage (optional - for audio caching)
+r2_config = %{
+  account_id: System.get_env("R2_ACCOUNT_ID"),
+  access_key_id: System.get_env("R2_ACCESS_KEY_ID"),
+  secret_access_key: System.get_env("R2_SECRET_ACCESS_KEY"),
+  bucket: System.get_env("R2_BUCKET_NAME")
+}
+
+config :langseed,
+  r2_storage: r2_config,
+  storage_provider:
+    if(r2_config.access_key_id,
+      do: Langseed.Audio.Providers.R2Storage,
+      else: Langseed.Audio.Providers.NoopStorage
+    )
 
 # Configure Google OAuth credentials
 if System.get_env("GOOGLE_CLIENT_ID") do

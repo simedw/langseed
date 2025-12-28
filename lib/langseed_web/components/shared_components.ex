@@ -15,21 +15,40 @@ defmodule LangseedWeb.SharedComponents do
 
   @doc """
   Renders a speak button that triggers text-to-speech.
+
+  If `audio_url` is provided, plays that audio directly.
+  If `concept_id` is provided and no audio_url, generates audio on-demand.
+  Otherwise, falls back to browser's speechSynthesis API.
+
+  Note: The parent LiveView must include these handle_info callbacks:
+
+      def handle_info({:generate_speak_audio, component_id, text, concept_id, language}, socket) do
+        LangseedWeb.AudioHelpers.handle_generate_speak_audio(socket, component_id, text, concept_id, language)
+      end
+
+      def handle_info({:speak_audio_result, component_id, result}, socket) do
+        LangseedWeb.AudioHelpers.handle_speak_audio_result(socket, component_id, result)
+      end
   """
   attr :text, :string, required: true
+  attr :audio_url, :string, default: nil
+  attr :concept_id, :integer, default: nil
+  attr :language, :string, default: "zh"
 
   def speak_button(assigns) do
+    # Generate a unique ID for the component
+    id = "speak-#{:erlang.phash2({assigns.text, assigns.concept_id})}"
+    assigns = assign(assigns, :id, id)
+
     ~H"""
-    <button
-      type="button"
-      phx-hook="Speak"
-      id={"speak-#{:erlang.phash2(@text)}"}
-      data-text={@text}
-      class="btn btn-ghost btn-circle btn-sm"
-      title={gettext("Play pronunciation")}
-    >
-      <.icon name="hero-speaker-wave" class="size-5" />
-    </button>
+    <.live_component
+      module={LangseedWeb.SpeakButtonComponent}
+      id={@id}
+      text={@text}
+      audio_url={@audio_url}
+      concept_id={@concept_id}
+      language={@language}
+    />
     """
   end
 
@@ -212,7 +231,11 @@ defmodule LangseedWeb.SharedComponents do
             <div>
               <div class="flex items-center gap-2">
                 <span class="text-4xl font-bold">{@concept.word}</span>
-                <.speak_button text={@concept.word} />
+                <.speak_button
+                  text={@concept.word}
+                  concept_id={@concept.id}
+                  language={@concept.language}
+                />
               </div>
               <%= if @concept.language == "zh" && @concept.pinyin && @concept.pinyin != "" && @concept.pinyin != "-" do %>
                 <p class="text-xl mt-1"><.colored_pinyin pinyin={@concept.pinyin} /></p>

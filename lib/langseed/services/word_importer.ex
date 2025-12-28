@@ -3,10 +3,10 @@ defmodule Langseed.Services.WordImporter do
   Service for importing words into a user's vocabulary using LLM analysis.
   """
 
-  alias Langseed.LLM
-  alias Langseed.Vocabulary
-  alias Langseed.Utils.StringUtils
   alias Langseed.Accounts.Scope
+  alias Langseed.LLM
+  alias Langseed.Utils.StringUtils
+  alias Langseed.Vocabulary
   alias Langseed.Workers.QuestionGenerator
 
   @doc """
@@ -83,8 +83,13 @@ defmodule Langseed.Services.WordImporter do
     }
 
     case Vocabulary.create_concept(scope, attrs) do
-      {:ok, _concept} -> {:ok, word}
-      {:error, _} -> {:error, word}
+      {:ok, concept} ->
+        # Generate audio synchronously so it's ready for the modal
+        generate_and_store_audio(concept)
+        {:ok, word}
+
+      {:error, _} ->
+        {:error, word}
     end
   end
 
@@ -102,8 +107,32 @@ defmodule Langseed.Services.WordImporter do
     }
 
     case Vocabulary.create_concept(scope, attrs) do
-      {:ok, _concept} -> {:ok, word}
-      {:error, _} -> {:error, word}
+      {:ok, concept} ->
+        # Generate audio synchronously so it's ready for the modal
+        generate_and_store_audio(concept)
+        {:ok, word}
+
+      {:error, _} ->
+        {:error, word}
+    end
+  end
+
+  # Generate audio for the word if TTS is available
+  # Stores the stable R2 object path, NOT the signed URL (which expires)
+  defp generate_and_store_audio(concept) do
+    alias Langseed.Audio
+
+    if Audio.available?() && concept.language == "zh" do
+      case Audio.generate_word_audio(concept) do
+        {:ok, _signed_url} ->
+          # Persist the stable path (not the signed URL)
+          path = Audio.audio_path_for(concept.word, concept.language)
+          Audio.persist_audio_path(concept, path)
+
+        _ ->
+          # Fail silently - audio is optional
+          :ok
+      end
     end
   end
 

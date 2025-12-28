@@ -1,5 +1,6 @@
 defmodule LangseedWeb.PracticeLive do
   use LangseedWeb, :live_view
+  use LangseedWeb.AudioHelpers
 
   import LangseedWeb.PracticeComponents
 
@@ -7,6 +8,8 @@ defmodule LangseedWeb.PracticeLive do
   alias Langseed.Vocabulary
   alias Langseed.Services.WordImporter
   alias Langseed.Language.Pinyin
+
+  require Logger
 
   @impl true
   def mount(_params, _session, socket) do
@@ -25,7 +28,13 @@ defmodule LangseedWeb.PracticeLive do
        loading: false,
        importing_words: [],
        session_new_count: 0,
-       last_concept_id: nil
+       last_concept_id: nil,
+       # Audio features
+       audio_available: Langseed.Audio.available?(),
+       audio_url: nil,
+       audio_loading: false,
+       # Synced from client localStorage - defaults to true until synced
+       audio_autoplay: true
      )
      |> load_next_practice()}
   end
@@ -201,8 +210,6 @@ defmodule LangseedWeb.PracticeLive do
             :ok
 
           {:error, changeset} ->
-            require Logger
-
             Logger.error(
               "Failed to record SRS answer for concept #{concept.id}: #{inspect(changeset)}"
             )
@@ -258,6 +265,41 @@ defmodule LangseedWeb.PracticeLive do
      socket
      |> put_flash(:error, gettext("Failed to add %{word}", word: word))
      |> assign(importing_words: List.delete(socket.assigns.importing_words, word))}
+  end
+
+  # Audio generation async handlers
+  @impl true
+  def handle_async(:generate_audio, {:ok, {:ok, audio_url}}, socket)
+      when not is_nil(audio_url) do
+    {:noreply,
+     socket
+     |> assign(audio_url: audio_url, audio_loading: false)
+     |> push_event("play-audio", %{url: audio_url})}
+  end
+
+  @impl true
+  def handle_async(:generate_audio, {:ok, {:ok, nil}}, socket) do
+    # No audio available (language not supported or TTS disabled)
+    {:noreply, assign(socket, audio_loading: false)}
+  end
+
+  @impl true
+  def handle_async(:generate_audio, {:ok, {:error, _reason}}, socket) do
+    # Audio generation failed, fail silently
+    {:noreply, assign(socket, audio_loading: false)}
+  end
+
+  @impl true
+  def handle_async(:generate_audio, {:exit, _reason}, socket) do
+    # Audio generation crashed, fail silently
+    {:noreply, assign(socket, audio_loading: false)}
+  end
+
+  @impl true
+  def handle_async(:generate_audio, result, socket) do
+    # Catch-all for debugging unexpected results
+    Logger.warning("Unexpected audio async result: #{inspect(result)}")
+    {:noreply, assign(socket, audio_loading: false)}
   end
 
   # ============================================================================
@@ -339,7 +381,6 @@ defmodule LangseedWeb.PracticeLive do
             socket
 
           {:error, changeset} ->
-            require Logger
             Logger.error("Failed to record SRS answer: #{inspect(changeset)}")
             put_flash(socket, :warning, gettext("Progress not saved"))
         end
@@ -353,13 +394,19 @@ defmodule LangseedWeb.PracticeLive do
       correct_answer: question.correct_answer
     }
 
-    {:noreply,
-     socket
-     |> assign(
-       feedback: feedback,
-       user_answer: answer,
-       last_concept_id: socket.assigns.current_concept.id
-     )}
+    # Generate audio for the question (yes/no questions read the question aloud)
+    socket =
+      socket
+      |> assign(
+        feedback: feedback,
+        user_answer: answer,
+        last_concept_id: socket.assigns.current_concept.id,
+        audio_url: nil,
+        audio_loading: socket.assigns.audio_available && socket.assigns.audio_autoplay
+      )
+      |> maybe_generate_audio_for_question(question)
+
+    {:noreply, socket}
   end
 
   # Quiz mode handlers - Multiple Choice questions (formerly fill_blank)
@@ -380,7 +427,6 @@ defmodule LangseedWeb.PracticeLive do
             socket
 
           {:error, changeset} ->
-            require Logger
             Logger.error("Failed to record SRS answer: #{inspect(changeset)}")
             put_flash(socket, :warning, gettext("Progress not saved"))
         end
@@ -396,13 +442,19 @@ defmodule LangseedWeb.PracticeLive do
       selected_index: index
     }
 
-    {:noreply,
-     socket
-     |> assign(
-       feedback: feedback,
-       user_answer: index,
-       last_concept_id: socket.assigns.current_concept.id
-     )}
+    # Generate audio for the full sentence with the correct answer
+    socket =
+      socket
+      |> assign(
+        feedback: feedback,
+        user_answer: index,
+        last_concept_id: socket.assigns.current_concept.id,
+        audio_url: nil,
+        audio_loading: socket.assigns.audio_available && socket.assigns.audio_autoplay
+      )
+      |> maybe_generate_audio_for_question(question)
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -433,7 +485,6 @@ defmodule LangseedWeb.PracticeLive do
             socket
 
           {:error, changeset} ->
-            require Logger
             Logger.error("Failed to record SRS answer: #{inspect(changeset)}")
             put_flash(socket, :warning, gettext("Progress not saved"))
         end
@@ -475,8 +526,41 @@ defmodule LangseedWeb.PracticeLive do
   def handle_event("next", _, socket) do
     {:noreply,
      socket
-     |> assign(sentence_input: "", feedback: nil, user_answer: nil)
+     |> assign(sentence_input: "", feedback: nil, user_answer: nil, audio_url: nil)
      |> load_next_practice()}
+  end
+
+  # Audio replay handler
+  @impl true
+  def handle_event("replay-audio", _, socket) do
+    if socket.assigns[:audio_url] do
+      {:noreply, push_event(socket, "play-audio", %{url: socket.assigns.audio_url})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # Manual audio generation (when autoplay is off but user clicks speaker)
+  @impl true
+  def handle_event("generate-audio", _, socket) do
+    question = socket.assigns.question
+
+    if socket.assigns.audio_available && question do
+      socket =
+        socket
+        |> assign(audio_loading: true)
+        |> generate_audio_for_question(question)
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # Audio autoplay preference sync from client localStorage
+  @impl true
+  def handle_event("audio_autoplay_changed", %{"enabled" => enabled}, socket) do
+    {:noreply, assign(socket, audio_autoplay: enabled)}
   end
 
   @impl true
@@ -500,6 +584,44 @@ defmodule LangseedWeb.PracticeLive do
        |> start_async({:import_word, word}, fn ->
          WordImporter.import_words(scope, [word], context)
        end)}
+    end
+  end
+
+  # ============================================================================
+  # PRIVATE HELPERS - Audio Generation
+  # ============================================================================
+
+  # Generate audio for question if autoplay is enabled
+  defp maybe_generate_audio_for_question(socket, question) do
+    if socket.assigns.audio_available && socket.assigns.audio_autoplay do
+      generate_audio_for_question(socket, question)
+    else
+      socket
+    end
+  end
+
+  # Generate audio for question (handles all question types)
+  defp generate_audio_for_question(socket, question) do
+    language = socket.assigns.current_concept.language
+    sentence = build_audio_sentence(question)
+
+    start_async(socket, :generate_audio, fn ->
+      Langseed.Audio.generate_sentence_audio(sentence, language)
+    end)
+  end
+
+  # Build the sentence to generate audio for based on question type
+  defp build_audio_sentence(question) do
+    case question.question_type do
+      "yes_no" ->
+        question.question_text
+
+      "multiple_choice" ->
+        correct_word = Enum.at(question.options, String.to_integer(question.correct_answer))
+        String.replace(question.question_text, "____", correct_word || "")
+
+      _ ->
+        question.question_text
     end
   end
 
@@ -550,6 +672,8 @@ defmodule LangseedWeb.PracticeLive do
               question={@question}
               feedback={@feedback}
               user_answer={@user_answer}
+              audio_url={@audio_url}
+              audio_loading={@audio_loading}
             />
           <% :pinyin_quiz -> %>
             <.pinyin_quiz_card

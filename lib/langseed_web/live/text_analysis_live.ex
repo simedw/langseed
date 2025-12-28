@@ -1,5 +1,6 @@
 defmodule LangseedWeb.TextAnalysisLive do
   use LangseedWeb, :live_view
+  use LangseedWeb.AudioHelpers
 
   import LangseedWeb.TextAnalysisComponents
 
@@ -277,6 +278,16 @@ defmodule LangseedWeb.TextAnalysisLive do
      socket
      |> assign(importing_words: importing_words)
      |> put_flash(:error, gettext("Error adding: %{error}", error: inspect(reason)))}
+  end
+
+  # Handle practice_ready check (scheduled by user_auth on mount)
+  @impl true
+  def handle_info(:check_practice_ready, socket) do
+    # Reschedule and update practice_ready indicator
+    Process.send_after(self(), :check_practice_ready, 30_000)
+    scope = current_scope(socket)
+    practice_ready = Langseed.Practice.has_practice_ready?(scope)
+    {:noreply, assign(socket, :practice_ready, practice_ready)}
   end
 
   defp word?({:word, _}), do: true

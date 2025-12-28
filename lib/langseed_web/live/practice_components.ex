@@ -75,7 +75,11 @@ defmodule LangseedWeb.PracticeComponents do
           <span class="badge badge-warning mb-2">{gettext("New word")}</span>
           <div class="flex items-center justify-center gap-2">
             <h2 class="text-5xl font-bold">{@concept.word}</h2>
-            <.speak_button text={@concept.word} />
+            <.speak_button
+              text={@concept.word}
+              concept_id={@concept.id}
+              language={@concept.language}
+            />
           </div>
           <%= if @concept.language == "zh" && @concept.pinyin && @concept.pinyin != "" && @concept.pinyin != "-" do %>
             <p class="text-xl text-primary mt-2">{@concept.pinyin}</p>
@@ -136,6 +140,8 @@ defmodule LangseedWeb.PracticeComponents do
   attr :question, :map, required: true
   attr :feedback, :map, default: nil
   attr :user_answer, :any, default: nil
+  attr :audio_url, :string, default: nil
+  attr :audio_loading, :boolean, default: false
 
   def quiz_card(assigns) do
     ~H"""
@@ -162,6 +168,13 @@ defmodule LangseedWeb.PracticeComponents do
         <% end %>
 
         <%= if @feedback do %>
+          <%!-- Audio player (shown after answer) --%>
+          <.audio_player
+            audio_url={@audio_url}
+            audio_loading={@audio_loading}
+            show_generate_button={true}
+          />
+
           <div class="mt-4">
             <button class="btn btn-primary w-full" phx-click="next">
               {gettext("Next")} <.icon name="hero-arrow-right" class="size-5" />
@@ -180,6 +193,68 @@ defmodule LangseedWeb.PracticeComponents do
   end
 
   @doc """
+  Renders an audio player with auto-play and replay functionality.
+  Shows a loading spinner while audio is being generated.
+  When show_generate_button is true and no audio exists, shows a button to generate on demand.
+  """
+  attr :audio_url, :string, default: nil
+  attr :audio_loading, :boolean, default: false
+  attr :show_generate_button, :boolean, default: false
+
+  def audio_player(assigns) do
+    ~H"""
+    <%= if @audio_url || @audio_loading || @show_generate_button do %>
+      <div class="flex items-center justify-center gap-2 mt-3">
+        <%= cond do %>
+          <% @audio_loading -> %>
+            <span class="loading loading-spinner loading-sm text-primary"></span>
+          <% @audio_url -> %>
+            <div id="audio-player" phx-hook=".AudioPlayer" phx-update="ignore">
+              <audio id="practice-audio" src={@audio_url} class="hidden"></audio>
+              <button
+                class="btn btn-circle btn-sm btn-ghost"
+                phx-click="replay-audio"
+                title={gettext("Replay audio")}
+              >
+                <.icon name="hero-speaker-wave-solid" class="size-5 text-primary" />
+              </button>
+            </div>
+          <% @show_generate_button -> %>
+            <button
+              class="btn btn-circle btn-sm btn-ghost"
+              phx-click="generate-audio"
+              title={gettext("Generate audio")}
+            >
+              <.icon name="hero-speaker-wave" class="size-5 opacity-50" />
+            </button>
+        <% end %>
+      </div>
+    <% end %>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".AudioPlayer">
+      export default {
+        mounted() {
+          const audio = this.el.querySelector('audio');
+          const isAutoplayEnabled = () => localStorage.getItem("phx:audio-autoplay") !== "false";
+
+          // Auto-play on mount if source present and autoplay enabled
+          if (audio && audio.src && audio.src !== window.location.href && isAutoplayEnabled()) {
+            audio.play().catch(e => console.log('Auto-play prevented:', e));
+          }
+
+          // Handle server-triggered playback (always play when explicitly triggered)
+          this.handleEvent("play-audio", ({url}) => {
+            if (audio && url) {
+              audio.src = url;
+              audio.play().catch(e => console.log('Play failed:', e));
+            }
+          });
+        }
+      }
+    </script>
+    """
+  end
+
+  @doc """
   Renders a yes/no question.
   """
   attr :question, :map, required: true
@@ -191,7 +266,6 @@ defmodule LangseedWeb.PracticeComponents do
     <div class="my-4">
       <div class="flex items-center justify-center gap-2 mb-6">
         <p class="text-xl text-center">{@question.question_text}</p>
-        <.speak_button text={@question.question_text} />
       </div>
 
       <%= if @feedback do %>
@@ -240,7 +314,6 @@ defmodule LangseedWeb.PracticeComponents do
     <div class="my-4">
       <div class="flex items-center justify-center gap-2 mb-6">
         <p class="text-xl text-center">{@question.question_text}</p>
-        <.speak_button text={String.replace(@question.question_text, "____", "")} />
       </div>
 
       <div class="grid grid-cols-2 gap-3">
@@ -313,7 +386,11 @@ defmodule LangseedWeb.PracticeComponents do
           <span class="badge badge-info mb-2">{gettext("Write sentence")}</span>
           <div class="flex items-center justify-center gap-2">
             <h2 class="text-3xl font-bold">{@concept.word}</h2>
-            <.speak_button text={@concept.word} />
+            <.speak_button
+              text={@concept.word}
+              concept_id={@concept.id}
+              language={@concept.language}
+            />
           </div>
           <%= if @concept.language == "zh" && @concept.pinyin && @concept.pinyin != "" && @concept.pinyin != "-" do %>
             <p class="text-lg text-primary">{@concept.pinyin}</p>

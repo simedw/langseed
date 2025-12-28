@@ -12,6 +12,7 @@
     </script>
     <script>
       (() => {
+        // Theme handling
         const setTheme = (theme) => {
           if (theme === "system") {
             localStorage.removeItem("phx:theme");
@@ -25,8 +26,21 @@
           setTheme(localStorage.getItem("phx:theme") || "system");
         }
         window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
-        
         window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
+
+        // Audio autoplay handling
+        const setAudioAutoplay = (enabled) => {
+          localStorage.setItem("phx:audio-autoplay", enabled);
+          document.documentElement.setAttribute("data-audio-autoplay", enabled);
+        };
+        // Default to enabled
+        const audioAutoplay = localStorage.getItem("phx:audio-autoplay") ?? "true";
+        setAudioAutoplay(audioAutoplay);
+        window.addEventListener("storage", (e) => e.key === "phx:audio-autoplay" && setAudioAutoplay(e.newValue || "true"));
+        window.addEventListener("phx:toggle-audio-autoplay", () => {
+          const current = localStorage.getItem("phx:audio-autoplay") !== "false";
+          setAudioAutoplay(!current ? "true" : "false");
+        });
       })();
     </script>
     <script

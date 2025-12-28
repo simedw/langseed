@@ -73,7 +73,12 @@ defmodule Langseed.MixProject do
       {:oban, "~> 2.18"},
       {:ueberauth, "~> 0.10"},
       {:ueberauth_google, "~> 0.12"},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      # Optional: For R2/S3 audio storage
+      {:ex_aws, "~> 2.5"},
+      {:ex_aws_s3, "~> 2.5"},
+      {:hackney, "~> 1.20"},
+      {:sweet_xml, "~> 0.7"}
     ]
   end
 

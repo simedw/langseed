@@ -56,6 +56,7 @@ defmodule LangseedWeb.Layouts do
         <div class="flex-none flex items-center gap-2">
           <.language_selector current_scope={@current_scope} />
           <.theme_toggle />
+          <.audio_toggle />
         </div>
       </div>
       <div class="flex gap-1 px-4 pb-2">
@@ -213,6 +214,31 @@ defmodule LangseedWeb.Layouts do
         <% end %>
       </ul>
     </div>
+    """
+  end
+
+  @doc """
+  Toggle for audio autoplay. When disabled, audio won't auto-play after quiz answers.
+  The preference is stored in localStorage.
+  """
+  def audio_toggle(assigns) do
+    ~H"""
+    <button
+      id="audio-autoplay-toggle"
+      phx-hook="AudioAutoplaySync"
+      class="btn btn-ghost btn-circle btn-xs opacity-60 hover:opacity-100"
+      phx-click={JS.dispatch("phx:toggle-audio-autoplay")}
+      title={gettext("Toggle audio autoplay")}
+    >
+      <.icon
+        name="hero-speaker-wave-micro"
+        class="size-4 [[data-audio-autoplay=false]_&]:hidden"
+      />
+      <.icon
+        name="hero-speaker-x-mark-micro"
+        class="size-4 hidden [[data-audio-autoplay=false]_&]:block"
+      />
+    </button>
     """
   end
 
