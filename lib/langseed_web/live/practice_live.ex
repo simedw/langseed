@@ -8,6 +8,7 @@ defmodule LangseedWeb.PracticeLive do
   alias Langseed.Vocabulary
   alias Langseed.Services.WordImporter
   alias Langseed.Language.Pinyin
+  alias Langseed.Language.Kana
 
   require Logger
 
@@ -475,7 +476,13 @@ defmodule LangseedWeb.PracticeLive do
     srs_record = socket.assigns.current_srs
     expected = concept.pinyin
 
-    correct = Pinyin.match?(input, expected)
+    # Match based on language - use Kana for Japanese, Pinyin for Chinese
+    correct =
+      case concept.language do
+        "ja" -> Kana.match?(input, expected)
+        "zh" -> Pinyin.match?(input, expected)
+        _ -> String.downcase(String.trim(input)) == String.downcase(String.trim(expected))
+      end
 
     # Record SRS answer
     socket =
@@ -492,12 +499,32 @@ defmodule LangseedWeb.PracticeLive do
         socket
       end
 
-    feedback = %{
-      correct: correct,
-      expected_numbered: Pinyin.to_numbered(expected),
-      expected_toned: expected,
-      user_input: Pinyin.normalize(input)
-    }
+    # Format feedback based on language
+    feedback =
+      case concept.language do
+        "ja" ->
+          %{
+            correct: correct,
+            expected_normalized: Kana.normalize(expected),
+            expected_display: expected,
+            user_input: Kana.normalize(input)
+          }
+
+        "zh" ->
+          %{
+            correct: correct,
+            expected_numbered: Pinyin.to_numbered(expected),
+            expected_toned: expected,
+            user_input: Pinyin.normalize(input)
+          }
+
+        _ ->
+          %{
+            correct: correct,
+            expected: expected,
+            user_input: input
+          }
+      end
 
     {:noreply,
      socket
