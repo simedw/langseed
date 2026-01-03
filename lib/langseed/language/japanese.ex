@@ -1,13 +1,10 @@
 defmodule Langseed.Language.Japanese do
   @moduledoc """
-  Japanese language implementation using character-type based segmentation.
+  Japanese language implementation using TinySegmenter for word segmentation.
 
-  This implementation segments Japanese text by detecting changes in character types
-  (kanji, hiragana, katakana, etc.). While not as sophisticated as dictionary-based
-  segmentation (like MeCab), it provides reasonable word boundaries for vocabulary learning.
-
-  For production use with very large texts, consider using mecab-elixir for more
-  accurate morphological analysis and base form extraction.
+  TinySegmenter is a compact, pure-Elixir Japanese tokenizer that uses
+  machine learning-based segmentation with pre-trained models. It provides
+  accurate word boundaries without requiring any external system dependencies.
   """
 
   @behaviour Langseed.Language
@@ -24,42 +21,22 @@ defmodule Langseed.Language.Japanese do
 
   defp segment_part(part) do
     part
-    |> String.graphemes()
-    |> Enum.reduce([], fn char, acc ->
-      char_type = classify_char(char)
-
-      case acc do
-        [] ->
-          [{char_type, char}]
-
-        [{last_type, accumulated} | rest] when last_type == char_type ->
-          # Same type - accumulate
-          [{char_type, accumulated <> char} | rest]
-
-        _ ->
-          # Different type - start new segment
-          [{char_type, char} | acc]
-      end
-    end)
-    |> Enum.reverse()
-    |> Enum.map(&normalize_segment/1)
+    |> TinySegmenter.tokenize()
+    |> Enum.map(&token_to_segment/1)
   end
 
-  defp classify_char(char) do
+  defp token_to_segment(token) do
     cond do
-      String.trim(char) == "" -> :space
-      Regex.match?(~r/^[\p{P}\p{S}]+$/u, char) -> :punct
-      kanji_char?(char) -> :kanji
-      hiragana_char?(char) -> :hiragana
-      katakana_char?(char) -> :katakana
-      true -> :word
+      String.trim(token) == "" ->
+        {:space, token}
+
+      Regex.match?(~r/^[\p{P}\p{S}]+$/u, token) ->
+        {:punct, token}
+
+      true ->
+        {:word, token}
     end
   end
-
-  defp normalize_segment({:kanji, word}), do: {:word, word}
-  defp normalize_segment({:hiragana, word}), do: {:word, word}
-  defp normalize_segment({:katakana, word}), do: {:word, word}
-  defp normalize_segment({type, content}), do: {type, content}
 
   @impl true
   @spec word_char?(String.t()) :: boolean()
