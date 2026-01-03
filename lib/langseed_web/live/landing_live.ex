@@ -317,6 +317,14 @@ defmodule LangseedWeb.LandingLive do
             </div>
 
             <div class="flex items-center gap-3 bg-base-100 px-6 py-4 rounded-xl shadow-sm border border-base-200 hover:border-primary/30 hover:shadow-md transition-all duration-300">
+              <span class="text-4xl">🇯🇵</span>
+              <div>
+                <div class="font-semibold">Japanese</div>
+                <div class="text-sm text-base-content/50">日本語</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 bg-base-100 px-6 py-4 rounded-xl shadow-sm border border-base-200 hover:border-primary/30 hover:shadow-md transition-all duration-300">
               <span class="text-4xl">🇸🇪</span>
               <div>
                 <div class="font-semibold">Swedish</div>

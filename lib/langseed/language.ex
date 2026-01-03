@@ -3,7 +3,7 @@ defmodule Langseed.Language do
   Behaviour for language-specific text processing.
 
   This module defines the interface that any language implementation must provide.
-  Currently supports Chinese, Swedish, and English.
+  Currently supports Chinese, Japanese, Swedish, and English.
   """
 
   @type word :: String.t()
@@ -32,6 +32,7 @@ defmodule Langseed.Language do
 
   @spec impl_for(String.t()) :: module()
   def impl_for("zh"), do: Langseed.Language.Chinese
+  def impl_for("ja"), do: Langseed.Language.Japanese
   def impl_for(lang) when lang in ["en", "sv"], do: Langseed.Language.SpaceDelimited
   def impl_for(_), do: Langseed.Language.SpaceDelimited
 

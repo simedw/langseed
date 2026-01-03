@@ -13,6 +13,7 @@ defmodule LangseedWeb.Layouts do
 
   @languages [
     {"zh", "中文", "🇨🇳"},
+    {"ja", "日本語", "🇯🇵"},
     {"sv", "Svenska", "🇸🇪"},
     {"en", "English", "🇬🇧"}
   ]

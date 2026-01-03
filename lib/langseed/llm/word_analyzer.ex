@@ -1,7 +1,7 @@
 defmodule Langseed.LLM.WordAnalyzer do
   @moduledoc """
-  Analyzes Chinese words using LLM to extract pinyin, meaning,
-  part of speech, and self-referential explanations.
+  Analyzes words using LLM to extract readings (pinyin for Chinese, kana for Japanese),
+  meaning, part of speech, and self-referential explanations.
   """
 
   alias Langseed.Language
@@ -191,8 +191,13 @@ defmodule Langseed.LLM.WordAnalyzer do
         _ -> []
       end
 
-    # Pinyin only for Chinese
-    pinyin = if language == "zh", do: Map.get(data, "pinyin", ""), else: ""
+    # Pinyin for Chinese, reading for Japanese, empty for others
+    pinyin =
+      cond do
+        language == "zh" -> Map.get(data, "pinyin", "")
+        language == "ja" -> Map.get(data, "reading", "")
+        true -> ""
+      end
 
     {:ok,
      %{
@@ -255,29 +260,43 @@ defmodule Langseed.LLM.WordAnalyzer do
     language_name = language_name(language)
     target_language = target_explanation_language(language)
 
-    # Chinese needs pinyin, others don't
+    # Chinese needs pinyin, Japanese needs reading (hiragana/katakana), others don't
     json_format =
-      if language == "zh" do
-        """
-        {
-          "pinyin": "pinyin with tone marks",
-          "meaning": "English meaning",
-          "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
-          "explanations": ["explanation1", "explanation2", "explanation3"],
-          "explanation_quality": 1-5,
-          "desired_words": ["word1", "word2"]
-        }
-        """
-      else
-        """
-        {
-          "meaning": "English meaning",
-          "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
-          "explanations": ["explanation1", "explanation2", "explanation3"],
-          "explanation_quality": 1-5,
-          "desired_words": ["word1", "word2"]
-        }
-        """
+      cond do
+        language == "zh" ->
+          """
+          {
+            "pinyin": "pinyin with tone marks",
+            "meaning": "English meaning",
+            "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
+            "explanations": ["explanation1", "explanation2", "explanation3"],
+            "explanation_quality": 1-5,
+            "desired_words": ["word1", "word2"]
+          }
+          """
+
+        language == "ja" ->
+          """
+          {
+            "reading": "hiragana or katakana reading (ふりがな)",
+            "meaning": "English meaning",
+            "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
+            "explanations": ["explanation1", "explanation2", "explanation3"],
+            "explanation_quality": 1-5,
+            "desired_words": ["word1", "word2"]
+          }
+          """
+
+        true ->
+          """
+          {
+            "meaning": "English meaning",
+            "part_of_speech": "one of: noun, verb, adjective, adverb, pronoun, preposition, conjunction, particle, numeral, measure_word, interjection, other",
+            "explanations": ["explanation1", "explanation2", "explanation3"],
+            "explanation_quality": 1-5,
+            "desired_words": ["word1", "word2"]
+          }
+          """
       end
 
     """
@@ -314,11 +333,13 @@ defmodule Langseed.LLM.WordAnalyzer do
   end
 
   defp language_name("zh"), do: "Chinese"
+  defp language_name("ja"), do: "Japanese"
   defp language_name("sv"), do: "Swedish"
   defp language_name("en"), do: "English"
   defp language_name(_), do: "the target language"
 
   defp target_explanation_language("zh"), do: "Chinese (no English)"
+  defp target_explanation_language("ja"), do: "Japanese (no English)"
   defp target_explanation_language("sv"), do: "Swedish (no English)"
   defp target_explanation_language("en"), do: "simple English"
   defp target_explanation_language(_), do: "the target language"
@@ -352,11 +373,11 @@ defmodule Langseed.LLM.WordAnalyzer do
   defp build_retry_feedback([]), do: ""
 
   defp build_retry_feedback(previous_illegal) do
-    has_english_error = "[英文]" in previous_illegal
-    illegal_words = Enum.reject(previous_illegal, &(&1 == "[英文]"))
+    has_english_error = "[英文]" in previous_illegal or "[外国語]" in previous_illegal
+    illegal_words = Enum.reject(previous_illegal, &(&1 in ["[英文]", "[外国語]"]))
 
     english_warning =
-      if has_english_error, do: "You used ENGLISH letters which is FORBIDDEN. ", else: ""
+      if has_english_error, do: "You used FOREIGN letters which is FORBIDDEN. ", else: ""
 
     word_warning =
       if Enum.empty?(illegal_words),

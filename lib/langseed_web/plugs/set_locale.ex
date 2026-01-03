@@ -5,6 +5,7 @@ defmodule LangseedWeb.Plugs.SetLocale do
 
   @language_to_locale %{
     "zh" => "zh",
+    "ja" => "ja",
     "sv" => "sv",
     "en" => "en"
   }
