@@ -64,7 +64,3 @@ defmodule Langseed.TimeFormatter do
     end
   end
 end
-
-
-
-

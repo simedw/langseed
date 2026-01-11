@@ -19,7 +19,3 @@ defmodule Langseed.Repo.Migrations.CreateQuestions do
     create index(:questions, [:question_type])
   end
 end
-
-
-
-

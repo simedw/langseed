@@ -9,7 +9,3 @@ defmodule Langseed.Repo.Migrations.AddPausedToConcepts do
     create index(:concepts, [:paused])
   end
 end
-
-
-
-

@@ -41,7 +41,3 @@ defmodule Langseed.Repo.Migrations.ChangeExplanationToArray do
     end
   end
 end
-
-
-
-

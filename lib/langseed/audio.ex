@@ -214,7 +214,9 @@ defmodule Langseed.Audio do
 
   defp get_cached_url(text, language) do
     case voice_config_for(language) do
-      nil -> {:ok, nil}
+      nil ->
+        {:ok, nil}
+
       voice_config ->
         path = build_object_key(text, language, voice_config, "wav")
         # No existence check - just return signed URL immediately

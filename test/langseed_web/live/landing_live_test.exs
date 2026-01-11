@@ -40,7 +40,3 @@ defmodule LangseedWeb.LandingLiveTest do
     end
   end
 end
-
-
-
-

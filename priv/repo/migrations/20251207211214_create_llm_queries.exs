@@ -16,7 +16,3 @@ defmodule Langseed.Repo.Migrations.CreateLlmQueries do
     create index(:llm_queries, [:query_type])
   end
 end
-
-
-
-

@@ -10,7 +10,3 @@ defmodule Langseed.Repo.Migrations.AddExplanationQuality do
     end
   end
 end
-
-
-
-

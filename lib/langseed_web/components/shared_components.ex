@@ -242,6 +242,7 @@ defmodule LangseedWeb.SharedComponents do
   attr :show_srs_progress, :boolean, default: false
   attr :importing_words, :list, default: []
   attr :known_words, :any, default: nil
+  attr :delete_armed, :boolean, default: false
 
   def concept_card(assigns) do
     # HSK level only makes sense for Chinese
@@ -368,14 +369,22 @@ defmodule LangseedWeb.SharedComponents do
                 <div></div>
               <% end %>
               <%= if @show_delete_button do %>
-                <button
-                  class="btn btn-error btn-sm"
-                  phx-click="delete"
-                  phx-value-id={@concept.id}
-                  data-confirm={gettext("Delete %{word}?", word: @concept.word)}
-                >
-                  <.icon name="hero-trash" class="size-4" /> {gettext("Delete")}
-                </button>
+                <%= if @delete_armed do %>
+                  <button
+                    class="btn btn-error btn-sm animate-pulse"
+                    phx-click="delete"
+                    phx-value-id={@concept.id}
+                  >
+                    <.icon name="hero-trash" class="size-4" /> {gettext("Confirm delete")}
+                  </button>
+                <% else %>
+                  <button
+                    class="btn btn-ghost btn-sm text-error"
+                    phx-click="arm_delete"
+                  >
+                    <.icon name="hero-trash" class="size-4" /> {gettext("Delete")}
+                  </button>
+                <% end %>
               <% end %>
             </div>
           <% end %>

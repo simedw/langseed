@@ -24,7 +24,3 @@ defmodule Langseed.Repo.Migrations.AddUserIdToDataTables do
     create index(:questions, [:user_id])
   end
 end
-
-
-
-

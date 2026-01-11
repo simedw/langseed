@@ -128,7 +128,3 @@ defmodule Langseed.AnalyticsTest do
     end
   end
 end
-
-
-
-

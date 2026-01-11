@@ -22,7 +22,8 @@ defmodule LangseedWeb.VocabularyLive do
        expanded_id: nil,
        expanded_concept: nil,
        srs_records: [],
-       importing_words: []
+       importing_words: [],
+       delete_armed: false
      )
      |> stream(:concepts, concepts)}
   end
@@ -39,27 +40,44 @@ defmodule LangseedWeb.VocabularyLive do
 
   @impl true
   def handle_event("collapse", _, socket) do
-    {:noreply, assign(socket, expanded_id: nil, expanded_concept: nil, srs_records: [])}
+    {:noreply,
+     assign(socket, expanded_id: nil, expanded_concept: nil, srs_records: [], delete_armed: false)}
+  end
+
+  @impl true
+  def handle_event("arm_delete", _, socket) do
+    {:noreply, assign(socket, delete_armed: true)}
+  end
+
+  @impl true
+  def handle_event("disarm_delete", _, socket) do
+    {:noreply, assign(socket, delete_armed: false)}
   end
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    scope = current_scope(socket)
-    concept = Vocabulary.get_concept!(scope, id)
-    {:ok, _} = Vocabulary.delete_concept(concept)
+    # Only delete if armed (safety check)
+    if socket.assigns.delete_armed do
+      scope = current_scope(socket)
+      concept = Vocabulary.get_concept!(scope, id)
+      {:ok, _} = Vocabulary.delete_concept(concept)
 
-    known_words = Vocabulary.known_words(scope)
+      known_words = Vocabulary.known_words(scope)
 
-    {:noreply,
-     socket
-     |> put_flash(:info, gettext("Deleted %{word}", word: concept.word))
-     |> stream_delete(:concepts, concept)
-     |> assign(
-       concept_count: socket.assigns.concept_count - 1,
-       known_words: known_words,
-       expanded_id: nil,
-       expanded_concept: nil
-     )}
+      {:noreply,
+       socket
+       |> put_flash(:info, gettext("Deleted %{word}", word: concept.word))
+       |> stream_delete(:concepts, concept)
+       |> assign(
+         concept_count: socket.assigns.concept_count - 1,
+         known_words: known_words,
+         expanded_id: nil,
+         expanded_concept: nil,
+         delete_armed: false
+       )}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -230,6 +248,7 @@ defmodule LangseedWeb.VocabularyLive do
         show_srs_progress={true}
         importing_words={@importing_words}
         known_words={@known_words}
+        delete_armed={@delete_armed}
       />
     <% end %>
     """

@@ -7,7 +7,3 @@ defmodule Langseed.Repo.Migrations.ChangeExampleSentenceToText do
     end
   end
 end
-
-
-
-

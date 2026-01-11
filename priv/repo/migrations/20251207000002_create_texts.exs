@@ -12,7 +12,3 @@ defmodule Langseed.Repo.Migrations.CreateTexts do
     create index(:texts, [:updated_at])
   end
 end
-
-
-
-
