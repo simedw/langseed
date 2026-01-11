@@ -8,3 +8,7 @@ defmodule Langseed.Repo.Migrations.MakePinyinNullable do
     end
   end
 end
+
+
+
+

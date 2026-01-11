@@ -9,3 +9,7 @@ defmodule Langseed.Repo.Migrations.AddObanJobsTable do
     Oban.Migration.down(version: 1)
   end
 end
+
+
+
+

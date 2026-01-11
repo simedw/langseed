@@ -7,3 +7,7 @@ defmodule Langseed.Repo.Migrations.AddNameToUsers do
     end
   end
 end
+
+
+
+
