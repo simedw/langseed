@@ -67,6 +67,18 @@ defmodule Langseed.Audio.Providers.GoogleTTS do
     }
   end
 
+  def voice_for_language("en") do
+    %{
+      voice_name: "Kore"
+    }
+  end
+
+  def voice_for_language("sv") do
+    %{
+      voice_name: "Kore"
+    }
+  end
+
   def voice_for_language(_), do: nil
 
   defp build_request_body(text, voice_config) do

@@ -211,7 +211,7 @@ const Hooks = {
         
         this.el.dataset.audioUrl = url
         this.audio.src = url
-        this.audio.play().catch(() => {})  // Silently ignore play failures
+        this.audio.play().catch((e) => console.warn("Audio play failed:", e.message, url))
       })
 
       // Handle browser TTS fallback from LiveComponent (filtered by id)
@@ -227,11 +227,11 @@ const Hooks = {
         const audioEl = this.el.querySelector('audio')
         if (audioEl && url) {
           audioEl.src = url
-          audioEl.play().catch(() => {})  // Silently ignore play failures
+          audioEl.play().catch((e) => console.warn("Audio play failed:", e.message, url))
         } else if (url) {
           // Fallback if no audio element in DOM
           this.audio.src = url
-          this.audio.play().catch(() => {})  // Silently ignore play failures
+          this.audio.play().catch((e) => console.warn("Audio play failed:", e.message, url))
         }
       })
     },

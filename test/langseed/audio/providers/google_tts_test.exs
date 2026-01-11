@@ -11,8 +11,13 @@ defmodule Langseed.Audio.Providers.GoogleTTSTest do
       assert config.voice_name == "Puck"
     end
 
+    test "returns voice config for supported languages" do
+      # English and Swedish were added
+      assert %{voice_name: _} = GoogleTTS.voice_for_language("en")
+      assert %{voice_name: _} = GoogleTTS.voice_for_language("sv")
+    end
+
     test "returns nil for unsupported languages" do
-      assert GoogleTTS.voice_for_language("en") == nil
       assert GoogleTTS.voice_for_language("fr") == nil
       assert GoogleTTS.voice_for_language("") == nil
     end

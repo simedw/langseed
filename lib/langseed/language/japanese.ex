@@ -23,7 +23,19 @@ defmodule Langseed.Language.Japanese do
     part
     |> TinySegmenter.tokenize()
     |> Enum.map(&token_to_segment/1)
+    # Filter out garbage tokens (TinySegmenter bug with short inputs)
+    |> Enum.reject(&garbage_token?/1)
   end
+
+  # TinySegmenter sometimes produces garbage tokens like "加E1" for short input
+  # Filter these out by checking if word tokens contain unexpected characters
+  defp garbage_token?({:word, word}) do
+    # Japanese words should only contain hiragana, katakana, kanji, or special marks
+    # If it contains ASCII letters/digits mixed in unexpectedly, it's garbage
+    Regex.match?(~r/[A-Za-z0-9]/, word) and not Regex.match?(~r/^[A-Za-z0-9]+$/, word)
+  end
+
+  defp garbage_token?(_), do: false
 
   defp token_to_segment(token) do
     cond do

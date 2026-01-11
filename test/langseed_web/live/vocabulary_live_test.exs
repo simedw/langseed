@@ -91,7 +91,12 @@ defmodule LangseedWeb.VocabularyLiveTest do
       |> element("button[phx-value-id='#{concept.id}']")
       |> render_click()
 
-      # Delete the concept
+      # Arm the delete button (click once to arm)
+      view
+      |> element("button[phx-click='arm_delete']")
+      |> render_click()
+
+      # Confirm delete (click again to confirm)
       view
       |> element("button[phx-click='delete'][phx-value-id='#{concept.id}']")
       |> render_click()

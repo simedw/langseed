@@ -2,14 +2,13 @@ defmodule Langseed.Workers.QuestionGenerator do
   @moduledoc """
   Background worker that pre-generates questions for concepts with active SRS records.
   Ensures each concept has at least target_count unused questions per question type.
-  Also pre-generates audio for questions to eliminate playback delay.
+  Audio pre-generation is handled by Practice.generate_question/3.
   """
 
   use Oban.Worker, queue: :questions, max_attempts: 3
 
   require Logger
 
-  alias Langseed.Audio
   alias Langseed.Repo
   alias Langseed.Practice
   alias Langseed.Practice.ConceptSRS
@@ -81,9 +80,9 @@ defmodule Langseed.Workers.QuestionGenerator do
 
     Enum.each(1..needed//1, fn _ ->
       case Practice.generate_question(scope, concept, question_type) do
-        {:ok, question} ->
-          # Pre-generate audio to eliminate playback delay during practice
-          pre_generate_audio(question, concept.language)
+        {:ok, _question} ->
+          # Audio pre-generation is handled inside generate_question
+          :ok
 
         {:error, reason} ->
           Logger.warning(
@@ -91,29 +90,6 @@ defmodule Langseed.Workers.QuestionGenerator do
           )
       end
     end)
-  end
-
-  # Pre-generate and cache audio for the question sentence.
-  # Only runs when storage caching is enabled (TTS + R2 configured).
-  defp pre_generate_audio(question, language) do
-    # Skip pre-generation if caching is not available (would just waste API calls)
-    if Audio.cache_available?() do
-      sentence = Langseed.Practice.QuestionAudio.sentence_for_question(question)
-
-      case Audio.generate_sentence_audio(sentence, language) do
-        {:ok, url} when not is_nil(url) ->
-          Logger.debug("Pre-cached audio for question #{question.id}")
-
-        {:ok, nil} ->
-          # No TTS for this language, that's fine
-          :ok
-
-        {:error, reason} ->
-          Logger.warning(
-            "Failed to pre-generate audio for question #{question.id}: #{inspect(reason)}"
-          )
-      end
-    end
   end
 
   @doc """

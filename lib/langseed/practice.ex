@@ -384,6 +384,7 @@ defmodule Langseed.Practice do
   @doc """
   Generates a question for a concept and stores it in the database.
   Randomly picks between yes_no and multiple_choice question types.
+  Also triggers async audio pre-generation if caching is available.
   """
   @spec generate_question(Scope.t() | nil, Concept.t()) ::
           {:ok, Question.t()} | {:error, String.t()}
@@ -391,9 +392,16 @@ defmodule Langseed.Practice do
     known_words = Vocabulary.known_words(scope)
     question_type = Enum.random(["yes_no", "multiple_choice"])
 
-    case question_type do
-      "yes_no" -> generate_yes_no(scope, concept, known_words)
-      "multiple_choice" -> generate_multiple_choice(scope, concept, known_words)
+    result =
+      case question_type do
+        "yes_no" -> generate_yes_no(scope, concept, known_words)
+        "multiple_choice" -> generate_multiple_choice(scope, concept, known_words)
+      end
+
+    # Pre-generate audio async (non-blocking)
+    with {:ok, question} <- result do
+      pre_generate_audio_async(question, concept.language)
+      {:ok, question}
     end
   end
 
@@ -401,20 +409,59 @@ defmodule Langseed.Practice do
 
   @doc """
   Generates a question for a concept with a specific question type.
+  Also triggers async audio pre-generation if caching is available.
   """
   @spec generate_question(Scope.t() | nil, Concept.t(), String.t()) ::
           {:ok, Question.t()} | {:error, String.t()}
   def generate_question(%Scope{} = scope, concept, question_type) do
     known_words = Vocabulary.known_words(scope)
 
-    case question_type do
-      "yes_no" -> generate_yes_no(scope, concept, known_words)
-      "multiple_choice" -> generate_multiple_choice(scope, concept, known_words)
-      _ -> {:error, "Unknown question type: #{question_type}"}
+    result =
+      case question_type do
+        "yes_no" -> generate_yes_no(scope, concept, known_words)
+        "multiple_choice" -> generate_multiple_choice(scope, concept, known_words)
+        _ -> {:error, "Unknown question type: #{question_type}"}
+      end
+
+    # Pre-generate audio async (non-blocking)
+    with {:ok, question} <- result do
+      pre_generate_audio_async(question, concept.language)
+      {:ok, question}
     end
   end
 
   def generate_question(nil, _concept, _type), do: {:error, "Authentication required"}
+
+  @doc """
+  Pre-generates audio for a question asynchronously.
+  Runs in background via TaskSupervisor.
+  """
+  def pre_generate_audio_async(question, language) do
+    require Logger
+
+    if Langseed.Audio.cache_available?() do
+      Logger.info("Pre-generating audio for question #{question.id} (#{language})")
+
+      Task.Supervisor.start_child(Langseed.TaskSupervisor, fn ->
+        sentence = Langseed.Practice.QuestionAudio.sentence_for_question(question)
+
+        case Langseed.Audio.generate_sentence_audio(sentence, language) do
+          {:ok, url} when not is_nil(url) ->
+            Logger.info("✓ Pre-cached audio for question #{question.id}")
+
+          {:ok, nil} ->
+            Logger.warning("No TTS for question #{question.id} (#{language})")
+
+          {:error, reason} ->
+            Logger.error(
+              "Failed to pre-cache audio for question #{question.id}: #{inspect(reason)}"
+            )
+        end
+      end)
+    else
+      Logger.debug("Skipping audio pre-generation (cache not available)")
+    end
+  end
 
   defp generate_yes_no(%Scope{user: user, language: language}, concept, known_words) do
     case LLM.generate_yes_no_question(user.id, concept, known_words, language) do

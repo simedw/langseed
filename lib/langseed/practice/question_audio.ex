@@ -20,11 +20,33 @@ defmodule Langseed.Practice.QuestionAudio do
         question.question_text
 
       "multiple_choice" ->
-        correct_word = Enum.at(question.options, String.to_integer(question.correct_answer))
-        String.replace(question.question_text, "____", correct_word || "")
+        case parse_correct_index(question.correct_answer) do
+          {:ok, index} when is_list(question.options) ->
+            correct_word = Enum.at(question.options, index)
+
+            if is_binary(correct_word) and correct_word != "" do
+              String.replace(question.question_text, "____", correct_word)
+            else
+              question.question_text
+            end
+
+          _ ->
+            question.question_text
+        end
 
       _ ->
         question.question_text
     end
   end
+
+  defp parse_correct_index(value) when is_integer(value), do: {:ok, value}
+
+  defp parse_correct_index(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {int, ""} -> {:ok, int}
+      _ -> :error
+    end
+  end
+
+  defp parse_correct_index(_value), do: :error
 end
