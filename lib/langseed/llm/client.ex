@@ -124,3 +124,7 @@ defmodule Langseed.LLM.Client do
 
   defp extract_usage(_), do: %{input_tokens: nil, output_tokens: nil}
 end
+
+
+
+

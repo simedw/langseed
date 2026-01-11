@@ -70,10 +70,19 @@ defmodule Langseed.Audio do
   end
 
   @doc """
-  Generates audio for a sentence.
+  Generates audio for a sentence (checks existence, generates if missing).
+  Use for background pre-generation.
   """
   def generate_sentence_audio(sentence, language) do
     generate_audio(sentence, language)
+  end
+
+  @doc """
+  Gets sentence audio URL optimistically (no existence check).
+  Use for playback when audio has been pre-generated.
+  """
+  def get_sentence_audio_url(sentence, language) do
+    get_audio_url(sentence, language)
   end
 
   @doc """
@@ -164,7 +173,7 @@ defmodule Langseed.Audio do
     end
   end
 
-  # Truly cache-first: check storage before generating TTS (saves API cost)
+  # Check storage and generate if missing
   defp do_generate_and_cache(text, language, voice_config) do
     # Use deterministic extension (.wav) since GoogleTTS always returns WAV
     path = build_object_key(text, language, voice_config, "wav")
@@ -176,6 +185,40 @@ defmodule Langseed.Audio do
     else
       # Cache miss - generate and store
       generate_and_store(text, language, voice_config, path)
+    end
+  end
+
+  @doc """
+  Gets audio URL optimistically, skipping the existence check.
+
+  Use this for playback when audio has been pre-generated (e.g., by QuestionGenerator).
+  Returns a signed URL immediately without network round-trip.
+  If audio doesn't exist, the browser will get a 404.
+
+  For background pre-generation, use `generate_audio/2` instead.
+  """
+  @spec get_audio_url(String.t(), String.t()) :: audio_result()
+  def get_audio_url(text, language) do
+    cond do
+      tts_available?() && storage_available?() ->
+        get_cached_url(text, language)
+
+      tts_available?() ->
+        # No storage - fall back to direct generation (can't be optimistic)
+        generate_direct(text, language)
+
+      true ->
+        {:ok, nil}
+    end
+  end
+
+  defp get_cached_url(text, language) do
+    case voice_config_for(language) do
+      nil -> {:ok, nil}
+      voice_config ->
+        path = build_object_key(text, language, voice_config, "wav")
+        # No existence check - just return signed URL immediately
+        storage_provider().get_signed_url(path, @signed_url_expiry)
     end
   end
 
