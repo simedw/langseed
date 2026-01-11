@@ -59,4 +59,29 @@ defmodule Langseed.Language.PinyinTest do
       assert Pinyin.match?("ru2guo3", "ru2 guo3")
     end
   end
+
+  describe "syllables_with_tones/1" do
+    test "parses basic pinyin syllables" do
+      assert Pinyin.syllables_with_tones("nǐ hǎo") == [{"nǐ", 3}, {"hǎo", 3}]
+      assert Pinyin.syllables_with_tones("tāo qì") == [{"tāo", 1}, {"qì", 4}]
+    end
+
+    test "parses compound pinyin without spaces" do
+      assert Pinyin.syllables_with_tones("rúguǒ") == [{"rú", 2}, {"guǒ", 3}]
+    end
+
+    test "handles neutral tone" do
+      assert Pinyin.syllables_with_tones("de") == [{"de", 0}]
+    end
+
+    test "handles apostrophe separators" do
+      # Apostrophes are used in pinyin to separate syllables (e.g., 亲爱 = qīn'ài)
+      result = Pinyin.syllables_with_tones("qīn'ài")
+      assert result == [{"qīn", 1}, {"ài", 4}]
+    end
+
+    test "handles nil" do
+      assert Pinyin.syllables_with_tones(nil) == []
+    end
+  end
 end

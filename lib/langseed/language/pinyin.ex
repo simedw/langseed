@@ -104,6 +104,7 @@ defmodule Langseed.Language.Pinyin do
   @spec syllables_with_tones(String.t()) :: [{String.t(), integer() | nil}]
   def syllables_with_tones(pinyin) when is_binary(pinyin) do
     pinyin
+    |> String.replace("'", "")
     |> Pinyin.read!()
     |> Enum.filter(&is_struct(&1, Pinyin))
     |> Enum.map(fn syllable ->
