@@ -10,6 +10,7 @@ defmodule LangseedWeb.UserAuth do
   alias Langseed.Accounts
   alias Langseed.Accounts.Scope
   alias Langseed.Practice
+  alias Langseed.Vocabulary.WordImports
 
   @doc """
   LiveView on_mount callback to assign current_scope to the socket.
@@ -31,15 +32,26 @@ defmodule LangseedWeb.UserAuth do
         "practice:#{scope.user.id}:#{scope.language}"
       )
 
+      # Subscribe to word import updates
+      WordImports.subscribe(scope.user.id)
+
       # Check if there are practice items ready
       practice_ready = Practice.has_practice_ready?(scope)
+
+      # Get word import count
+      word_import_count = WordImports.pending_count(scope.user.id)
+      word_import_processing = get_processing_word(scope.user.id)
 
       # Schedule periodic check for due reviews (every 30 seconds)
       if Phoenix.LiveView.connected?(socket) do
         Process.send_after(self(), :check_practice_ready, 30_000)
       end
 
-      {:cont, Phoenix.Component.assign(socket, :practice_ready, practice_ready)}
+      {:cont,
+       socket
+       |> Phoenix.Component.assign(:practice_ready, practice_ready)
+       |> Phoenix.Component.assign(:word_import_count, word_import_count)
+       |> Phoenix.Component.assign(:word_import_processing, word_import_processing)}
     else
       socket =
         socket
@@ -47,6 +59,19 @@ defmodule LangseedWeb.UserAuth do
         |> Phoenix.LiveView.redirect(to: ~p"/auth/google")
 
       {:halt, socket}
+    end
+  end
+
+  defp get_processing_word(user_id) do
+    case WordImports.pending_imports(user_id) do
+      imports when is_list(imports) ->
+        case Enum.find(imports, fn i -> i.status == "processing" end) do
+          nil -> nil
+          import -> import.word
+        end
+
+      _ ->
+        nil
     end
   end
 

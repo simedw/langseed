@@ -18,7 +18,6 @@ defmodule LangseedWeb.TextAnalysisComponents do
   attr :segment, :any, required: true
   attr :known_words, :map, required: true
   attr :selected_words, :any, required: true
-  attr :importing_words, :list, default: []
   attr :show_hsk, :boolean, default: false
 
   def segment_inline(%{segment: {:newline, _}} = assigns) do
@@ -39,7 +38,6 @@ defmodule LangseedWeb.TextAnalysisComponents do
     understanding = Map.get(assigns.known_words, word)
     known = understanding != nil
     selected = MapSet.member?(assigns.selected_words, word)
-    importing = word in assigns.importing_words
     hsk_level = if assigns.show_hsk, do: HSK.lookup(word), else: nil
 
     assigns =
@@ -47,7 +45,6 @@ defmodule LangseedWeb.TextAnalysisComponents do
         word: word,
         known: known,
         selected: selected,
-        importing: importing,
         understanding: understanding,
         hsk_level: hsk_level
       )
@@ -63,19 +60,13 @@ defmodule LangseedWeb.TextAnalysisComponents do
         {@word}<rt class="text-[10px] opacity-40 font-normal">{@hsk_level}</rt>
       </ruby>
     <% else %>
-      <%= if @importing do %>
-        <span class="text-info animate-pulse">
-          {@word}
-        </span>
-      <% else %>
-        <ruby
-          class={"cursor-pointer transition-colors #{if @selected, do: "text-primary font-bold underline decoration-2", else: "text-base-content hover:text-primary"}"}
-          phx-click="toggle_word"
-          phx-value-word={@word}
-        >
-          {@word}<rt class="text-[10px] opacity-40 font-normal">{@hsk_level}</rt>
-        </ruby>
-      <% end %>
+      <ruby
+        class={"cursor-pointer transition-colors #{if @selected, do: "text-primary font-bold underline decoration-2", else: "text-base-content hover:text-primary"}"}
+        phx-click="toggle_word"
+        phx-value-word={@word}
+      >
+        {@word}<rt class="text-[10px] opacity-40 font-normal">{@hsk_level}</rt>
+      </ruby>
     <% end %>
     """
   end

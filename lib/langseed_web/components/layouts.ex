@@ -44,6 +44,14 @@ defmodule LangseedWeb.Layouts do
     default: false,
     doc: "whether there are practice items ready"
 
+  attr :word_import_count, :integer,
+    default: 0,
+    doc: "number of words being imported"
+
+  attr :word_import_processing, :string,
+    default: nil,
+    doc: "the word currently being processed"
+
   def app(assigns) do
     ~H"""
     <header class="bg-base-200 border-b border-base-300">
@@ -55,6 +63,10 @@ defmodule LangseedWeb.Layouts do
           </a>
         </div>
         <div class="flex-none flex items-center gap-2">
+          <.word_import_indicator
+            count={@word_import_count}
+            processing={@word_import_processing}
+          />
           <.language_selector current_scope={@current_scope} />
           <.theme_toggle />
           <.audio_toggle />
@@ -240,6 +252,32 @@ defmodule LangseedWeb.Layouts do
         class="size-4 hidden [[data-audio-autoplay=false]_&]:block"
       />
     </button>
+    """
+  end
+
+  @doc """
+  Shows word import progress indicator when words are being imported.
+  """
+  attr :count, :integer, default: 0
+  attr :processing, :string, default: nil
+
+  def word_import_indicator(assigns) do
+    ~H"""
+    <div
+      :if={@count > 0}
+      class="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-sm"
+      title={gettext("Importing words...")}
+    >
+      <.icon name="hero-arrow-path" class="size-4 animate-spin text-primary" />
+      <span class="font-medium">
+        <%= if @processing do %>
+          <span class="text-primary">{@processing}</span>
+        <% end %>
+        <span class="opacity-70">
+          ({@count})
+        </span>
+      </span>
+    </div>
     """
   end
 

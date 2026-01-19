@@ -1,6 +1,7 @@
 defmodule LangseedWeb.PracticeLive do
   use LangseedWeb, :live_view
   use LangseedWeb.AudioHelpers
+  use LangseedWeb.WordImportHelpers
 
   import LangseedWeb.PracticeComponents
 

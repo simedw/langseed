@@ -1,13 +1,14 @@
 defmodule LangseedWeb.TextAnalysisLive do
   use LangseedWeb, :live_view
   use LangseedWeb.AudioHelpers
+  use LangseedWeb.WordImportHelpers
 
   import LangseedWeb.TextAnalysisComponents
 
   alias Langseed.Vocabulary
+  alias Langseed.Vocabulary.WordImports
   alias Langseed.Library
   alias Langseed.Language
-  alias Langseed.Services.WordImporter
 
   @impl true
   def mount(_params, _session, socket) do
@@ -21,7 +22,6 @@ defmodule LangseedWeb.TextAnalysisLive do
        selected_words: MapSet.new(),
        known_words: Vocabulary.known_words_with_understanding(scope),
        analyzing: false,
-       importing_words: [],
        expanded_concept: nil,
        current_text_id: nil,
        recent_texts: Library.list_recent_texts(scope, 5),
@@ -236,16 +236,15 @@ defmodule LangseedWeb.TextAnalysisLive do
     if Enum.empty?(selected) do
       {:noreply, put_flash(socket, :error, "No words selected")}
     else
-      # Track which words are being imported, clear selection so user can continue
+      # Enqueue words for async import - this is fire and forget
+      # Words will be imported in the background by Oban worker
+      {:ok, _imports} = WordImports.enqueue_words(scope, selected, context)
+
+      # Clear selection so user can continue selecting more
       {:noreply,
        socket
-       |> assign(
-         importing_words: socket.assigns.importing_words ++ selected,
-         selected_words: MapSet.new()
-       )
-       |> start_async({:add_words, selected}, fn ->
-         WordImporter.import_words(scope, selected, context)
-       end)}
+       |> assign(selected_words: MapSet.new())
+       |> put_flash(:info, gettext("Queued %{count} words for import", count: length(selected)))}
     end
   end
 
@@ -273,65 +272,6 @@ defmodule LangseedWeb.TextAnalysisLive do
           {:noreply, put_flash(socket, :error, reason)}
       end
     end
-  end
-
-  @impl true
-  def handle_async({:add_words, words}, {:ok, {added, failed}}, socket) do
-    scope = current_scope(socket)
-    known_words = Vocabulary.known_words_with_understanding(scope)
-
-    # Remove these words from importing list
-    importing_words = socket.assigns.importing_words -- words
-
-    # Trigger background question generation for new words
-    unless Enum.empty?(added) do
-      Langseed.Workers.QuestionGenerator.enqueue()
-    end
-
-    socket =
-      socket
-      |> assign(
-        importing_words: importing_words,
-        known_words: known_words
-      )
-
-    socket =
-      if Enum.empty?(added) do
-        socket
-      else
-        put_flash(
-          socket,
-          :info,
-          gettext("Added %{count} words: %{words}",
-            count: length(added),
-            words: Enum.join(added, ", ")
-          )
-        )
-      end
-
-    socket =
-      if Enum.empty?(failed) do
-        socket
-      else
-        put_flash(
-          socket,
-          :error,
-          gettext("Failed to add: %{words}", words: Enum.join(failed, ", "))
-        )
-      end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_async({:add_words, words}, {:exit, reason}, socket) do
-    # Remove failed words from importing list
-    importing_words = socket.assigns.importing_words -- words
-
-    {:noreply,
-     socket
-     |> assign(importing_words: importing_words)
-     |> put_flash(:error, gettext("Error adding: %{error}", error: inspect(reason)))}
   end
 
   # Handle practice_ready check (scheduled by user_auth on mount)
@@ -369,28 +309,22 @@ defmodule LangseedWeb.TextAnalysisLive do
           understanding = Map.get(known_words, word)
           known = understanding != nil
           selected = MapSet.member?(assigns.selected_words, word)
-          importing = word in assigns.importing_words
 
-          cond do
-            known ->
-              color = understanding_color(understanding)
+          if known do
+            color = understanding_color(understanding)
 
-              ~s(<span class="cursor-pointer hover:underline" style="color: #{color}" ) <>
-                ~s(data-word="#{escape_html(word)}" data-action="show">#{escape_html(word)}</span>)
+            ~s(<span class="cursor-pointer hover:underline" style="color: #{color}" ) <>
+              ~s(data-word="#{escape_html(word)}" data-action="show">#{escape_html(word)}</span>)
+          else
+            classes =
+              if selected do
+                "cursor-pointer text-primary font-bold underline decoration-2"
+              else
+                "cursor-pointer text-base-content hover:text-primary"
+              end
 
-            importing ->
-              ~s(<span class="text-info animate-pulse">#{escape_html(word)}</span>)
-
-            true ->
-              classes =
-                if selected do
-                  "cursor-pointer text-primary font-bold underline decoration-2"
-                else
-                  "cursor-pointer text-base-content hover:text-primary"
-                end
-
-              ~s(<span class="#{classes}" ) <>
-                ~s(data-word="#{escape_html(word)}" data-action="toggle">#{escape_html(word)}</span>)
+            ~s(<span class="#{classes}" ) <>
+              ~s(data-word="#{escape_html(word)}" data-action="toggle">#{escape_html(word)}</span>)
           end
       end
     end)
@@ -585,7 +519,6 @@ defmodule LangseedWeb.TextAnalysisLive do
                 segment={segment}
                 known_words={@known_words}
                 selected_words={@selected_words}
-                importing_words={@importing_words}
                 show_hsk={@show_hsk}
               />
             <% end %>
@@ -593,35 +526,24 @@ defmodule LangseedWeb.TextAnalysisLive do
         </div>
 
         <%!-- Bottom Action Bar --%>
-        <%= if MapSet.size(@selected_words) > 0 || length(@importing_words) > 0 do %>
+        <%= if MapSet.size(@selected_words) > 0 do %>
           <div class="fixed bottom-0 left-0 right-0 p-4 bg-base-200 border-t border-base-300">
             <div class="flex gap-2">
-              <%= if MapSet.size(@selected_words) > 0 do %>
-                <button
-                  class="btn btn-success flex-1"
-                  phx-click="add_selected"
-                >
-                  <.icon name="hero-plus" class="size-5" /> {gettext("Add %{count} words",
-                    count: MapSet.size(@selected_words)
-                  )}
-                </button>
-                <button
-                  class="btn btn-outline btn-primary"
-                  phx-click="mark_as_known"
-                  title={gettext("Mark as already known (100%)")}
-                >
-                  <.icon name="hero-check-badge" class="size-5" /> {gettext("Known")}
-                </button>
-              <% end %>
-              <%= if length(@importing_words) > 0 do %>
-                <div class={[
-                  "flex items-center gap-2 px-4 py-2 bg-info/20 rounded-lg text-info",
-                  MapSet.size(@selected_words) == 0 && "flex-1 justify-center"
-                ]}>
-                  <span class="loading loading-spinner loading-sm"></span>
-                  <span>{gettext("Adding %{count}...", count: length(@importing_words))}</span>
-                </div>
-              <% end %>
+              <button
+                class="btn btn-success flex-1"
+                phx-click="add_selected"
+              >
+                <.icon name="hero-plus" class="size-5" /> {gettext("Add %{count} words",
+                  count: MapSet.size(@selected_words)
+                )}
+              </button>
+              <button
+                class="btn btn-outline btn-primary"
+                phx-click="mark_as_known"
+                title={gettext("Mark as already known (100%)")}
+              >
+                <.icon name="hero-check-badge" class="size-5" /> {gettext("Known")}
+              </button>
             </div>
           </div>
         <% end %>

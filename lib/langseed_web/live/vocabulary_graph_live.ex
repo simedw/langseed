@@ -1,6 +1,7 @@
 defmodule LangseedWeb.VocabularyGraphLive do
   use LangseedWeb, :live_view
   use LangseedWeb.AudioHelpers
+  use LangseedWeb.WordImportHelpers
 
   alias Langseed.Vocabulary
   alias Langseed.Vocabulary.Graph

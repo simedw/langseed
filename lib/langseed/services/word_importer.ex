@@ -10,6 +10,20 @@ defmodule Langseed.Services.WordImporter do
   alias Langseed.Workers.QuestionGenerator
 
   @doc """
+  Imports a single word synchronously. Used by the async worker.
+
+  Returns `{:ok, word}` or `{:error, reason}`.
+  """
+  def import_single_word_sync(scope, word, context) do
+    known_words = Vocabulary.known_words(scope)
+    user_id = if scope, do: scope.user.id, else: nil
+    language = if scope, do: scope.language, else: "zh"
+    safe_context = StringUtils.ensure_valid_utf8(context)
+
+    import_single_word(scope, user_id, language, word, safe_context, known_words)
+  end
+
+  @doc """
   Imports a list of words into the scope's vocabulary.
 
   Uses LLM to analyze each word and extract pinyin, meaning, and explanations.

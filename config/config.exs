@@ -76,7 +76,7 @@ config :phoenix, :json_library, Jason
 # Configure Oban for background jobs
 config :langseed, Oban,
   repo: Langseed.Repo,
-  queues: [default: 10, questions: 5],
+  queues: [default: 10, questions: 5, word_imports: 3],
   plugins: [
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,

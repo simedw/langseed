@@ -1,5 +1,6 @@
 defmodule LangseedWeb.TextsLive do
   use LangseedWeb, :live_view
+  use LangseedWeb.WordImportHelpers
 
   alias Langseed.Library
 
