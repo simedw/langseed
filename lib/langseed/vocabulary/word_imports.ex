@@ -65,8 +65,12 @@ defmodule Langseed.Vocabulary.WordImports do
   @doc """
   Gets the next pending import for processing.
   Marks it as "processing" atomically.
+  Also resets any stale "processing" imports (stuck for > 5 min) back to pending.
   """
   def claim_next(user_id) do
+    # First, reset any stale processing imports (stuck for > 5 minutes)
+    reset_stale_processing(user_id)
+
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
     query =
@@ -87,6 +91,20 @@ defmodule Langseed.Vocabulary.WordImports do
           |> Repo.update!()
       end
     end)
+  end
+
+  # Reset imports stuck in "processing" for more than 5 minutes
+  defp reset_stale_processing(user_id) do
+    stale_threshold =
+      NaiveDateTime.utc_now()
+      |> NaiveDateTime.add(-5 * 60, :second)
+      |> NaiveDateTime.truncate(:second)
+
+    WordImport
+    |> where([w], w.user_id == ^user_id)
+    |> where([w], w.status == "processing")
+    |> where([w], w.updated_at < ^stale_threshold)
+    |> Repo.update_all(set: [status: "pending"])
   end
 
   @doc """
