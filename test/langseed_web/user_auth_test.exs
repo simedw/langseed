@@ -23,7 +23,7 @@ defmodule LangseedWeb.UserAuthTest do
     test "stores the user token in the session", %{conn: conn, user: user} do
       conn = UserAuth.log_in_user(conn, user)
       assert token = get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/vocabulary"
+      assert redirected_to(conn) == ~p"/analyze"
       assert Accounts.get_user_by_session_token(token)
     end
 
@@ -229,7 +229,7 @@ defmodule LangseedWeb.UserAuthTest do
         |> UserAuth.redirect_if_user_is_authenticated([])
 
       assert conn.halted
-      assert redirected_to(conn) == ~p"/vocabulary"
+      assert redirected_to(conn) == ~p"/analyze"
     end
 
     test "does not redirect if user is not authenticated", %{conn: conn} do

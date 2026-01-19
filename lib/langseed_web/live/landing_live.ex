@@ -2,9 +2,9 @@ defmodule LangseedWeb.LandingLive do
   use LangseedWeb, :live_view
 
   def mount(_params, _session, socket) do
-    # If already logged in, redirect to vocabulary
+    # If already logged in, redirect to analyze
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
-      {:ok, push_navigate(socket, to: ~p"/vocabulary")}
+      {:ok, push_navigate(socket, to: ~p"/analyze")}
     else
       {:ok, assign(socket, active_example: 0)}
     end

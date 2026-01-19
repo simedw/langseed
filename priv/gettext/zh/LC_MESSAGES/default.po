@@ -739,9 +739,7 @@ msgstr[0] "%{count}分钟后"
 #, elixir-autogen, elixir-format
 msgid "in %{count} month"
 msgid_plural "in %{count} months"
-msgstr[0] "%{count}个月后"
-
-#: lib/langseed/time_formatter.ex:63
+msgstr[0] "%{count}个月后"#: lib/langseed/time_formatter.ex:63
 #, elixir-autogen, elixir-format
 msgid "in %{count} week"
 msgid_plural "in %{count} weeks"

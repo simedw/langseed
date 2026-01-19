@@ -48,14 +48,26 @@ defmodule LangseedWeb.TextAnalysisLive do
 
       text ->
         segments = segment_content(text.content, scope.language)
+        known_words = Vocabulary.known_words_with_understanding(scope)
 
-        assign(socket,
-          input_text: text.content,
-          segments: segments,
-          current_text_id: text.id,
-          known_words: Vocabulary.known_words_with_understanding(scope),
-          selected_words: MapSet.new()
-        )
+        socket =
+          assign(socket,
+            input_text: text.content,
+            segments: segments,
+            current_text_id: text.id,
+            known_words: known_words,
+            selected_words: MapSet.new()
+          )
+
+        # Push content to editor (skip_cursor since this is loading, not typing)
+        html = render_segments_html(segments, known_words, socket.assigns)
+
+        push_event(socket, "editor-content", %{
+          html: html,
+          empty: false,
+          text: text.content,
+          skip_cursor: true
+        })
     end
   end
 
@@ -69,18 +81,28 @@ defmodule LangseedWeb.TextAnalysisLive do
     text = params["text"] || ""
 
     if String.trim(text) == "" do
-      {:noreply, assign(socket, input_text: text, segments: [], selected_words: MapSet.new())}
+      {:noreply,
+       socket
+       |> assign(input_text: text, segments: [], selected_words: MapSet.new())
+       |> push_event("editor-content", %{html: "", empty: true, text: text})}
     else
       segments = Language.segment(text, scope.language)
       known_words = Vocabulary.known_words_with_understanding(scope)
 
+      # Render segments to HTML for the inline editor
+      socket =
+        assign(socket,
+          input_text: text,
+          segments: segments,
+          known_words: known_words,
+          selected_words: MapSet.new()
+        )
+
+      html = render_segments_html(segments, known_words, socket.assigns)
+
       {:noreply,
-       assign(socket,
-         input_text: text,
-         segments: segments,
-         known_words: known_words,
-         selected_words: MapSet.new()
-       )}
+       socket
+       |> push_event("editor-content", %{html: html, empty: false, text: text})}
     end
   end
 
@@ -95,7 +117,23 @@ defmodule LangseedWeb.TextAnalysisLive do
         MapSet.put(selected, word)
       end
 
-    {:noreply, assign(socket, selected_words: selected)}
+    socket = assign(socket, selected_words: selected)
+
+    # Re-push styled content to reflect selection change
+    html =
+      render_segments_html(
+        socket.assigns.segments,
+        socket.assigns.known_words,
+        socket.assigns
+      )
+
+    {:noreply,
+     push_event(socket, "editor-content", %{
+       html: html,
+       empty: false,
+       text: socket.assigns.input_text,
+       skip_cursor: true
+     })}
   end
 
   @impl true
@@ -110,7 +148,23 @@ defmodule LangseedWeb.TextAnalysisLive do
       |> Enum.reject(&Map.has_key?(known_words, &1))
       |> MapSet.new()
 
-    {:noreply, assign(socket, selected_words: unknown_words)}
+    socket = assign(socket, selected_words: unknown_words)
+
+    # Re-push styled content to reflect selection change
+    html =
+      render_segments_html(
+        socket.assigns.segments,
+        socket.assigns.known_words,
+        socket.assigns
+      )
+
+    {:noreply,
+     push_event(socket, "editor-content", %{
+       html: html,
+       empty: false,
+       text: socket.assigns.input_text,
+       skip_cursor: true
+     })}
   end
 
   @impl true
@@ -295,6 +349,62 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   defp get_word({_, word}), do: word
 
+  # Render segments to HTML string for the inline editor
+  defp render_segments_html(segments, known_words, assigns) do
+    import LangseedWeb.SharedComponents, only: [understanding_color: 1]
+
+    segments
+    |> Enum.map(fn segment ->
+      case segment do
+        {:newline, _} ->
+          "<br>"
+
+        {:space, text} ->
+          escape_html(text)
+
+        {:punct, text} ->
+          ~s(<span class="opacity-60">#{escape_html(text)}</span>)
+
+        {:word, word} ->
+          understanding = Map.get(known_words, word)
+          known = understanding != nil
+          selected = MapSet.member?(assigns.selected_words, word)
+          importing = word in assigns.importing_words
+
+          cond do
+            known ->
+              color = understanding_color(understanding)
+
+              ~s(<span class="cursor-pointer hover:underline" style="color: #{color}" ) <>
+                ~s(data-word="#{escape_html(word)}" data-action="show">#{escape_html(word)}</span>)
+
+            importing ->
+              ~s(<span class="text-info animate-pulse">#{escape_html(word)}</span>)
+
+            true ->
+              classes =
+                if selected do
+                  "cursor-pointer text-primary font-bold underline decoration-2"
+                else
+                  "cursor-pointer text-base-content hover:text-primary"
+                end
+
+              ~s(<span class="#{classes}" ) <>
+                ~s(data-word="#{escape_html(word)}" data-action="toggle">#{escape_html(word)}</span>)
+          end
+      end
+    end)
+    |> Enum.join("")
+  end
+
+  defp escape_html(text) do
+    text
+    |> String.replace("&", "&amp;")
+    |> String.replace("<", "&lt;")
+    |> String.replace(">", "&gt;")
+    |> String.replace("\"", "&quot;")
+  end
+
   defp save_text(socket, text) do
     scope = current_scope(socket)
 
@@ -338,37 +448,85 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   @impl true
   def render(assigns) do
+    # Pre-calculate stats for the template
+    words_only =
+      assigns.segments |> Enum.filter(&word?/1) |> Enum.map(&get_word/1)
+
+    unique_words = words_only |> Enum.uniq()
+    known_count = Enum.count(unique_words, &Map.has_key?(assigns.known_words, &1))
+    unknown_count = length(unique_words) - known_count
+    has_segments = length(assigns.segments) > 0
+
+    assigns =
+      assign(assigns,
+        known_count: known_count,
+        unknown_count: unknown_count,
+        has_segments: has_segments
+      )
+
     ~H"""
     <div class="min-h-screen pb-20">
       <div class="p-4">
-        <h1 class="text-2xl font-bold mb-4">{gettext("Analyze")}</h1>
-
-        <form phx-change="update_text">
-          <textarea
-            class="textarea textarea-bordered w-full h-48 text-xl"
-            placeholder={gettext("Enter text...")}
-            name="text"
-            phx-debounce="300"
-          >{@input_text}</textarea>
-        </form>
-
+        <%!-- Toolbar --%>
         <div class="flex items-center justify-between mb-4">
-          <div class="flex gap-2">
+          <div class="flex items-center gap-3">
+            <h1 class="text-xl font-bold opacity-70">{gettext("Analyze")}</h1>
+
+            <%= if @has_segments do %>
+              <div class="flex items-center gap-3 text-sm">
+                <span class="flex items-center gap-1">
+                  <span
+                    class="inline-block w-2.5 h-2.5 rounded-full"
+                    style="background: linear-gradient(to right, #ef4444, #eab308, #22c55e)"
+                  >
+                  </span>
+                  <span class="opacity-70">{@known_count}</span>
+                </span>
+                <span class="flex items-center gap-1">
+                  <span class="inline-block w-2.5 h-2.5 rounded-full bg-base-content/50"></span>
+                  <span class="opacity-70">{@unknown_count}</span>
+                </span>
+                <%= if @current_scope && @current_scope.language == "zh" do %>
+                  <label class="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-xs"
+                      checked={@show_hsk}
+                      phx-click="toggle_hsk"
+                    />
+                    <span class="text-xs opacity-50">HSK</span>
+                  </label>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <%= if @unknown_count > 0 do %>
+              <button
+                class="btn btn-xs btn-ghost opacity-70"
+                phx-click="select_all_unknown"
+              >
+                {gettext("Select all unknown")}
+              </button>
+            <% end %>
+
             <button
-              class="btn btn-sm btn-outline"
+              class="btn btn-sm btn-ghost"
               phx-click="save_text"
               disabled={String.trim(@input_text) == ""}
+              title={if @current_text_id, do: gettext("Update"), else: gettext("Save")}
             >
               <.icon name="hero-bookmark" class="size-4" />
-              {if @current_text_id, do: gettext("Update"), else: gettext("Save")}
             </button>
 
             <div class="relative">
               <button
-                class="btn btn-sm btn-outline"
+                class="btn btn-sm btn-ghost"
                 phx-click="toggle_load_menu"
+                title={gettext("Load")}
               >
-                <.icon name="hero-folder-open" class="size-4" /> {gettext("Load")}
+                <.icon name="hero-folder-open" class="size-4" />
               </button>
 
               <%= if @show_load_menu do %>
@@ -376,7 +534,7 @@ defmodule LangseedWeb.TextAnalysisLive do
                   class="fixed inset-0 z-40"
                   phx-click="close_load_menu"
                 />
-                <div class="absolute left-0 top-full mt-1 z-50 bg-base-100 shadow-lg rounded-lg border border-base-300 min-w-48">
+                <div class="absolute right-0 top-full mt-1 z-50 bg-base-100 shadow-lg rounded-lg border border-base-300 min-w-48">
                   <ul class="menu menu-sm p-1">
                     <li>
                       <button phx-click="new_text" class="font-semibold">
@@ -407,102 +565,68 @@ defmodule LangseedWeb.TextAnalysisLive do
               <% end %>
             </div>
           </div>
+        </div>
 
-          <%= if @current_text_id do %>
-            <span class="text-xs opacity-50">{gettext("Saved")}</span>
+        <%!-- Inline Editor --%>
+        <div
+          id="inline-editor"
+          phx-hook=".InlineTextEditor"
+          phx-update="ignore"
+          class="min-h-[60vh] text-2xl leading-relaxed outline-none focus:outline-none"
+          contenteditable="true"
+          data-placeholder={gettext("Start typing or paste text to analyze...")}
+          data-input-text={@input_text}
+        >
+          <%= if @input_text == "" do %>
+            <span class="opacity-40">{gettext("Start typing or paste text to analyze...")}</span>
+          <% else %>
+            <%= for segment <- @segments do %>
+              <.segment_inline
+                segment={segment}
+                known_words={@known_words}
+                selected_words={@selected_words}
+                importing_words={@importing_words}
+                show_hsk={@show_hsk}
+              />
+            <% end %>
           <% end %>
         </div>
 
-        <%= if length(@segments) > 0 do %>
-          <% words_only = @segments |> Enum.filter(&word?/1) |> Enum.map(&get_word/1) %>
-          <% unique_words = words_only |> Enum.uniq() %>
-          <% known_count = Enum.count(unique_words, &Map.has_key?(@known_words, &1)) %>
-          <% unknown_count = length(unique_words) - known_count %>
-
-          <div class="mb-4">
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-3 text-sm">
-                <span class="flex items-center gap-1">
-                  <span
-                    class="inline-block w-3 h-3 rounded"
-                    style="background: linear-gradient(to right, #ef4444, #eab308, #22c55e)"
-                  >
-                  </span>
-                  {gettext("Known:")} {known_count}
-                </span>
-                <span class="flex items-center gap-1">
-                  <span class="inline-block w-3 h-3 rounded bg-base-content"></span>
-                  {gettext("Unknown:")} {unknown_count}
-                </span>
-                <%= if @current_scope && @current_scope.language == "zh" do %>
-                  <label class="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      class="checkbox checkbox-xs"
-                      checked={@show_hsk}
-                      phx-click="toggle_hsk"
-                    />
-                    <span class="text-xs opacity-70">HSK</span>
-                  </label>
-                <% end %>
-              </div>
-              <%= if unknown_count > 0 do %>
+        <%!-- Bottom Action Bar --%>
+        <%= if MapSet.size(@selected_words) > 0 || length(@importing_words) > 0 do %>
+          <div class="fixed bottom-0 left-0 right-0 p-4 bg-base-200 border-t border-base-300">
+            <div class="flex gap-2">
+              <%= if MapSet.size(@selected_words) > 0 do %>
                 <button
-                  class="btn btn-xs btn-outline"
-                  phx-click="select_all_unknown"
+                  class="btn btn-success flex-1"
+                  phx-click="add_selected"
                 >
-                  {gettext("Select all unknown")}
+                  <.icon name="hero-plus" class="size-5" /> {gettext("Add %{count} words",
+                    count: MapSet.size(@selected_words)
+                  )}
+                </button>
+                <button
+                  class="btn btn-outline btn-primary"
+                  phx-click="mark_as_known"
+                  title={gettext("Mark as already known (100%)")}
+                >
+                  <.icon name="hero-check-badge" class="size-5" /> {gettext("Known")}
                 </button>
               <% end %>
-            </div>
-
-            <div class="text-3xl leading-relaxed">
-              <%= for segment <- @segments do %>
-                <.segment_inline
-                  segment={segment}
-                  known_words={@known_words}
-                  selected_words={@selected_words}
-                  importing_words={@importing_words}
-                  show_hsk={@show_hsk}
-                />
+              <%= if length(@importing_words) > 0 do %>
+                <div class={[
+                  "flex items-center gap-2 px-4 py-2 bg-info/20 rounded-lg text-info",
+                  MapSet.size(@selected_words) == 0 && "flex-1 justify-center"
+                ]}>
+                  <span class="loading loading-spinner loading-sm"></span>
+                  <span>{gettext("Adding %{count}...", count: length(@importing_words))}</span>
+                </div>
               <% end %>
             </div>
           </div>
-
-          <%= if MapSet.size(@selected_words) > 0 || length(@importing_words) > 0 do %>
-            <div class="fixed bottom-0 left-0 right-0 p-4 bg-base-200 border-t border-base-300">
-              <div class="flex gap-2">
-                <%= if MapSet.size(@selected_words) > 0 do %>
-                  <button
-                    class="btn btn-success flex-1"
-                    phx-click="add_selected"
-                  >
-                    <.icon name="hero-plus" class="size-5" /> {gettext("Add %{count} words",
-                      count: MapSet.size(@selected_words)
-                    )}
-                  </button>
-                  <button
-                    class="btn btn-outline btn-primary"
-                    phx-click="mark_as_known"
-                    title={gettext("Mark as already known (100%)")}
-                  >
-                    <.icon name="hero-check-badge" class="size-5" /> {gettext("Known")}
-                  </button>
-                <% end %>
-                <%= if length(@importing_words) > 0 do %>
-                  <div class={[
-                    "flex items-center gap-2 px-4 py-2 bg-info/20 rounded-lg text-info",
-                    MapSet.size(@selected_words) == 0 && "flex-1 justify-center"
-                  ]}>
-                    <span class="loading loading-spinner loading-sm"></span>
-                    <span>{gettext("Adding %{count}...", count: length(@importing_words))}</span>
-                  </div>
-                <% end %>
-              </div>
-            </div>
-          <% end %>
         <% end %>
 
+        <%!-- Concept Card Modal --%>
         <%= if @expanded_concept do %>
           <div
             class="fixed inset-0 bg-black/50 z-40"
@@ -512,6 +636,182 @@ defmodule LangseedWeb.TextAnalysisLive do
         <% end %>
       </div>
     </div>
+
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".InlineTextEditor">
+      export default {
+        mounted() {
+          // Track state
+          this.pendingText = null  // Text we sent to server, awaiting response
+          this.isComposing = false
+
+          // Listen for any changes
+          this.el.addEventListener("input", () => this.scheduleUpdate())
+          this.el.addEventListener("focus", () => this.handleFocus())
+          this.el.addEventListener("blur", () => this.handleBlur())
+
+          // IME composition - wait until done
+          this.el.addEventListener("compositionstart", () => {
+            this.isComposing = true
+          })
+          this.el.addEventListener("compositionend", () => {
+            this.isComposing = false
+            this.scheduleUpdate()
+          })
+
+          // Word clicks
+          this.el.addEventListener("click", (e) => this.handleWordClick(e))
+
+          // Handle styled content from server
+          this.handleEvent("editor-content", ({html, empty, text: serverText, skip_cursor}) => {
+            // Don't update during IME composition
+            if (this.isComposing) return
+
+            // Only check for stale text during typing (not for word clicks/selections)
+            if (!skip_cursor && serverText) {
+              const currentText = this.getText()
+              if (currentText !== serverText) {
+                // Text changed since we sent - ignore this response, new update pending
+                return
+              }
+            }
+
+            // Clear pending since we're applying this update
+            this.pendingText = null
+
+            // Save cursor position (only if we'll restore it)
+            let cursorOffset = 0
+            if (!skip_cursor && document.activeElement === this.el) {
+              const selection = window.getSelection()
+              if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0)
+                cursorOffset = this.getTextOffset(range.startContainer, range.startOffset)
+              }
+            }
+
+            // Update content
+            if (empty) {
+              if (document.activeElement !== this.el) {
+                this.el.innerHTML = `<span class="opacity-40">${this.el.dataset.placeholder}</span>`
+              } else {
+                this.el.innerHTML = ""
+              }
+            } else {
+              this.el.innerHTML = html
+            }
+
+            // Restore cursor if element is focused and not a click action
+            if (!skip_cursor && document.activeElement === this.el && !empty) {
+              this.restoreCursor(cursorOffset)
+            }
+          })
+        },
+
+        scheduleUpdate() {
+          // Wait 500ms of no changes, then send to server
+          clearTimeout(this.debounce)
+          this.debounce = setTimeout(() => {
+            if (this.isComposing) return
+
+            const text = this.getText()
+            // Only send if different from what we last sent
+            if (text !== this.pendingText) {
+              this.pendingText = text
+              this.pushEvent("update_text", { text })
+            }
+          }, 500)
+        },
+
+        handleWordClick(e) {
+          const target = e.target.closest("[data-word]")
+          if (!target) return
+
+          const word = target.dataset.word
+          const action = target.dataset.action
+
+          if (action === "toggle") {
+            this.pushEvent("toggle_word", { word })
+          } else if (action === "show") {
+            this.pushEvent("show_concept", { word })
+          }
+        },
+
+        handleFocus() {
+          // Clear placeholder
+          const text = this.getText()
+          if (text === "" || this.el.querySelector(".opacity-40")) {
+            this.el.innerHTML = ""
+          }
+        },
+
+        handleBlur() {
+          if (this.getText() === "") {
+            this.el.innerHTML = `<span class="opacity-40">${this.el.dataset.placeholder}</span>`
+          }
+        },
+
+        getText() {
+          const clone = this.el.cloneNode(true)
+          clone.querySelectorAll("br").forEach(br => br.replaceWith("\n"))
+          return clone.textContent || ""
+        },
+
+        getTextOffset(node, offset) {
+          let total = 0
+          const walker = document.createTreeWalker(
+            this.el,
+            NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+            null,
+            false
+          )
+
+          while (walker.nextNode()) {
+            const current = walker.currentNode
+            if (current === node) {
+              return total + offset
+            }
+            if (current.nodeType === Node.TEXT_NODE) {
+              total += current.textContent.length
+            } else if (current.nodeName === "BR") {
+              total += 1
+            }
+          }
+          return total
+        },
+
+        restoreCursor(offset) {
+          const selection = window.getSelection()
+          const range = document.createRange()
+
+          let currentOffset = 0
+          const walker = document.createTreeWalker(
+            this.el,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+          )
+
+          let node = walker.nextNode()
+          while (node) {
+            const len = node.textContent.length
+            if (currentOffset + len >= offset) {
+              range.setStart(node, Math.min(offset - currentOffset, len))
+              range.collapse(true)
+              selection.removeAllRanges()
+              selection.addRange(range)
+              return
+            }
+            currentOffset += len
+            node = walker.nextNode()
+          }
+
+          // Put cursor at end if position not found
+          range.selectNodeContents(this.el)
+          range.collapse(false)
+          selection.removeAllRanges()
+          selection.addRange(range)
+        }
+      }
+    </script>
     """
   end
 end

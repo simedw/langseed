@@ -35,8 +35,8 @@ defmodule LangseedWeb.LandingLiveTest do
   describe "LandingLive - authenticated" do
     setup :register_and_log_in_user
 
-    test "redirects to vocabulary when authenticated", %{conn: conn} do
-      assert {:error, {:live_redirect, %{to: "/vocabulary"}}} = live(conn, ~p"/")
+    test "redirects to analyze when authenticated", %{conn: conn} do
+      assert {:error, {:live_redirect, %{to: "/analyze"}}} = live(conn, ~p"/")
     end
   end
 end

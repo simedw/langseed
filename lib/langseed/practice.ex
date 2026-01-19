@@ -434,7 +434,7 @@ defmodule Langseed.Practice do
 
   @doc """
   Pre-generates audio for a question asynchronously.
-  Runs in background via TaskSupervisor.
+  Runs in background via TaskSupervisor with 3 retries on failure.
   """
   def pre_generate_audio_async(question, language) do
     require Logger
@@ -444,22 +444,39 @@ defmodule Langseed.Practice do
 
       Task.Supervisor.start_child(Langseed.TaskSupervisor, fn ->
         sentence = Langseed.Practice.QuestionAudio.sentence_for_question(question)
-
-        case Langseed.Audio.generate_sentence_audio(sentence, language) do
-          {:ok, url} when not is_nil(url) ->
-            Logger.info("✓ Pre-cached audio for question #{question.id}")
-
-          {:ok, nil} ->
-            Logger.warning("No TTS for question #{question.id} (#{language})")
-
-          {:error, reason} ->
-            Logger.error(
-              "Failed to pre-cache audio for question #{question.id}: #{inspect(reason)}"
-            )
-        end
+        generate_audio_with_retry(question.id, sentence, language, 3)
       end)
     else
       Logger.debug("Skipping audio pre-generation (cache not available)")
+    end
+  end
+
+  defp generate_audio_with_retry(question_id, sentence, language, retries_left) do
+    require Logger
+
+    case Langseed.Audio.generate_sentence_audio(sentence, language) do
+      {:ok, url} when not is_nil(url) ->
+        Logger.info("✓ Pre-cached audio for question #{question_id}")
+        {:ok, url}
+
+      {:ok, nil} ->
+        Logger.warning("No TTS for question #{question_id} (#{language})")
+        {:ok, nil}
+
+      {:error, reason} when retries_left > 0 ->
+        Logger.warning(
+          "Audio generation failed for question #{question_id}, retrying (#{retries_left} left): #{inspect(reason)}"
+        )
+
+        Process.sleep(1_000)
+        generate_audio_with_retry(question_id, sentence, language, retries_left - 1)
+
+      {:error, reason} ->
+        Logger.error(
+          "Failed to pre-cache audio for question #{question_id} after retries: #{inspect(reason)}"
+        )
+
+        {:error, reason}
     end
   end
 

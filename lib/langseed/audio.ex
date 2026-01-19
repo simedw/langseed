@@ -150,18 +150,39 @@ defmodule Langseed.Audio do
   When storage is available, caches the audio and returns a signed URL.
   When only TTS is available, returns a base64 data URL for direct embedding.
   Returns {:ok, nil} if TTS is not configured.
+
+  Emojis are stripped from the text before TTS generation since most
+  TTS engines can't speak them meaningfully.
   """
   def generate_audio(text, language) do
-    cond do
-      tts_available?() && storage_available?() ->
-        generate_and_cache(text, language)
+    # Strip emojis - TTS can't speak them
+    clean_text = strip_emojis(text)
 
-      tts_available?() ->
-        generate_direct(text, language)
+    # If text was only emojis, nothing to speak
+    if String.trim(clean_text) == "" do
+      {:ok, nil}
+    else
+      cond do
+        tts_available?() && storage_available?() ->
+          generate_and_cache(clean_text, language)
 
-      true ->
-        {:ok, nil}
+        tts_available?() ->
+          generate_direct(clean_text, language)
+
+        true ->
+          {:ok, nil}
+      end
     end
+  end
+
+  # Strip emoji characters from text before TTS
+  # Keeps Chinese, Japanese, ASCII, and other language characters
+  defp strip_emojis(text) do
+    # Remove emoji and emoji component characters, but preserve ASCII punctuation
+    text
+    |> String.replace(~r/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u, "")
+    |> String.replace(~r/\s+/, " ")
+    |> String.trim()
   end
 
   # Private: Cache-first generation with storage
@@ -232,12 +253,18 @@ defmodule Langseed.Audio do
           {:ok, url}
         else
           {:error, reason} ->
-            Logger.warning("Audio storage failed")
+            Logger.warning(
+              "Audio storage failed for #{language}: #{inspect(reason)}, text: #{String.slice(text, 0, 50)}"
+            )
+
             {:error, reason}
         end
 
       {:error, reason} ->
-        Logger.warning("Audio generation failed")
+        Logger.warning(
+          "Audio generation failed for #{language}: #{inspect(reason)}, text: #{String.slice(text, 0, 50)}"
+        )
+
         {:error, reason}
     end
   end
@@ -258,7 +285,10 @@ defmodule Langseed.Audio do
           {:ok, data_url}
 
         {:error, reason} ->
-          Logger.warning("Audio generation failed: #{inspect(reason)}")
+          Logger.warning(
+            "Audio generation failed for #{language}: #{inspect(reason)}, text: #{String.slice(text, 0, 50)}"
+          )
+
           {:error, reason}
       end
     end
