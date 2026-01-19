@@ -63,17 +63,19 @@ defmodule LangseedWeb.UserAuth do
   end
 
   defp get_processing_word(user_id) do
-    case WordImports.pending_imports(user_id) do
-      imports when is_list(imports) ->
-        case Enum.find(imports, fn i -> i.status == "processing" end) do
-          nil -> nil
-          import -> import.word
-        end
+    user_id
+    |> WordImports.pending_imports()
+    |> find_processing_import()
+  end
 
-      _ ->
-        nil
+  defp find_processing_import(imports) when is_list(imports) do
+    case Enum.find(imports, &(&1.status == "processing")) do
+      nil -> nil
+      import -> import.word
     end
   end
+
+  defp find_processing_import(_), do: nil
 
   defp mount_current_scope(socket, session) do
     case session["user_token"] do

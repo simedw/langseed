@@ -40,21 +40,23 @@ defmodule Mix.Tasks.Audio.Backfill do
       Mix.shell().info("✓ All questions have cached audio!")
     else
       Mix.shell().info("Found #{length(questions)} questions needing audio")
-
-      if dry_run do
-        Mix.shell().info("\n[DRY RUN] Would generate audio for:")
-
-        Enum.each(questions, fn {q, lang, sentence} ->
-          created = Calendar.strftime(q.inserted_at, "%Y-%m-%d %H:%M:%S")
-
-          Mix.shell().info(
-            "  - Q#{q.id} (#{lang}) created #{created}: #{String.slice(sentence, 0, 40)}..."
-          )
-        end)
-      else
-        generate_audio_for_questions(questions)
-      end
+      process_questions(questions, dry_run)
     end
+  end
+
+  defp process_questions(questions, true = _dry_run) do
+    Mix.shell().info("\n[DRY RUN] Would generate audio for:")
+    Enum.each(questions, &print_question_info/1)
+  end
+
+  defp process_questions(questions, false = _dry_run) do
+    generate_audio_for_questions(questions)
+  end
+
+  defp print_question_info({q, lang, sentence}) do
+    created = Calendar.strftime(q.inserted_at, "%Y-%m-%d %H:%M:%S")
+    preview = String.slice(sentence, 0, 40)
+    Mix.shell().info("  - Q#{q.id} (#{lang}) created #{created}: #{preview}...")
   end
 
   defp get_questions_needing_audio(lang_filter) do

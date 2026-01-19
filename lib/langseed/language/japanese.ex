@@ -54,21 +54,24 @@ defmodule Langseed.Language.Japanese do
   @spec word_char?(String.t()) :: boolean()
   def word_char?(grapheme) do
     case String.to_charlist(grapheme) do
-      # Hiragana: U+3040–U+309F
-      [codepoint] when codepoint >= 0x3040 and codepoint <= 0x309F -> true
-      # Katakana: U+30A0–U+30FF
-      [codepoint] when codepoint >= 0x30A0 and codepoint <= 0x30FF -> true
-      # CJK Unified Ideographs (Kanji): U+4E00–U+9FFF
-      [codepoint] when codepoint >= 0x4E00 and codepoint <= 0x9FFF -> true
-      # CJK Extension A: U+3400–U+4DBF
-      [codepoint] when codepoint >= 0x3400 and codepoint <= 0x4DBF -> true
-      # Katakana Phonetic Extensions: U+31F0–U+31FF
-      [codepoint] when codepoint >= 0x31F0 and codepoint <= 0x31FF -> true
-      # Halfwidth Katakana: U+FF65–U+FF9F
-      [codepoint] when codepoint >= 0xFF65 and codepoint <= 0xFF9F -> true
+      [codepoint] -> japanese_codepoint?(codepoint)
       _ -> false
     end
   end
+
+  # Hiragana
+  defp japanese_codepoint?(cp) when cp >= 0x3040 and cp <= 0x309F, do: true
+  # Katakana
+  defp japanese_codepoint?(cp) when cp >= 0x30A0 and cp <= 0x30FF, do: true
+  # CJK Kanji
+  defp japanese_codepoint?(cp) when cp >= 0x4E00 and cp <= 0x9FFF, do: true
+  # CJK Ext A
+  defp japanese_codepoint?(cp) when cp >= 0x3400 and cp <= 0x4DBF, do: true
+  # Katakana Ext
+  defp japanese_codepoint?(cp) when cp >= 0x31F0 and cp <= 0x31FF, do: true
+  # Halfwidth Katakana
+  defp japanese_codepoint?(cp) when cp >= 0xFF65 and cp <= 0xFF9F, do: true
+  defp japanese_codepoint?(_), do: false
 
   @doc """
   Checks if a character is a kanji character.

@@ -291,44 +291,46 @@ defmodule LangseedWeb.TextAnalysisLive do
 
   # Render segments to HTML string for the inline editor
   defp render_segments_html(segments, known_words, assigns) do
-    import LangseedWeb.SharedComponents, only: [understanding_color: 1]
-
     segments
-    |> Enum.map(fn segment ->
-      case segment do
-        {:newline, _} ->
-          "<br>"
-
-        {:space, text} ->
-          escape_html(text)
-
-        {:punct, text} ->
-          ~s(<span class="opacity-60">#{escape_html(text)}</span>)
-
-        {:word, word} ->
-          understanding = Map.get(known_words, word)
-          known = understanding != nil
-          selected = MapSet.member?(assigns.selected_words, word)
-
-          if known do
-            color = understanding_color(understanding)
-
-            ~s(<span class="cursor-pointer hover:underline" style="color: #{color}" ) <>
-              ~s(data-word="#{escape_html(word)}" data-action="show">#{escape_html(word)}</span>)
-          else
-            classes =
-              if selected do
-                "cursor-pointer text-primary font-bold underline decoration-2"
-              else
-                "cursor-pointer text-base-content hover:text-primary"
-              end
-
-            ~s(<span class="#{classes}" ) <>
-              ~s(data-word="#{escape_html(word)}" data-action="toggle">#{escape_html(word)}</span>)
-          end
-      end
-    end)
+    |> Enum.map(&render_segment(&1, known_words, assigns))
     |> Enum.join("")
+  end
+
+  defp render_segment({:newline, _}, _known_words, _assigns), do: "<br>"
+  defp render_segment({:space, text}, _known_words, _assigns), do: escape_html(text)
+
+  defp render_segment({:punct, text}, _known_words, _assigns) do
+    ~s(<span class="opacity-60">#{escape_html(text)}</span>)
+  end
+
+  defp render_segment({:word, word}, known_words, assigns) do
+    understanding = Map.get(known_words, word)
+
+    if understanding do
+      render_known_word(word, understanding)
+    else
+      render_unknown_word(word, assigns.selected_words)
+    end
+  end
+
+  defp render_known_word(word, understanding) do
+    import LangseedWeb.SharedComponents, only: [understanding_color: 1]
+    color = understanding_color(understanding)
+
+    ~s(<span class="cursor-pointer hover:underline" style="color: #{color}" ) <>
+      ~s(data-word="#{escape_html(word)}" data-action="show">#{escape_html(word)}</span>)
+  end
+
+  defp render_unknown_word(word, selected_words) do
+    classes =
+      if MapSet.member?(selected_words, word) do
+        "cursor-pointer text-primary font-bold underline decoration-2"
+      else
+        "cursor-pointer text-base-content hover:text-primary"
+      end
+
+    ~s(<span class="#{classes}" ) <>
+      ~s(data-word="#{escape_html(word)}" data-action="toggle">#{escape_html(word)}</span>)
   end
 
   defp escape_html(text) do
@@ -389,7 +391,7 @@ defmodule LangseedWeb.TextAnalysisLive do
     unique_words = words_only |> Enum.uniq()
     known_count = Enum.count(unique_words, &Map.has_key?(assigns.known_words, &1))
     unknown_count = length(unique_words) - known_count
-    has_segments = length(assigns.segments) > 0
+    has_segments = not Enum.empty?(assigns.segments)
 
     assigns =
       assign(assigns,

@@ -14,28 +14,20 @@ defmodule Langseed.Practice.QuestionAudio do
   - Other types: Returns the question text directly
   """
   @spec sentence_for_question(map()) :: String.t()
-  def sentence_for_question(question) do
-    case question.question_type do
-      "yes_no" ->
-        question.question_text
+  def sentence_for_question(%{question_type: "multiple_choice"} = question) do
+    sentence_for_multiple_choice(question)
+  end
 
-      "multiple_choice" ->
-        case parse_correct_index(question.correct_answer) do
-          {:ok, index} when is_list(question.options) ->
-            correct_word = Enum.at(question.options, index)
+  def sentence_for_question(question), do: question.question_text
 
-            if is_binary(correct_word) and correct_word != "" do
-              String.replace(question.question_text, "____", correct_word)
-            else
-              question.question_text
-            end
-
-          _ ->
-            question.question_text
-        end
-
-      _ ->
-        question.question_text
+  defp sentence_for_multiple_choice(question) do
+    with {:ok, index} <- parse_correct_index(question.correct_answer),
+         true <- is_list(question.options),
+         correct_word when is_binary(correct_word) and correct_word != "" <-
+           Enum.at(question.options, index) do
+      String.replace(question.question_text, "____", correct_word)
+    else
+      _ -> question.question_text
     end
   end
 

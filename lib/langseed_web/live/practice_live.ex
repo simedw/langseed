@@ -477,59 +477,55 @@ defmodule LangseedWeb.PracticeLive do
     srs_record = socket.assigns.current_srs
     expected = concept.pinyin
 
-    # Match based on language - use Kana for Japanese, Pinyin for Chinese
-    correct =
-      case concept.language do
-        "ja" -> Kana.match?(input, expected)
-        "zh" -> Pinyin.match?(input, expected)
-        _ -> String.downcase(String.trim(input)) == String.downcase(String.trim(expected))
-      end
-
-    # Record SRS answer
-    socket =
-      if srs_record do
-        case Practice.record_srs_answer(srs_record, correct) do
-          {:ok, _} ->
-            socket
-
-          {:error, changeset} ->
-            Logger.error("Failed to record SRS answer: #{inspect(changeset)}")
-            put_flash(socket, :warning, gettext("Progress not saved"))
-        end
-      else
-        socket
-      end
-
-    # Format feedback based on language
-    feedback =
-      case concept.language do
-        "ja" ->
-          %{
-            correct: correct,
-            expected_normalized: Kana.normalize(expected),
-            expected_display: expected,
-            user_input: Kana.normalize(input)
-          }
-
-        "zh" ->
-          %{
-            correct: correct,
-            expected_numbered: Pinyin.to_numbered(expected),
-            expected_toned: expected,
-            user_input: Pinyin.normalize(input)
-          }
-
-        _ ->
-          %{
-            correct: correct,
-            expected: expected,
-            user_input: input
-          }
-      end
+    correct = check_pinyin_match(input, expected, concept.language)
+    socket = record_srs_if_present(socket, srs_record, correct)
+    feedback = build_pinyin_feedback(input, expected, correct, concept.language)
 
     {:noreply,
      socket
      |> assign(feedback: feedback, user_answer: input, last_concept_id: concept.id)}
+  end
+
+  defp check_pinyin_match(input, expected, "ja"), do: Kana.match?(input, expected)
+  defp check_pinyin_match(input, expected, "zh"), do: Pinyin.match?(input, expected)
+
+  defp check_pinyin_match(input, expected, _language) do
+    String.downcase(String.trim(input)) == String.downcase(String.trim(expected))
+  end
+
+  defp record_srs_if_present(socket, nil, _correct), do: socket
+
+  defp record_srs_if_present(socket, srs_record, correct) do
+    case Practice.record_srs_answer(srs_record, correct) do
+      {:ok, _} ->
+        socket
+
+      {:error, cs} ->
+        Logger.error("Failed to record SRS answer: #{inspect(cs)}")
+        put_flash(socket, :warning, gettext("Progress not saved"))
+    end
+  end
+
+  defp build_pinyin_feedback(input, expected, correct, "ja") do
+    %{
+      correct: correct,
+      expected_normalized: Kana.normalize(expected),
+      expected_display: expected,
+      user_input: Kana.normalize(input)
+    }
+  end
+
+  defp build_pinyin_feedback(input, expected, correct, "zh") do
+    %{
+      correct: correct,
+      expected_numbered: Pinyin.to_numbered(expected),
+      expected_toned: expected,
+      user_input: Pinyin.normalize(input)
+    }
+  end
+
+  defp build_pinyin_feedback(input, expected, correct, _language) do
+    %{correct: correct, expected: expected, user_input: input}
   end
 
   @impl true
