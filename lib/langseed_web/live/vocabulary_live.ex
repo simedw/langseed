@@ -263,16 +263,25 @@ defmodule LangseedWeb.VocabularyLive do
     hsk_level =
       if assigns.concept.language == "zh", do: HSK.lookup(assigns.concept.word), else: nil
 
-    assigns = assign(assigns, :hsk_level, hsk_level)
+    # Quiz is available for words with understanding between 1-60%
+    quiz_available =
+      assigns.concept.understanding >= 1 and assigns.concept.understanding <= 60 and
+        not assigns.concept.paused
+
+    assigns =
+      assigns
+      |> assign(:hsk_level, hsk_level)
+      |> assign(:quiz_available, quiz_available)
 
     ~H"""
     <button
       id={@id}
       class={[
         "px-3 py-2 rounded-lg text-2xl font-bold transition-all hover:scale-105 cursor-pointer relative",
-        @concept.paused && "opacity-50"
+        @concept.paused && "opacity-50",
+        @quiz_available && "quiz-available"
       ]}
-      style={"background-color: #{understanding_color(@concept.understanding)}20; border: 2px solid #{understanding_color(@concept.understanding)}"}
+      style={"background-color: #{understanding_color(@concept.understanding)}20; border: 2px solid #{understanding_color(@concept.understanding)}; --shine-color: #{understanding_color(@concept.understanding)}"}
       phx-click="expand"
       phx-value-id={@concept.id}
     >
