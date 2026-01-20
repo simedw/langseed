@@ -224,7 +224,10 @@ defmodule Langseed.LLM.QuestionGenerator do
     - Create a #{language_name} sentence where "#{concept.word}" fits naturally in the blank
     - Use ONLY #{language_name} words the learner knows. Known words include: #{known_words_sample}
     - Mark the blank with ____
-    - The context should make the correct answer clear
+    - CRITICAL: Only ONE answer must be grammatically AND logically correct. The sentence must provide enough context that the other options are clearly wrong.
+    - Bad example: "____ likes food" with options [he, she, it] - multiple answers work equally well
+    - Good example: "The tall ____ ran quickly" with options [man, apple, idea] - only "man" makes sense logically
+    - The distractors should be the same part of speech but semantically incompatible with the sentence context
 
     The correct answer is: #{concept.word}
     Distractor options (wrong answers): #{distractors}
