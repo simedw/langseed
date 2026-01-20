@@ -247,6 +247,43 @@ defmodule Langseed.Practice do
   def has_practice_ready?(nil), do: false
 
   @doc """
+  Counts the number of practice items due for review.
+  Returns a map with :reviews (due SRS items) and :new_definitions.
+  """
+  def count_due_practice(%Scope{user: user, language: language}) do
+    now = DateTime.utc_now()
+
+    # Count due SRS reviews (tier < 7, not paused, due now)
+    reviews_count =
+      from(srs in ConceptSRS,
+        join: c in Concept,
+        on: srs.concept_id == c.id,
+        where: srs.user_id == ^user.id,
+        where: c.language == ^language,
+        where: c.paused == false,
+        where: srs.tier < 7,
+        where: srs.next_review <= ^now
+      )
+      |> Repo.aggregate(:count)
+
+    # Count new definitions available
+    new_definitions_count =
+      from(c in Concept,
+        left_join: srs in ConceptSRS,
+        on: srs.concept_id == c.id and srs.user_id == ^user.id,
+        where: c.user_id == ^user.id,
+        where: c.language == ^language,
+        where: c.paused == false,
+        where: is_nil(srs.id)
+      )
+      |> Repo.aggregate(:count)
+
+    %{reviews: reviews_count, new_definitions: new_definitions_count}
+  end
+
+  def count_due_practice(nil), do: %{reviews: 0, new_definitions: 0}
+
+  @doc """
   Calculates and updates the cached understanding for a concept.
   """
   def update_concept_understanding(%Concept{} = concept, user_id) do

@@ -52,6 +52,31 @@ defmodule LangseedWeb.PracticeComponents do
   end
 
   @doc """
+  Displays the count of due practice items (reviews and new definitions).
+  """
+  attr :counts, :map, required: true
+  attr :session_new_count, :integer, default: 0
+
+  def due_count_display(assigns) do
+    total = assigns.counts.reviews + assigns.counts.new_definitions
+
+    assigns = assign(assigns, :total, total)
+
+    ~H"""
+    <div class="text-center text-sm opacity-60 mb-4">
+      <%= if @total > 0 do %>
+        <span class="font-medium">{@total}</span> {ngettext("quiz left", "quizzes left", @total)}
+        <span class="text-xs opacity-70">
+          (<%= if @counts.reviews > 0 do %>{@counts.reviews} {gettext("reviews")}<% end %><%= if @counts.reviews > 0 && @counts.new_definitions > 0 do %>, <% end %><%= if @counts.new_definitions > 0 do %>{@counts.new_definitions} {gettext("new")}<% end %>)
+        </span>
+      <% else %>
+        <span>{gettext("All caught up!")}</span>
+      <% end %>
+    </div>
+    """
+  end
+
+  @doc """
   Renders a card for learning a new word definition.
   """
   attr :concept, :map, required: true
