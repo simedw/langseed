@@ -109,3 +109,17 @@
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
+
+/* Shining border animation for quiz-available words */
+@keyframes border-shine {
+  0%, 100% {
+    box-shadow: 0 0 4px var(--shine-color), 0 0 8px var(--shine-color);
+  }
+  50% {
+    box-shadow: 0 0 8px var(--shine-color), 0 0 16px var(--shine-color), 0 0 24px var(--shine-color);
+  }
+}
+
+.quiz-available {
+  animation: border-shine 2s ease-in-out infinite;
+}
