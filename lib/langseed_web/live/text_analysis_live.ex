@@ -582,7 +582,8 @@ defmodule LangseedWeb.TextAnalysisLive do
             this.scheduleUpdate()
           })
 
-          // Word clicks
+          // Word clicks - use mousedown to prevent focus before it happens
+          this.el.addEventListener("mousedown", (e) => this.handleWordMousedown(e))
           this.el.addEventListener("click", (e) => this.handleWordClick(e))
 
           // Handle styled content from server
@@ -643,6 +644,14 @@ defmodule LangseedWeb.TextAnalysisLive do
               this.pushEvent("update_text", { text })
             }
           }, 500)
+        },
+
+        handleWordMousedown(e) {
+          // If clicking on a word, prevent focus from happening
+          const target = e.target.closest("[data-word]")
+          if (target) {
+            e.preventDefault()
+          }
         },
 
         handleWordClick(e) {
