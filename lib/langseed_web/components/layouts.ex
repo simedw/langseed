@@ -52,56 +52,92 @@ defmodule LangseedWeb.Layouts do
     default: nil,
     doc: "the word currently being processed"
 
+  attr :page_title, :string,
+    default: nil,
+    doc: "page title shown on mobile header"
+
+  slot :header_stats, doc: "optional stats shown in mobile header center"
+
   def app(assigns) do
     ~H"""
-    <header class="bg-base-200 border-b border-base-300">
-      <div class="navbar px-4 sm:px-6 lg:px-8">
-        <div class="flex-1">
-          <a href="/vocabulary" class="flex items-center gap-2">
-            <span class="text-2xl">🌱</span>
-            <span class="text-lg font-bold">LangSeed</span>
-          </a>
-        </div>
-        <div class="flex-none flex items-center gap-2">
-          <.word_import_indicator
-            count={@word_import_count}
-            processing={@word_import_processing}
-          />
-          <.language_selector current_scope={@current_scope} />
-          <.theme_toggle />
-          <.audio_toggle />
-        </div>
+    <%!-- Desktop header --%>
+    <header class="hidden md:flex navbar bg-base-200 border-b border-base-300 px-4 sm:px-6 lg:px-8">
+      <div class="navbar-start">
+        <a href="/vocabulary" class="flex items-center gap-2">
+          <span class="text-2xl">🌱</span>
+          <span class="text-lg font-bold">LangSeed</span>
+        </a>
       </div>
-      <div class="flex gap-1 px-4 pb-2">
-        <a href="/vocabulary" class="btn btn-sm btn-ghost">
-          <.icon name="hero-book-open" class="size-4" /> {gettext("Vocabulary")}
-        </a>
-        <a href="/graph" class="btn btn-sm btn-ghost">
-          <.icon name="hero-share" class="size-4" /> {gettext("Graph")}
-        </a>
-        <a href="/analyze" class="btn btn-sm btn-ghost">
-          <.icon name="hero-magnifying-glass" class="size-4" /> {gettext("Analyze")}
-        </a>
-        <a href="/texts" class="btn btn-sm btn-ghost">
-          <.icon name="hero-document-text" class="size-4" /> {gettext("Texts")}
-        </a>
-        <a href="/practice" class="btn btn-sm btn-ghost relative group">
-          <.icon
-            name="hero-academic-cap"
-            class={["size-4", @practice_ready && "animate-pulse text-primary"]}
-          />
-          <span class={[@practice_ready && "animate-pulse text-primary font-semibold"]}>
-            {gettext("Practice")}
-          </span>
-        </a>
+
+      <div class="navbar-center">
+        <ul class="menu menu-horizontal gap-1">
+          <li>
+            <a href="/vocabulary" class="btn btn-ghost btn-sm">
+              <.icon name="hero-book-open" class="size-4" /> {gettext("Vocabulary")}
+            </a>
+          </li>
+          <li>
+            <a href="/graph" class="btn btn-ghost btn-sm">
+              <.icon name="hero-share" class="size-4" /> {gettext("Graph")}
+            </a>
+          </li>
+          <li>
+            <a href="/analyze" class="btn btn-ghost btn-sm">
+              <.icon name="hero-magnifying-glass" class="size-4" /> {gettext("Analyze")}
+            </a>
+          </li>
+          <li>
+            <a href="/texts" class="btn btn-ghost btn-sm">
+              <.icon name="hero-document-text" class="size-4" /> {gettext("Texts")}
+            </a>
+          </li>
+          <li>
+            <a href="/practice" class="btn btn-ghost btn-sm">
+              <.icon
+                name="hero-academic-cap"
+                class={["size-4", @practice_ready && "animate-pulse text-primary"]}
+              />
+              <span class={[@practice_ready && "animate-pulse text-primary font-semibold"]}>
+                {gettext("Practice")}
+              </span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="navbar-end flex items-center gap-2">
+        <.word_import_indicator count={@word_import_count} processing={@word_import_processing} />
+        <.language_selector current_scope={@current_scope} />
+        <.user_dropdown current_scope={@current_scope} />
       </div>
     </header>
 
-    <main class="mx-auto max-w-4xl">
+    <%!-- Mobile header --%>
+    <header class="md:hidden flex items-center justify-between bg-base-200 border-b border-base-300 px-4 py-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <a href="/vocabulary" class="text-xl">🌱</a>
+        <span :if={@page_title} class="font-semibold truncate">{@page_title}</span>
+      </div>
+
+      <div :if={@header_stats != []} class="flex-1 flex justify-center text-sm text-base-content/70">
+        {render_slot(@header_stats)}
+      </div>
+
+      <div class="flex items-center gap-1">
+        <.language_selector current_scope={@current_scope} />
+        <.user_dropdown current_scope={@current_scope} />
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-4xl pb-16 md:pb-0">
       {@inner_content}
     </main>
 
     <.flash_group flash={@flash} />
+
+    <div class="md:hidden">
+      <.bottom_nav practice_ready={@practice_ready} />
+    </div>
     """
   end
 
@@ -112,32 +148,25 @@ defmodule LangseedWeb.Layouts do
 
   def bottom_nav(assigns) do
     ~H"""
-    <nav class="btm-nav btm-nav-md bg-base-200 border-t border-base-300">
-      <.nav_item href="/vocabulary" icon="hero-book-open" label="Vocabulary" />
-      <.nav_item href="/analyze" icon="hero-magnifying-glass" label="Analyze" />
-      <.nav_item
-        href="/practice"
-        icon="hero-academic-cap"
-        label="Practice"
-        indicator={@practice_ready}
-      />
+    <nav class="fixed bottom-0 left-0 right-0 bg-base-200/95 backdrop-blur border-t border-base-300 px-6 py-2 flex justify-around items-center">
+      <a href="/vocabulary" class="flex flex-col items-center gap-0.5 text-base-content/70 hover:text-base-content transition-colors py-1 px-3">
+        <.icon name="hero-book-open" class="size-5" />
+        <span class="text-[10px]">{gettext("Vocabulary")}</span>
+      </a>
+      <a href="/analyze" class="flex flex-col items-center gap-0.5 text-base-content/70 hover:text-base-content transition-colors py-1 px-3">
+        <.icon name="hero-magnifying-glass" class="size-5" />
+        <span class="text-[10px]">{gettext("Analyze")}</span>
+      </a>
+      <a href="/practice" class="flex flex-col items-center gap-0.5 text-base-content/70 hover:text-base-content transition-colors py-1 px-3">
+        <.icon
+          name="hero-academic-cap"
+          class={["size-5", @practice_ready && "animate-pulse text-primary"]}
+        />
+        <span class={["text-[10px]", @practice_ready && "animate-pulse text-primary font-medium"]}>
+          {gettext("Practice")}
+        </span>
+      </a>
     </nav>
-    """
-  end
-
-  attr :href, :string, required: true
-  attr :icon, :string, required: true
-  attr :label, :string, required: true
-  attr :indicator, :boolean, default: false
-
-  defp nav_item(assigns) do
-    ~H"""
-    <a href={@href} class="text-base-content hover:bg-base-300 transition-colors relative">
-      <.icon name={@icon} class={["size-5", @indicator && "animate-pulse text-primary"]} />
-      <span class={["btm-nav-label text-xs", @indicator && "animate-pulse text-primary font-semibold"]}>
-        {@label}
-      </span>
-    </a>
     """
   end
 
@@ -231,6 +260,38 @@ defmodule LangseedWeb.Layouts do
   end
 
   @doc """
+  Language menu for use inside dropdowns (shows all options inline).
+  """
+  attr :current_scope, :map, default: nil
+
+  def language_menu(assigns) do
+    current_language = if assigns.current_scope, do: assigns.current_scope.language, else: "zh"
+
+    assigns =
+      assigns
+      |> assign(:current_language, current_language)
+      |> assign(:languages, @languages)
+
+    ~H"""
+    <div class="flex flex-wrap gap-1">
+      <%= for {code, label, flag} <- @languages do %>
+        <.link
+          href={~p"/language?language=#{code}"}
+          method="put"
+          class={[
+            "btn btn-sm gap-1",
+            if(code == @current_language, do: "btn-primary", else: "btn-ghost")
+          ]}
+        >
+          <span>{flag}</span>
+          <span class="text-xs">{label}</span>
+        </.link>
+      <% end %>
+    </div>
+    """
+  end
+
+  @doc """
   Toggle for audio autoplay. When disabled, audio won't auto-play after quiz answers.
   The preference is stored in localStorage.
   """
@@ -239,7 +300,7 @@ defmodule LangseedWeb.Layouts do
     <button
       id="audio-autoplay-toggle"
       phx-hook="AudioAutoplaySync"
-      class="btn btn-ghost btn-circle btn-xs opacity-60 hover:opacity-100"
+      class="btn btn-ghost btn-sm gap-1"
       phx-click={JS.dispatch("phx:toggle-audio-autoplay")}
       title={gettext("Toggle audio autoplay")}
     >
@@ -252,6 +313,55 @@ defmodule LangseedWeb.Layouts do
         class="size-4 hidden [[data-audio-autoplay=false]_&]:block"
       />
     </button>
+    """
+  end
+
+  @doc """
+  User dropdown with account info and preferences.
+  """
+  attr :current_scope, :map, default: nil
+
+  def user_dropdown(assigns) do
+    ~H"""
+    <div class="dropdown dropdown-end">
+      <div tabindex="0" role="button" class="btn btn-ghost btn-circle">
+        <.icon name="hero-user-circle" class="size-6" />
+      </div>
+      <div
+        tabindex="0"
+        class="dropdown-content bg-base-100 rounded-box z-50 w-64 p-4 shadow-lg border border-base-300 mt-2"
+      >
+        <%= if @current_scope && @current_scope.user do %>
+          <div class="mb-3 pb-3 border-b border-base-300">
+            <p class="text-sm font-medium truncate">{@current_scope.user.email}</p>
+          </div>
+
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm">{gettext("Theme")}</span>
+            <.theme_toggle />
+          </div>
+
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm">{gettext("Audio autoplay")}</span>
+            <.audio_toggle />
+          </div>
+
+          <div class="mb-3 pb-3 border-b border-base-300">
+            <span class="text-sm text-base-content/70 mb-2 block">{gettext("Language")}</span>
+            <.language_menu current_scope={@current_scope} />
+          </div>
+
+          <.link href={~p"/users/log-out"} method="delete" class="btn btn-ghost btn-sm w-full justify-start">
+            <.icon name="hero-arrow-right-on-rectangle" class="size-4" />
+            {gettext("Log out")}
+          </.link>
+        <% else %>
+          <.link href={~p"/auth/google"} class="btn btn-primary btn-sm w-full">
+            Sign in with Google
+          </.link>
+        <% end %>
+      </div>
+    </div>
     """
   end
 
