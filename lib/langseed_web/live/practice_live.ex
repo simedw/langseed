@@ -38,7 +38,11 @@ defmodule LangseedWeb.PracticeLive do
        # Synced from client localStorage - defaults to true until synced
        audio_autoplay: true,
        # Due practice counts
-       due_counts: %{reviews: 0, new_definitions: 0}
+       due_counts: %{reviews: 0, new_definitions: 0},
+       # Word difference modal
+       show_diff_modal: false,
+       diff_explanation: nil,
+       diff_loading: false
      )
      |> load_next_practice()}
   end
@@ -310,6 +314,27 @@ defmodule LangseedWeb.PracticeLive do
     {:noreply, assign(socket, audio_loading: false)}
   end
 
+  # Word difference explanation async handlers
+  @impl true
+  def handle_async(:generate_diff_explanation, {:ok, {:ok, explanation}}, socket) do
+    {:noreply, assign(socket, diff_explanation: explanation, diff_loading: false)}
+  end
+
+  @impl true
+  def handle_async(:generate_diff_explanation, {:ok, {:error, _reason}}, socket) do
+    {:noreply,
+     socket
+     |> assign(diff_loading: false, show_diff_modal: false)
+     |> put_flash(:error, gettext("Failed to generate explanation"))}
+  end
+
+  @impl true
+  def handle_async(:generate_diff_explanation, {:exit, _reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(diff_loading: false, show_diff_modal: false)
+     |> put_flash(:error, gettext("Failed to generate explanation"))}
+
   # ============================================================================
   # EVENT HANDLERS
   # ============================================================================
@@ -514,7 +539,14 @@ defmodule LangseedWeb.PracticeLive do
   def handle_event("next", _, socket) do
     {:noreply,
      socket
-     |> assign(sentence_input: "", feedback: nil, user_answer: nil, audio_url: nil)
+     |> assign(
+       sentence_input: "",
+       feedback: nil,
+       user_answer: nil,
+       audio_url: nil,
+       show_diff_modal: false,
+       diff_explanation: nil
+     )
      |> load_next_practice()}
   end
 
@@ -554,6 +586,39 @@ defmodule LangseedWeb.PracticeLive do
   @impl true
   def handle_event("switch_to_sentence", _, socket) do
     {:noreply, assign(socket, mode: :sentence_writing)}
+  end
+
+  # Word difference explanation handlers
+  @impl true
+  def handle_event("explain_difference", _, socket) do
+    scope = current_scope(socket)
+    question = socket.assigns.question
+    feedback = socket.assigns.feedback
+
+    correct_word = feedback.correct_answer
+    selected_index = feedback.selected_index
+    wrong_word = Enum.at(question.options, selected_index)
+
+    {:noreply,
+     socket
+     |> assign(show_diff_modal: true, diff_loading: true, diff_explanation: nil)
+     |> start_async(:generate_diff_explanation, fn ->
+       known_words = Vocabulary.known_words(scope)
+       language = socket.assigns.current_concept.language
+
+       Langseed.LLM.QuestionGenerator.generate_word_difference(
+         scope.user.id,
+         correct_word,
+         wrong_word,
+         known_words,
+         language
+       )
+     end)}
+  end
+
+  @impl true
+  def handle_event("dismiss_diff_modal", _, socket) do
+    {:noreply, assign(socket, show_diff_modal: false, diff_explanation: nil)}
   end
 
   # Desired word handlers
@@ -695,6 +760,9 @@ defmodule LangseedWeb.PracticeLive do
               user_answer={@user_answer}
               audio_url={@audio_url}
               audio_loading={@audio_loading}
+              show_diff_modal={@show_diff_modal}
+              diff_loading={@diff_loading}
+              diff_explanation={@diff_explanation}
             />
           <% :pinyin_quiz -> %>
             <.pinyin_quiz_card

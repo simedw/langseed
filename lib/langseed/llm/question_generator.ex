@@ -289,4 +289,43 @@ defmodule Langseed.LLM.QuestionGenerator do
     ⚠️ RETRY: #{word_warning}Use ONLY words from the learner's vocabulary.
     """
   end
+
+  @doc """
+  Generates an explanation of the difference between two words (e.g., when user picks wrong answer).
+  Uses only vocabulary the learner knows.
+  Returns {:ok, explanation_string} or {:error, reason}
+  """
+  @spec generate_word_difference(integer() | nil, String.t(), String.t(), MapSet.t(), String.t()) ::
+          {:ok, String.t()} | {:error, String.t()}
+  def generate_word_difference(user_id, correct_word, wrong_word, known_words, language \\ "zh") do
+    language_name = language_name(language)
+
+    known_words_sample =
+      known_words
+      |> MapSet.to_list()
+      |> Enum.take(50)
+      |> Enum.join(" ")
+
+    prompt = """
+    The learner confused "#{wrong_word}" with "#{correct_word}" in #{language_name}.
+    Explain the difference between these two words clearly and concisely.
+
+    RULES:
+    - Write the explanation in #{language_name} using only words the learner knows
+    - Known words include: #{known_words_sample}
+    - You can also use: #{correct_word}, #{wrong_word}
+    - Keep it short (2-3 sentences max)
+    - Focus on the key difference that would help them remember
+    - Use simple comparisons or examples
+
+    Respond ONLY with JSON (no markdown):
+    {"explanation": "your #{language_name} explanation here"}
+    """
+
+    case call_llm(prompt, user_id, "word_difference") do
+      {:ok, %{"explanation" => explanation}} -> {:ok, explanation}
+      {:ok, _} -> {:error, "Invalid response format"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 end

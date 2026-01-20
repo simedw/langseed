@@ -161,6 +161,53 @@ defmodule LangseedWeb.PracticeComponents do
   end
 
   @doc """
+  Renders a modal showing the difference explanation between two confused words.
+  """
+  attr :show, :boolean, default: false
+  attr :loading, :boolean, default: false
+  attr :explanation, :string, default: nil
+
+  def diff_explanation_modal(assigns) do
+    ~H"""
+    <%= if @show do %>
+      <div class="fixed inset-0 z-50 flex items-center justify-center">
+        <%!-- Backdrop --%>
+        <div
+          class="absolute inset-0 bg-black/50"
+          phx-click="dismiss_diff_modal"
+        >
+        </div>
+        <%!-- Modal content --%>
+        <div class="relative bg-base-100 rounded-lg shadow-xl max-w-sm mx-4 p-6">
+          <button
+            class="btn btn-ghost btn-sm btn-circle absolute right-2 top-2"
+            phx-click="dismiss_diff_modal"
+          >
+            <.icon name="hero-x-mark" class="size-5" />
+          </button>
+
+          <h3 class="font-bold text-lg mb-4">{gettext("What's the difference?")}</h3>
+
+          <%= if @loading do %>
+            <div class="flex items-center justify-center py-8">
+              <span class="loading loading-spinner loading-lg"></span>
+            </div>
+          <% else %>
+            <p class="text-lg leading-relaxed">{@explanation}</p>
+          <% end %>
+
+          <div class="mt-6">
+            <button class="btn btn-primary w-full" phx-click="dismiss_diff_modal">
+              {gettext("Got it")}
+            </button>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
+  @doc """
   Renders a quiz card with yes/no or fill-in-the-blank questions.
   """
   attr :concept, :map, required: true
@@ -169,6 +216,9 @@ defmodule LangseedWeb.PracticeComponents do
   attr :user_answer, :any, default: nil
   attr :audio_url, :string, default: nil
   attr :audio_loading, :boolean, default: false
+  attr :show_diff_modal, :boolean, default: false
+  attr :diff_loading, :boolean, default: false
+  attr :diff_explanation, :string, default: nil
 
   def quiz_card(assigns) do
     ~H"""
@@ -216,6 +266,12 @@ defmodule LangseedWeb.PracticeComponents do
         <% end %>
       </div>
     </div>
+
+    <.diff_explanation_modal
+      show={@show_diff_modal}
+      loading={@diff_loading}
+      explanation={@diff_explanation}
+    />
     """
   end
 
@@ -360,11 +416,22 @@ defmodule LangseedWeb.PracticeComponents do
       <%= if @feedback do %>
         <div class={"alert #{if @feedback.correct, do: "alert-success", else: "alert-error"} mt-4"}>
           <span class="text-2xl">{if @feedback.correct, do: "✅", else: "❌"}</span>
-          <p class="font-bold">
-            {if @feedback.correct,
-              do: gettext("Correct!"),
-              else: gettext("Correct answer: %{answer}", answer: @feedback.correct_answer)}
-          </p>
+          <div class="flex-1">
+            <p class="font-bold">
+              {if @feedback.correct,
+                do: gettext("Correct!"),
+                else: gettext("Correct answer: %{answer}", answer: @feedback.correct_answer)}
+            </p>
+            <%= if !@feedback.correct do %>
+              <button
+                class="btn btn-ghost btn-xs mt-2"
+                phx-click="explain_difference"
+              >
+                <.icon name="hero-question-mark-circle" class="size-4" />
+                {gettext("Why?")}
+              </button>
+            <% end %>
+          </div>
         </div>
       <% end %>
     </div>
