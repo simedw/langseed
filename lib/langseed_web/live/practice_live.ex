@@ -36,7 +36,9 @@ defmodule LangseedWeb.PracticeLive do
        audio_url: nil,
        audio_loading: false,
        # Synced from client localStorage - defaults to true until synced
-       audio_autoplay: true
+       audio_autoplay: true,
+       # Due practice counts
+       due_counts: %{reviews: 0, new_definitions: 0}
      )
      |> load_next_practice()}
   end
@@ -65,9 +67,13 @@ defmodule LangseedWeb.PracticeLive do
           setup_srs_practice(socket, scope, srs_record)
       end
 
-    # Update practice_ready indicator in layout
+    # Update practice_ready indicator in layout and refresh due counts
     practice_ready = Practice.has_practice_ready?(scope)
-    assign(result, :practice_ready, practice_ready)
+    due_counts = Practice.count_due_practice(scope)
+
+    result
+    |> assign(:practice_ready, practice_ready)
+    |> assign(:due_counts, due_counts)
   end
 
   defp setup_definition_mode(socket, concept) do
@@ -664,7 +670,9 @@ defmodule LangseedWeb.PracticeLive do
     ~H"""
     <div class="min-h-screen pb-20">
       <div class="p-4 max-w-lg mx-auto">
-        <h1 class="text-2xl font-bold mb-6 text-center">{gettext("Practice")}</h1>
+        <h1 class="text-2xl font-bold mb-2 text-center">{gettext("Practice")}</h1>
+
+        <.due_count_display counts={@due_counts} session_new_count={@session_new_count} />
 
         <%= case @mode do %>
           <% :no_words -> %>
