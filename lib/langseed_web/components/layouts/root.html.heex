@@ -51,24 +51,6 @@
     </script>
   </head>
   <body>
-    <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-      <%= if @current_scope && @current_scope.user do %>
-        <li class="text-sm opacity-70">
-          {@current_scope.user.email}
-        </li>
-        <li>
-          <.link href={~p"/users/log-out"} method="delete" class="btn btn-ghost btn-sm">
-            Log out
-          </.link>
-        </li>
-      <% else %>
-        <li>
-          <.link href={~p"/auth/google"} class="btn btn-primary btn-sm">
-            Sign in with Google
-          </.link>
-        </li>
-      <% end %>
-    </ul>
     {@inner_content}
   </body>
 </html>
