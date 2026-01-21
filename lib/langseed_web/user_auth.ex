@@ -35,8 +35,9 @@ defmodule LangseedWeb.UserAuth do
       # Subscribe to word import updates
       WordImports.subscribe(scope.user.id)
 
-      # Check if there are practice items ready
-      practice_ready = Practice.has_practice_ready?(scope)
+      # Get practice count (reviews + new definitions)
+      practice_counts = Practice.count_due_practice(scope)
+      practice_count = practice_counts.reviews + practice_counts.new_definitions
 
       # Get word import count
       word_import_count = WordImports.pending_count(scope.user.id)
@@ -47,9 +48,16 @@ defmodule LangseedWeb.UserAuth do
         Process.send_after(self(), :check_practice_ready, 30_000)
       end
 
+      # Attach hook to capture current path from handle_params
+      socket =
+        Phoenix.LiveView.attach_hook(socket, :current_path, :handle_params, fn _params, uri, socket ->
+          {:cont, Phoenix.Component.assign(socket, :current_path, URI.parse(uri).path)}
+        end)
+
       {:cont,
        socket
-       |> Phoenix.Component.assign(:practice_ready, practice_ready)
+       |> Phoenix.Component.assign(:practice_count, practice_count)
+       |> Phoenix.Component.assign(:current_path, "/")
        |> Phoenix.Component.assign(:word_import_count, word_import_count)
        |> Phoenix.Component.assign(:word_import_processing, word_import_processing)}
     else

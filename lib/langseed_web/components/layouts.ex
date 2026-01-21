@@ -40,9 +40,13 @@ defmodule LangseedWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
-  attr :practice_ready, :boolean,
-    default: false,
-    doc: "whether there are practice items ready"
+  attr :practice_count, :integer,
+    default: 0,
+    doc: "number of practice items ready"
+
+  attr :current_path, :string,
+    default: "/",
+    doc: "current page path for active tab indication"
 
   attr :word_import_count, :integer,
     default: 0,
@@ -72,34 +76,34 @@ defmodule LangseedWeb.Layouts do
       <div class="navbar-center">
         <ul class="menu menu-horizontal gap-1">
           <li>
-            <a href="/vocabulary" class="btn btn-ghost btn-sm">
+            <a href="/vocabulary" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/vocabulary") && "btn-active"]}>
               <.icon name="hero-book-open" class="size-4" /> {gettext("Vocabulary")}
             </a>
           </li>
           <li>
-            <a href="/graph" class="btn btn-ghost btn-sm">
+            <a href="/graph" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/graph") && "btn-active"]}>
               <.icon name="hero-share" class="size-4" /> {gettext("Graph")}
             </a>
           </li>
           <li>
-            <a href="/analyze" class="btn btn-ghost btn-sm">
+            <a href="/analyze" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/analyze") && "btn-active"]}>
               <.icon name="hero-magnifying-glass" class="size-4" /> {gettext("Analyze")}
             </a>
           </li>
           <li>
-            <a href="/texts" class="btn btn-ghost btn-sm">
+            <a href="/texts" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/texts") && "btn-active"]}>
               <.icon name="hero-document-text" class="size-4" /> {gettext("Texts")}
             </a>
           </li>
           <li>
-            <a href="/practice" class="btn btn-ghost btn-sm">
-              <.icon
-                name="hero-academic-cap"
-                class={["size-4", @practice_ready && "animate-pulse text-primary"]}
-              />
-              <span class={[@practice_ready && "animate-pulse text-primary font-semibold"]}>
-                {gettext("Practice")}
+            <a href="/practice" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/practice") && "btn-active"]}>
+              <span class="relative inline-flex">
+                <.icon name="hero-academic-cap" class="size-4" />
+                <span :if={@practice_count > 0} class="absolute -top-1.5 -right-2.5 badge badge-primary badge-xs min-w-[1.25rem]">
+                  {if @practice_count > 99, do: "99+", else: @practice_count}
+                </span>
               </span>
+              <span>{gettext("Practice")}</span>
             </a>
           </li>
         </ul>
@@ -136,7 +140,7 @@ defmodule LangseedWeb.Layouts do
     <.flash_group flash={@flash} />
 
     <div class="md:hidden">
-      <.bottom_nav practice_ready={@practice_ready} />
+      <.bottom_nav practice_count={@practice_count} current_path={@current_path} />
     </div>
     """
   end
@@ -144,27 +148,46 @@ defmodule LangseedWeb.Layouts do
   @doc """
   Mobile-friendly bottom navigation bar.
   """
-  attr :practice_ready, :boolean, default: false
+  attr :practice_count, :integer, default: 0
+  attr :current_path, :string, default: "/"
 
   def bottom_nav(assigns) do
     ~H"""
     <nav class="fixed bottom-0 left-0 right-0 bg-base-200/95 backdrop-blur border-t border-base-300 px-6 py-2 flex justify-around items-center">
-      <a href="/vocabulary" class="flex flex-col items-center gap-0.5 text-base-content/70 hover:text-base-content transition-colors py-1 px-3">
+      <a
+        href="/vocabulary"
+        class={[
+          "flex flex-col items-center gap-0.5 py-1 px-3 transition-colors",
+          if(String.starts_with?(@current_path, "/vocabulary"), do: "text-primary", else: "text-base-content/70 hover:text-base-content")
+        ]}
+      >
         <.icon name="hero-book-open" class="size-5" />
         <span class="text-[10px]">{gettext("Vocabulary")}</span>
       </a>
-      <a href="/analyze" class="flex flex-col items-center gap-0.5 text-base-content/70 hover:text-base-content transition-colors py-1 px-3">
+      <a
+        href="/analyze"
+        class={[
+          "flex flex-col items-center gap-0.5 py-1 px-3 transition-colors",
+          if(String.starts_with?(@current_path, "/analyze"), do: "text-primary", else: "text-base-content/70 hover:text-base-content")
+        ]}
+      >
         <.icon name="hero-magnifying-glass" class="size-5" />
         <span class="text-[10px]">{gettext("Analyze")}</span>
       </a>
-      <a href="/practice" class="flex flex-col items-center gap-0.5 text-base-content/70 hover:text-base-content transition-colors py-1 px-3">
-        <.icon
-          name="hero-academic-cap"
-          class={["size-5", @practice_ready && "animate-pulse text-primary"]}
-        />
-        <span class={["text-[10px]", @practice_ready && "animate-pulse text-primary font-medium"]}>
-          {gettext("Practice")}
+      <a
+        href="/practice"
+        class={[
+          "flex flex-col items-center gap-0.5 py-1 px-3 transition-colors",
+          if(String.starts_with?(@current_path, "/practice"), do: "text-primary", else: "text-base-content/70 hover:text-base-content")
+        ]}
+      >
+        <span class="relative inline-flex">
+          <.icon name="hero-academic-cap" class="size-5" />
+          <span :if={@practice_count > 0} class="absolute -top-1 -right-2 badge badge-primary badge-xs text-[8px] min-w-[1rem] h-4">
+            {if @practice_count > 99, do: "99+", else: @practice_count}
+          </span>
         </span>
+        <span class="text-[10px]">{gettext("Practice")}</span>
       </a>
     </nav>
     """

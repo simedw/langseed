@@ -193,12 +193,12 @@ defmodule LangseedWeb.VocabularyLive do
     # Schedule next check
     Process.send_after(self(), :check_practice_ready, 30_000)
 
-    {:noreply, update_practice_ready(socket)}
+    {:noreply, update_practice_count(socket)}
   end
 
   @impl true
   def handle_info({:practice_updated, _data}, socket) do
-    {:noreply, update_practice_ready(socket)}
+    {:noreply, update_practice_count(socket)}
   end
 
   # ============================================================================
