@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "setup": "cp $CONDUCTOR_ROOT_PATH/.env . && mix deps.get && mix ecto.setup",
+    "run": "PORT=$CONDUCTOR_PORT mix phx.server",
+    "archive": ""
+  }
+}
+
