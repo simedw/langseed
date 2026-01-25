@@ -529,7 +529,7 @@ defmodule LangseedWeb.TextAnalysisLive do
 
         <%!-- Bottom Action Bar --%>
         <%= if MapSet.size(@selected_words) > 0 do %>
-          <div class="fixed bottom-0 left-0 right-0 p-4 bg-base-200 border-t border-base-300">
+          <div class="fixed bottom-16 md:bottom-0 left-0 right-0 p-4 bg-base-200 border-t border-base-300">
             <div class="flex gap-2">
               <button
                 class="btn btn-success flex-1"
