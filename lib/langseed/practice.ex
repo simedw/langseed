@@ -105,9 +105,11 @@ defmodule Langseed.Practice do
         base_query
       end
 
-    # Priority 1: SRS with pre-generated questions
-    srs_with_question =
-      cooldown_query
+    # Only return SRS items that have pre-generated questions ready
+    # (or question types that don't need pre-generation like pinyin).
+    # Never make users wait for question generation when other questions are available.
+    question_ready_filter = fn query ->
+      query
       |> where(
         [srs],
         srs.question_type in @questions_without_pregeneration or
@@ -123,13 +125,13 @@ defmodule Langseed.Practice do
       |> order_by([srs], asc: srs.next_review)
       |> limit(1)
       |> Repo.one()
+    end
 
-    # Priority 2: Any due SRS from cooldown set
-    # Priority 3: Allow same concept if cooldown blocked everything
-    srs_with_question ||
-      cooldown_query |> order_by([srs], asc: srs.next_review) |> limit(1) |> Repo.one() ||
+    # Priority 1: Due SRS with ready questions (excluding last concept for cooldown)
+    # Priority 2: Allow same concept if cooldown blocked everything
+    question_ready_filter.(cooldown_query) ||
       if last_concept_id do
-        base_query |> order_by([srs], asc: srs.next_review) |> limit(1) |> Repo.one()
+        question_ready_filter.(base_query)
       else
         nil
       end
@@ -253,16 +255,29 @@ defmodule Langseed.Practice do
   def count_due_practice(%Scope{user: user, language: language}) do
     now = DateTime.utc_now()
 
-    # Count due SRS reviews (tier < 7, not paused, due now)
+    # Count due SRS reviews that have pre-generated questions ready
+    # (or question types that don't need pre-generation like pinyin).
+    # Only count items users can practice immediately without waiting.
     reviews_count =
       from(srs in ConceptSRS,
+        as: :srs,
         join: c in Concept,
         on: srs.concept_id == c.id,
         where: srs.user_id == ^user.id,
         where: c.language == ^language,
         where: c.paused == false,
         where: srs.tier < 7,
-        where: srs.next_review <= ^now
+        where: srs.next_review <= ^now,
+        where:
+          srs.question_type in @questions_without_pregeneration or
+            exists(
+              from(q in Question,
+                where: q.concept_id == parent_as(:srs).concept_id,
+                where: q.question_type == parent_as(:srs).question_type,
+                where: q.user_id == ^user.id,
+                where: is_nil(q.used_at)
+              )
+            )
       )
       |> Repo.aggregate(:count)
 
