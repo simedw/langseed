@@ -3,11 +3,14 @@ defmodule Langseed.LLM.QuestionGenerator do
   Generates practice questions (yes/no and fill-in-the-blank) using LLM.
   """
 
+  require Logger
+
   alias Langseed.Language
   alias Langseed.LLM.Client
   alias Langseed.Vocabulary.Concept
 
   @max_retries 3
+  @validation_model "gemini-2.5-flash"
 
   @type yes_no_result :: %{
           question: String.t(),
@@ -185,7 +188,8 @@ defmodule Langseed.LLM.QuestionGenerator do
     with {:ok, data} <- call_llm(prompt, user_id, "fill_blank_question"),
          {:ok, result} <- parse_fill_blank(data),
          sentence_text = String.replace(result.sentence, "____", ""),
-         :ok <- validate_words(sentence_text, allowed_words, language) do
+         :ok <- validate_words(sentence_text, allowed_words, language),
+         :ok <- validate_single_correct_answer(result, user_id, language) do
       {:ok, result}
     else
       {:invalid_words, illegal} ->
@@ -197,6 +201,19 @@ defmodule Langseed.LLM.QuestionGenerator do
           distractor_words,
           language,
           illegal,
+          attempts - 1
+        )
+
+      {:ambiguous_options, valid_options} ->
+        # Multiple valid answers detected - retry with feedback
+        generate_fill_blank_with_retry(
+          user_id,
+          concept,
+          known_words,
+          allowed_words,
+          distractor_words,
+          language,
+          [{:ambiguous, valid_options} | previous_illegal],
           attempts - 1
         )
 
@@ -260,6 +277,78 @@ defmodule Langseed.LLM.QuestionGenerator do
     |> Client.parse_json()
   end
 
+  defp validate_single_correct_answer(result, user_id, language) do
+    prompt = build_validation_prompt(result, language)
+    num_options = length(result.options)
+
+    case call_validation_llm(prompt, user_id) do
+      {:ok, %{"valid_options" => valid_indices}} when is_list(valid_indices) ->
+        # Filter out any out-of-bounds indices to prevent nil values
+        valid_indices = Enum.filter(valid_indices, &(&1 >= 0 and &1 < num_options))
+
+        case length(valid_indices) do
+          0 ->
+            # No valid options found - unusual, but let it pass to avoid blocking
+            Logger.warning("Validation returned no valid options for question: #{result.sentence}")
+            :ok
+
+          1 ->
+            :ok
+
+          _ ->
+            # Multiple valid options found - return which ones
+            valid_options = Enum.map(valid_indices, &Enum.at(result.options, &1))
+            {:ambiguous_options, valid_options}
+        end
+
+      {:ok, response} ->
+        # Unexpected format - assume it's okay to avoid blocking
+        Logger.warning("Unexpected validation response format: #{inspect(response)}")
+        :ok
+
+      {:error, reason} ->
+        # Validation failed - assume it's okay to avoid blocking
+        Logger.warning("Answer validation failed: #{inspect(reason)}")
+        :ok
+    end
+  end
+
+  defp build_validation_prompt(result, language) do
+    language_name = language_name(language)
+
+    options_list =
+      result.options
+      |> Enum.with_index()
+      |> Enum.map(fn {opt, idx} -> "#{idx}: #{opt}" end)
+      |> Enum.join("\n")
+
+    """
+    You are validating a #{language_name} fill-in-the-blank question.
+
+    Sentence: #{result.sentence}
+
+    Options:
+    #{options_list}
+
+    Which options would be grammatically AND semantically correct when placed in the blank?
+
+    Return ONLY a JSON object with an array of valid option indices (0-3):
+    {"valid_options": [0]}  // if only option 0 is correct
+    {"valid_options": [0, 2]}  // if options 0 and 2 are both valid
+
+    Be strict: an option is valid ONLY if:
+    1. It is grammatically correct in the sentence
+    2. It makes logical/semantic sense in the context
+    """
+  end
+
+  defp call_validation_llm(prompt, user_id) do
+    prompt
+    |> Client.generate(@validation_model)
+    |> Client.track_usage(user_id, "answer_validation")
+    |> Client.parse_json()
+  end
+
   defp validate_words(text, allowed_words, language) do
     case Language.find_unknown_words(text, allowed_words, language) do
       [] -> :ok
@@ -275,7 +364,12 @@ defmodule Langseed.LLM.QuestionGenerator do
   defp build_retry_feedback([]), do: ""
 
   defp build_retry_feedback(previous_illegal) do
-    illegal_words = previous_illegal
+    # Separate ambiguous options from illegal words
+    {ambiguous_items, illegal_words} =
+      Enum.split_with(previous_illegal, fn
+        {:ambiguous, _} -> true
+        _ -> false
+      end)
 
     word_warning =
       if Enum.empty?(illegal_words) do
@@ -284,9 +378,18 @@ defmodule Langseed.LLM.QuestionGenerator do
         "You used these UNKNOWN WORDS: #{Enum.join(illegal_words, ", ")}. The learner does not know these words! "
       end
 
+    ambiguous_warning =
+      case ambiguous_items do
+        [{:ambiguous, valid_options} | _] ->
+          "PROBLEM: Multiple options are valid answers: #{Enum.join(valid_options, ", ")}. Create a sentence with MORE CONTEXT so only ONE answer is correct. "
+
+        [] ->
+          ""
+      end
+
     """
 
-    ⚠️ RETRY: #{word_warning}Use ONLY words from the learner's vocabulary.
+    ⚠️ RETRY: #{word_warning}#{ambiguous_warning}Use ONLY words from the learner's vocabulary.
     """
   end
 end

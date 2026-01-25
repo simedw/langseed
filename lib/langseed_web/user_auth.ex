@@ -50,7 +50,9 @@ defmodule LangseedWeb.UserAuth do
 
       # Attach hook to capture current path from handle_params
       socket =
-        Phoenix.LiveView.attach_hook(socket, :current_path, :handle_params, fn _params, uri, socket ->
+        Phoenix.LiveView.attach_hook(socket, :current_path, :handle_params, fn _params,
+                                                                               uri,
+                                                                               socket ->
           {:cont, Phoenix.Component.assign(socket, :current_path, URI.parse(uri).path)}
         end)
 

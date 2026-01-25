@@ -9,7 +9,7 @@ defmodule LangseedWeb.LandingLiveTest do
 
       assert html =~ "LangSeed"
       assert html =~ "Grow your vocabulary"
-      assert html =~ "Sign in with Google"
+      assert html =~ "Get Started Free"
       assert html =~ "Chinese"
       assert html =~ "Swedish"
     end

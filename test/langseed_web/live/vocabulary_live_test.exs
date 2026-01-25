@@ -34,7 +34,7 @@ defmodule LangseedWeb.VocabularyLiveTest do
       refute html =~ "还没有词汇"
 
       # Concepts should be sorted by understanding (descending), then word
-      buttons = view |> element("div.flex.flex-wrap") |> render()
+      buttons = view |> element("#concepts") |> render()
       assert buttons =~ "再见"
       assert buttons =~ "你好"
     end
