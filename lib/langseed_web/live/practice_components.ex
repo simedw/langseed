@@ -67,7 +67,15 @@ defmodule LangseedWeb.PracticeComponents do
       <%= if @total > 0 do %>
         <span class="font-medium">{@total}</span> {ngettext("quiz left", "quizzes left", @total)}
         <span class="text-xs opacity-70">
-          (<%= if @counts.reviews > 0 do %>{@counts.reviews} {gettext("reviews")}<% end %><%= if @counts.reviews > 0 && @counts.new_definitions > 0 do %>, <% end %><%= if @counts.new_definitions > 0 do %>{@counts.new_definitions} {gettext("new")}<% end %>)
+          (<%= if @counts.reviews > 0 do %>
+            {@counts.reviews} {gettext("reviews")}
+          <% end %>
+          <%= if @counts.reviews > 0 && @counts.new_definitions > 0 do %>
+            ,
+          <% end %>
+          <%= if @counts.new_definitions > 0 do %>
+            {@counts.new_definitions} {gettext("new")}
+          <% end %>)
         </span>
       <% else %>
         <span>{gettext("All caught up!")}</span>

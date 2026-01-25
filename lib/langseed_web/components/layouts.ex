@@ -76,30 +76,63 @@ defmodule LangseedWeb.Layouts do
       <div class="navbar-center">
         <ul class="menu menu-horizontal gap-1">
           <li>
-            <a href="/vocabulary" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/vocabulary") && "btn-active"]}>
+            <a
+              href="/vocabulary"
+              class={[
+                "btn btn-ghost btn-sm",
+                String.starts_with?(@current_path, "/vocabulary") && "btn-active"
+              ]}
+            >
               <.icon name="hero-book-open" class="size-4" /> {gettext("Vocabulary")}
             </a>
           </li>
           <li>
-            <a href="/graph" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/graph") && "btn-active"]}>
+            <a
+              href="/graph"
+              class={[
+                "btn btn-ghost btn-sm",
+                String.starts_with?(@current_path, "/graph") && "btn-active"
+              ]}
+            >
               <.icon name="hero-share" class="size-4" /> {gettext("Graph")}
             </a>
           </li>
           <li>
-            <a href="/analyze" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/analyze") && "btn-active"]}>
+            <a
+              href="/analyze"
+              class={[
+                "btn btn-ghost btn-sm",
+                String.starts_with?(@current_path, "/analyze") && "btn-active"
+              ]}
+            >
               <.icon name="hero-magnifying-glass" class="size-4" /> {gettext("Analyze")}
             </a>
           </li>
           <li>
-            <a href="/texts" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/texts") && "btn-active"]}>
+            <a
+              href="/texts"
+              class={[
+                "btn btn-ghost btn-sm",
+                String.starts_with?(@current_path, "/texts") && "btn-active"
+              ]}
+            >
               <.icon name="hero-document-text" class="size-4" /> {gettext("Texts")}
             </a>
           </li>
           <li>
-            <a href="/practice" class={["btn btn-ghost btn-sm", String.starts_with?(@current_path, "/practice") && "btn-active"]}>
+            <a
+              href="/practice"
+              class={[
+                "btn btn-ghost btn-sm",
+                String.starts_with?(@current_path, "/practice") && "btn-active"
+              ]}
+            >
               <span class="relative inline-flex">
                 <.icon name="hero-academic-cap" class="size-4" />
-                <span :if={@practice_count > 0} class="absolute -top-1.5 -right-2.5 badge badge-primary badge-xs min-w-[1.25rem]">
+                <span
+                  :if={@practice_count > 0}
+                  class="absolute -top-1.5 -right-2.5 badge badge-primary badge-xs min-w-[1.25rem]"
+                >
                   {if @practice_count > 99, do: "99+", else: @practice_count}
                 </span>
               </span>
@@ -112,7 +145,7 @@ defmodule LangseedWeb.Layouts do
       <div class="navbar-end flex items-center gap-2">
         <.word_import_indicator count={@word_import_count} processing={@word_import_processing} />
         <.language_selector current_scope={@current_scope} />
-        <.user_dropdown current_scope={@current_scope} />
+        <.user_dropdown current_scope={@current_scope} id="desktop-user-dropdown" />
       </div>
     </header>
 
@@ -129,7 +162,7 @@ defmodule LangseedWeb.Layouts do
 
       <div class="flex items-center gap-1">
         <.language_selector current_scope={@current_scope} />
-        <.user_dropdown current_scope={@current_scope} />
+        <.user_dropdown current_scope={@current_scope} id="mobile-user-dropdown" />
       </div>
     </header>
 
@@ -158,7 +191,10 @@ defmodule LangseedWeb.Layouts do
         href="/vocabulary"
         class={[
           "flex flex-col items-center gap-0.5 py-1 px-3 transition-colors",
-          if(String.starts_with?(@current_path, "/vocabulary"), do: "text-primary", else: "text-base-content/70 hover:text-base-content")
+          if(String.starts_with?(@current_path, "/vocabulary"),
+            do: "text-primary",
+            else: "text-base-content/70 hover:text-base-content"
+          )
         ]}
       >
         <.icon name="hero-book-open" class="size-5" />
@@ -168,7 +204,10 @@ defmodule LangseedWeb.Layouts do
         href="/analyze"
         class={[
           "flex flex-col items-center gap-0.5 py-1 px-3 transition-colors",
-          if(String.starts_with?(@current_path, "/analyze"), do: "text-primary", else: "text-base-content/70 hover:text-base-content")
+          if(String.starts_with?(@current_path, "/analyze"),
+            do: "text-primary",
+            else: "text-base-content/70 hover:text-base-content"
+          )
         ]}
       >
         <.icon name="hero-magnifying-glass" class="size-5" />
@@ -178,12 +217,18 @@ defmodule LangseedWeb.Layouts do
         href="/practice"
         class={[
           "flex flex-col items-center gap-0.5 py-1 px-3 transition-colors",
-          if(String.starts_with?(@current_path, "/practice"), do: "text-primary", else: "text-base-content/70 hover:text-base-content")
+          if(String.starts_with?(@current_path, "/practice"),
+            do: "text-primary",
+            else: "text-base-content/70 hover:text-base-content"
+          )
         ]}
       >
         <span class="relative inline-flex">
           <.icon name="hero-academic-cap" class="size-5" />
-          <span :if={@practice_count > 0} class="absolute -top-1 -right-2 badge badge-primary badge-xs text-[8px] min-w-[1rem] h-4">
+          <span
+            :if={@practice_count > 0}
+            class="absolute -top-1 -right-2 badge badge-primary badge-xs text-[8px] min-w-[1rem] h-4"
+          >
             {if @practice_count > 99, do: "99+", else: @practice_count}
           </span>
         </span>
@@ -318,10 +363,12 @@ defmodule LangseedWeb.Layouts do
   Toggle for audio autoplay. When disabled, audio won't auto-play after quiz answers.
   The preference is stored in localStorage.
   """
+  attr :id, :string, default: "audio-autoplay-toggle"
+
   def audio_toggle(assigns) do
     ~H"""
     <button
-      id="audio-autoplay-toggle"
+      id={@id}
       phx-hook="AudioAutoplaySync"
       class="btn btn-ghost btn-sm gap-1"
       phx-click={JS.dispatch("phx:toggle-audio-autoplay")}
@@ -343,6 +390,7 @@ defmodule LangseedWeb.Layouts do
   User dropdown with account info and preferences.
   """
   attr :current_scope, :map, default: nil
+  attr :id, :string, default: "user-dropdown"
 
   def user_dropdown(assigns) do
     ~H"""
@@ -366,7 +414,7 @@ defmodule LangseedWeb.Layouts do
 
           <div class="flex items-center justify-between mb-3">
             <span class="text-sm">{gettext("Audio autoplay")}</span>
-            <.audio_toggle />
+            <.audio_toggle id={"#{@id}-audio-toggle"} />
           </div>
 
           <div class="mb-3 pb-3 border-b border-base-300">
@@ -374,7 +422,11 @@ defmodule LangseedWeb.Layouts do
             <.language_menu current_scope={@current_scope} />
           </div>
 
-          <.link href={~p"/users/log-out"} method="delete" class="btn btn-ghost btn-sm w-full justify-start">
+          <.link
+            href={~p"/users/log-out"}
+            method="delete"
+            class="btn btn-ghost btn-sm w-full justify-start"
+          >
             <.icon name="hero-arrow-right-on-rectangle" class="size-4" />
             {gettext("Log out")}
           </.link>
