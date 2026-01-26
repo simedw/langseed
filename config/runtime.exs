@@ -63,6 +63,15 @@ config :langseed,
       else: Langseed.Audio.Providers.NoopStorage
     )
 
+# Admin configuration - comma-separated list of admin emails
+admin_emails =
+  case get_env_non_empty.("ADMIN_EMAILS") do
+    nil -> []
+    emails -> emails |> String.split(",") |> Enum.map(&String.trim/1)
+  end
+
+config :langseed, :admin, emails: admin_emails
+
 # Configure Google OAuth credentials
 if System.get_env("GOOGLE_CLIENT_ID") do
   config :ueberauth, Ueberauth.Strategy.Google.OAuth,

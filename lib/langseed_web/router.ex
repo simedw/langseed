@@ -2,6 +2,7 @@ defmodule LangseedWeb.Router do
   use LangseedWeb, :router
 
   import LangseedWeb.UserAuth
+  alias LangseedWeb.AdminAuth
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -36,6 +37,16 @@ defmodule LangseedWeb.Router do
       live "/analyze", TextAnalysisLive
       live "/texts", TextsLive
       live "/practice", PracticeLive
+    end
+
+    # Admin routes - require authenticated user + admin check
+    live_session :admin,
+      layout: {LangseedWeb.Layouts, :app},
+      on_mount: [
+        {LangseedWeb.UserAuth, :require_authenticated_user},
+        {AdminAuth, :require_admin}
+      ] do
+      live "/admin", AdminDashboardLive
     end
   end
 
