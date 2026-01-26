@@ -1,5 +1,21 @@
-# See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
-#
-# To ban all spiders from the entire site uncomment the next two lines:
-# User-agent: *
-# Disallow: /
+# LangSeed robots.txt
+# https://www.robotstxt.org/robotstxt.html
+
+User-agent: *
+Allow: /
+
+# Block admin and authentication routes
+Disallow: /admin
+Disallow: /auth
+Disallow: /users
+
+# Block authenticated user routes (require login anyway)
+Disallow: /vocabulary
+Disallow: /graph
+Disallow: /analyze
+Disallow: /texts
+Disallow: /practice
+Disallow: /language
+
+# Sitemap
+Sitemap: https://langseed.app/sitemap.xml
