@@ -375,7 +375,8 @@ defmodule LangseedWeb.AdminDashboardLive do
               <h2 class="card-title text-lg">
                 Users
                 <span class="badge badge-neutral">
-                  {length(@users)}<%= if length(@users) != length(@all_users) do %>
+                  {length(@users)}
+                  <%= if length(@users) != length(@all_users) do %>
                     / {length(@all_users)}
                   <% end %>
                 </span>

@@ -116,7 +116,8 @@ defmodule Langseed.Admin do
         having: count(c.id) > 30,
         select: c.user_id
       )
-      |> Repo.aggregate(:count)
+      |> Repo.all()
+      |> length()
 
     # Active in last 7 days (based on SRS updates)
     week_ago = DateTime.add(now, -7, :day)
@@ -187,25 +188,29 @@ defmodule Langseed.Admin do
     all_users = from(u in User, select: u.id) |> Repo.all()
 
     # Categorize users
-    Enum.reduce(all_users, %{signed_up_only: 0, added_words: 0, tried_once: 0, active: 0}, fn user_id, acc ->
-      words = Map.get(word_counts, user_id, 0)
-      practices = Map.get(practice_counts, user_id, 0)
-      is_recent = MapSet.member?(recent_activity, user_id)
+    Enum.reduce(
+      all_users,
+      %{signed_up_only: 0, added_words: 0, tried_once: 0, active: 0},
+      fn user_id, acc ->
+        words = Map.get(word_counts, user_id, 0)
+        practices = Map.get(practice_counts, user_id, 0)
+        is_recent = MapSet.member?(recent_activity, user_id)
 
-      cond do
-        is_recent and practices > 0 ->
-          Map.update!(acc, :active, &(&1 + 1))
+        cond do
+          is_recent and practices > 0 ->
+            Map.update!(acc, :active, &(&1 + 1))
 
-        practices > 0 ->
-          Map.update!(acc, :tried_once, &(&1 + 1))
+          practices > 0 ->
+            Map.update!(acc, :tried_once, &(&1 + 1))
 
-        words > 30 ->
-          Map.update!(acc, :added_words, &(&1 + 1))
+          words > 30 ->
+            Map.update!(acc, :added_words, &(&1 + 1))
 
-        true ->
-          Map.update!(acc, :signed_up_only, &(&1 + 1))
+          true ->
+            Map.update!(acc, :signed_up_only, &(&1 + 1))
+        end
       end
-    end)
+    )
   end
 
   # ============================================================================
