@@ -6,7 +6,20 @@ defmodule LangseedWeb.LandingLive do
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
       {:ok, push_navigate(socket, to: ~p"/analyze")}
     else
-      {:ok, assign(socket, active_example: 0)}
+      {:ok,
+       socket
+       |> assign(active_example: 0)
+       |> assign(page_title: "Learn Chinese, Japanese & Swedish with AI")
+       |> assign(
+         meta_description:
+           "LangSeed explains new vocabulary using only words you already know, plus emojis. AI-powered language learning for Chinese, Japanese, and Swedish. Free to try."
+       )
+       |> assign(canonical_url: "https://langseed.app")
+       |> assign(og_title: "LangSeed - AI-Powered Vocabulary Learning")
+       |> assign(
+         og_description:
+           "The dictionary that speaks your level. New words explained using only vocabulary you already know, with emojis bridging the gaps."
+       )}
     end
   end
 
