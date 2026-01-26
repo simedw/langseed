@@ -14,7 +14,9 @@ defmodule LangseedWeb.AdminDashboardLive do
       llm_usage: Admin.total_llm_usage(),
       language_distribution: Admin.language_distribution(),
       srs_distribution: Admin.srs_tier_distribution(),
-      llm_by_type: Admin.llm_usage_by_type()
+      llm_by_type: Admin.llm_usage_by_type(),
+      engagement: Admin.engagement_stats(),
+      funnel: Admin.user_funnel()
     }
 
     # Time series data for charts
@@ -26,16 +28,94 @@ defmodule LangseedWeb.AdminDashboardLive do
     # User list with metrics
     users = Admin.users_with_metrics()
 
+    # Get unique languages for filter dropdown
+    languages =
+      users
+      |> Enum.map(& &1.language)
+      |> Enum.uniq()
+      |> Enum.reject(&is_nil/1)
+      |> Enum.sort()
+
+    # Default filters
+    filters = %{
+      language: "all",
+      status: "all",
+      search: ""
+    }
+
     {:ok,
      assign(socket,
        page_title: "Admin Dashboard",
        metrics: metrics,
+       all_users: users,
        users: users,
+       languages: languages,
+       filters: filters,
        signups_chart_data: Jason.encode!(signups_data),
        practice_chart_data: Jason.encode!(practice_data),
        words_chart_data: Jason.encode!(words_data),
        llm_chart_data: Jason.encode!(llm_data)
      )}
+  end
+
+  @impl true
+  def handle_event("filter", %{"filter" => filter_params}, socket) do
+    filters = %{
+      language: Map.get(filter_params, "language", "all"),
+      status: Map.get(filter_params, "status", "all"),
+      search: Map.get(filter_params, "search", "")
+    }
+
+    filtered_users = filter_users(socket.assigns.all_users, filters)
+
+    {:noreply, assign(socket, filters: filters, users: filtered_users)}
+  end
+
+  defp filter_users(users, filters) do
+    users
+    |> filter_by_language(filters.language)
+    |> filter_by_status(filters.status)
+    |> filter_by_search(filters.search)
+  end
+
+  defp filter_by_language(users, "all"), do: users
+
+  defp filter_by_language(users, language) do
+    Enum.filter(users, &(&1.language == language))
+  end
+
+  defp filter_by_status(users, "all"), do: users
+
+  defp filter_by_status(users, "active") do
+    week_ago = DateTime.utc_now() |> DateTime.add(-7, :day)
+
+    Enum.filter(users, fn user ->
+      user.practice_count > 0 && user.last_activity &&
+        DateTime.compare(user.last_activity, week_ago) == :gt
+    end)
+  end
+
+  defp filter_by_status(users, "practiced") do
+    Enum.filter(users, &(&1.practice_count > 0))
+  end
+
+  defp filter_by_status(users, "never_practiced") do
+    Enum.filter(users, &(&1.practice_count == 0))
+  end
+
+  defp filter_by_status(users, "added_words") do
+    Enum.filter(users, &(&1.word_count > 30))
+  end
+
+  defp filter_by_status(users, "starter_only") do
+    Enum.filter(users, &(&1.word_count <= 30))
+  end
+
+  defp filter_by_search(users, ""), do: users
+
+  defp filter_by_search(users, search) do
+    search_lower = String.downcase(search)
+    Enum.filter(users, &String.contains?(String.downcase(&1.email || ""), search_lower))
   end
 
   @impl true
@@ -59,6 +139,81 @@ defmodule LangseedWeb.AdminDashboardLive do
             value={"#{@metrics.avg_understanding}%"}
             icon="hero-chart-bar"
           />
+        </div>
+
+        <%!-- Engagement & Retention Section --%>
+        <div class="card bg-base-200 shadow mb-8">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Engagement & Retention</h2>
+
+            <div class="grid md:grid-cols-2 gap-6">
+              <%!-- Key Metrics --%>
+              <div>
+                <h3 class="font-medium mb-3">Activation Metrics</h3>
+                <div class="space-y-3">
+                  <.engagement_metric
+                    label="Practiced at least once"
+                    count={@metrics.engagement.practiced_at_least_once}
+                    total={@metrics.engagement.total_users}
+                    pct={@metrics.engagement.practiced_pct}
+                    color="error"
+                  />
+                  <.engagement_metric
+                    label="Added words (beyond starter)"
+                    count={@metrics.engagement.added_words}
+                    total={@metrics.engagement.total_users}
+                    pct={@metrics.engagement.added_words_pct}
+                    color="warning"
+                  />
+                  <.engagement_metric
+                    label="Active last 7 days"
+                    count={@metrics.engagement.active_7d}
+                    total={@metrics.engagement.total_users}
+                    pct={@metrics.engagement.active_7d_pct}
+                    color="info"
+                  />
+                  <.engagement_metric
+                    label="Active last 30 days"
+                    count={@metrics.engagement.active_30d}
+                    total={@metrics.engagement.total_users}
+                    pct={@metrics.engagement.active_30d_pct}
+                    color="success"
+                  />
+                </div>
+              </div>
+
+              <%!-- User Funnel --%>
+              <div>
+                <h3 class="font-medium mb-3">User Funnel</h3>
+                <div class="space-y-2">
+                  <.funnel_stage
+                    label="Signed up only (30 words, 0 practice)"
+                    count={@metrics.funnel.signed_up_only}
+                    total={@metrics.engagement.total_users}
+                    color="base-300"
+                  />
+                  <.funnel_stage
+                    label="Added words (no practice)"
+                    count={@metrics.funnel.added_words}
+                    total={@metrics.engagement.total_users}
+                    color="warning"
+                  />
+                  <.funnel_stage
+                    label="Tried practice (inactive now)"
+                    count={@metrics.funnel.tried_once}
+                    total={@metrics.engagement.total_users}
+                    color="info"
+                  />
+                  <.funnel_stage
+                    label="Active (practiced in 7 days)"
+                    count={@metrics.funnel.active}
+                    total={@metrics.engagement.total_users}
+                    color="success"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <%!-- Charts Row --%>
@@ -216,7 +371,57 @@ defmodule LangseedWeb.AdminDashboardLive do
         <%!-- User Table --%>
         <div class="card bg-base-200 shadow">
           <div class="card-body">
-            <h2 class="card-title text-lg">Users</h2>
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <h2 class="card-title text-lg">
+                Users
+                <span class="badge badge-neutral">
+                  {length(@users)}<%= if length(@users) != length(@all_users) do %>
+                    / {length(@all_users)}
+                  <% end %>
+                </span>
+              </h2>
+
+              <%!-- Filters --%>
+              <form phx-change="filter" class="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  name="filter[search]"
+                  value={@filters.search}
+                  placeholder="Search email..."
+                  class="input input-sm input-bordered w-48"
+                  phx-debounce="300"
+                />
+
+                <select name="filter[language]" class="select select-sm select-bordered">
+                  <option value="all" selected={@filters.language == "all"}>All languages</option>
+                  <%= for lang <- @languages do %>
+                    <option value={lang} selected={@filters.language == lang}>
+                      {language_flag(lang)} {lang}
+                    </option>
+                  <% end %>
+                </select>
+
+                <select name="filter[status]" class="select select-sm select-bordered">
+                  <option value="all" selected={@filters.status == "all"}>All users</option>
+                  <option value="active" selected={@filters.status == "active"}>
+                    Active (7 days)
+                  </option>
+                  <option value="practiced" selected={@filters.status == "practiced"}>
+                    Practiced at least once
+                  </option>
+                  <option value="never_practiced" selected={@filters.status == "never_practiced"}>
+                    Never practiced
+                  </option>
+                  <option value="added_words" selected={@filters.status == "added_words"}>
+                    Added words (>30)
+                  </option>
+                  <option value="starter_only" selected={@filters.status == "starter_only"}>
+                    Starter pack only
+                  </option>
+                </select>
+              </form>
+            </div>
+
             <div class="overflow-x-auto">
               <table class="table table-sm">
                 <thead>
@@ -243,6 +448,12 @@ defmodule LangseedWeb.AdminDashboardLive do
                 </tbody>
               </table>
             </div>
+
+            <%= if Enum.empty?(@users) do %>
+              <div class="text-center py-8 opacity-60">
+                No users match the selected filters
+              </div>
+            <% end %>
           </div>
         </div>
       </div>
@@ -265,6 +476,49 @@ defmodule LangseedWeb.AdminDashboardLive do
         </div>
         <div class="text-2xl font-bold">{@value}</div>
       </div>
+    </div>
+    """
+  end
+
+  # Component for engagement metrics
+  attr :label, :string, required: true
+  attr :count, :integer, required: true
+  attr :total, :integer, required: true
+  attr :pct, :integer, required: true
+  attr :color, :string, default: "primary"
+
+  defp engagement_metric(assigns) do
+    ~H"""
+    <div class="flex items-center gap-3">
+      <div class="flex-1">
+        <div class="flex justify-between text-sm mb-1">
+          <span>{@label}</span>
+          <span class="font-medium">{@count} / {@total} ({@pct}%)</span>
+        </div>
+        <div class="h-2 bg-base-300 rounded-full overflow-hidden">
+          <div class={"h-full bg-#{@color}"} style={"width: #{@pct}%"} />
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # Component for funnel stages
+  attr :label, :string, required: true
+  attr :count, :integer, required: true
+  attr :total, :integer, required: true
+  attr :color, :string, default: "primary"
+
+  defp funnel_stage(assigns) do
+    pct = if assigns.total > 0, do: round(assigns.count / assigns.total * 100), else: 0
+    assigns = assign(assigns, :pct, pct)
+
+    ~H"""
+    <div class="flex items-center gap-2">
+      <div class={"w-3 h-3 rounded-full bg-#{@color}"} />
+      <span class="flex-1 text-sm">{@label}</span>
+      <span class="font-medium text-sm">{@count}</span>
+      <span class="text-xs opacity-60">({@pct}%)</span>
     </div>
     """
   end
