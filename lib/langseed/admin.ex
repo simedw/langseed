@@ -90,6 +90,125 @@ defmodule Langseed.Admin do
   end
 
   # ============================================================================
+  # ENGAGEMENT & RETENTION METRICS
+  # ============================================================================
+
+  @doc """
+  Returns engagement statistics showing activation and retention.
+  """
+  def engagement_stats do
+    total = total_users()
+    now = DateTime.utc_now()
+
+    # Users who practiced at least once
+    practiced_at_least_once =
+      from(q in Question,
+        where: not is_nil(q.used_at),
+        select: q.user_id,
+        distinct: true
+      )
+      |> Repo.aggregate(:count)
+
+    # Users who added words beyond the initial 30 (starter pack)
+    added_words =
+      from(c in Concept,
+        group_by: c.user_id,
+        having: count(c.id) > 30,
+        select: c.user_id
+      )
+      |> Repo.aggregate(:count)
+
+    # Active in last 7 days (based on SRS updates)
+    week_ago = DateTime.add(now, -7, :day)
+
+    active_7d =
+      from(s in ConceptSRS,
+        where: s.updated_at >= ^week_ago,
+        select: s.user_id,
+        distinct: true
+      )
+      |> Repo.aggregate(:count)
+
+    # Active in last 30 days
+    month_ago = DateTime.add(now, -30, :day)
+
+    active_30d =
+      from(s in ConceptSRS,
+        where: s.updated_at >= ^month_ago,
+        select: s.user_id,
+        distinct: true
+      )
+      |> Repo.aggregate(:count)
+
+    %{
+      total_users: total,
+      practiced_at_least_once: practiced_at_least_once,
+      practiced_pct: if(total > 0, do: round(practiced_at_least_once / total * 100), else: 0),
+      added_words: added_words,
+      added_words_pct: if(total > 0, do: round(added_words / total * 100), else: 0),
+      active_7d: active_7d,
+      active_7d_pct: if(total > 0, do: round(active_7d / total * 100), else: 0),
+      active_30d: active_30d,
+      active_30d_pct: if(total > 0, do: round(active_30d / total * 100), else: 0)
+    }
+  end
+
+  @doc """
+  Returns user funnel breakdown by engagement stage.
+  """
+  def user_funnel do
+    # Get all user IDs with their word counts and practice counts
+    word_counts =
+      from(c in Concept, group_by: c.user_id, select: {c.user_id, count(c.id)})
+      |> Repo.all()
+      |> Map.new()
+
+    practice_counts =
+      from(q in Question,
+        where: not is_nil(q.used_at),
+        group_by: q.user_id,
+        select: {q.user_id, count(q.id)}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    week_ago = DateTime.utc_now() |> DateTime.add(-7, :day)
+
+    recent_activity =
+      from(s in ConceptSRS,
+        where: s.updated_at >= ^week_ago,
+        select: s.user_id,
+        distinct: true
+      )
+      |> Repo.all()
+      |> MapSet.new()
+
+    # Get all user IDs
+    all_users = from(u in User, select: u.id) |> Repo.all()
+
+    # Categorize users
+    Enum.reduce(all_users, %{signed_up_only: 0, added_words: 0, tried_once: 0, active: 0}, fn user_id, acc ->
+      words = Map.get(word_counts, user_id, 0)
+      practices = Map.get(practice_counts, user_id, 0)
+      is_recent = MapSet.member?(recent_activity, user_id)
+
+      cond do
+        is_recent and practices > 0 ->
+          Map.update!(acc, :active, &(&1 + 1))
+
+        practices > 0 ->
+          Map.update!(acc, :tried_once, &(&1 + 1))
+
+        words > 30 ->
+          Map.update!(acc, :added_words, &(&1 + 1))
+
+        true ->
+          Map.update!(acc, :signed_up_only, &(&1 + 1))
+      end
+    end)
+  end
+
+  # ============================================================================
   # PRACTICE METRICS
   # ============================================================================
 
