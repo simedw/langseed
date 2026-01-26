@@ -255,6 +255,102 @@ const Hooks = {
     }
   },
 
+  // Admin dashboard charts using D3.js
+  AdminChart: {
+    mounted() {
+      const data = JSON.parse(this.el.dataset.chart)
+      const label = this.el.dataset.label || 'Value'
+      const color = this.el.dataset.color || '#3abff8'
+      this.renderChart(data, label, color)
+
+      this.resizeHandler = () => this.renderChart(data, label, color)
+      window.addEventListener('resize', this.resizeHandler)
+    },
+
+    destroyed() {
+      if (this.resizeHandler) {
+        window.removeEventListener('resize', this.resizeHandler)
+      }
+    },
+
+    renderChart(data, label, color) {
+      this.el.innerHTML = ''
+
+      if (!data || data.length === 0) {
+        this.el.innerHTML = '<div class="flex items-center justify-center h-full text-sm opacity-50">No data</div>'
+        return
+      }
+
+      const margin = {top: 10, right: 10, bottom: 30, left: 40}
+      const width = this.el.clientWidth - margin.left - margin.right
+      const height = this.el.clientHeight - margin.top - margin.bottom
+
+      const svg = d3.select(this.el)
+        .append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`)
+
+      // Parse dates
+      const parseDate = d3.timeParse('%Y-%m-%d')
+      const chartData = data.map(d => ({
+        date: parseDate(d.date),
+        count: d.count || 0
+      }))
+
+      // Scales
+      const x = d3.scaleTime()
+        .domain(d3.extent(chartData, d => d.date))
+        .range([0, width])
+
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(chartData, d => d.count) || 1])
+        .nice()
+        .range([height, 0])
+
+      // Area
+      const area = d3.area()
+        .x(d => x(d.date))
+        .y0(height)
+        .y1(d => y(d.count))
+        .curve(d3.curveMonotoneX)
+
+      svg.append('path')
+        .datum(chartData)
+        .attr('fill', color)
+        .attr('fill-opacity', 0.3)
+        .attr('d', area)
+
+      // Line
+      const line = d3.line()
+        .x(d => x(d.date))
+        .y(d => y(d.count))
+        .curve(d3.curveMonotoneX)
+
+      svg.append('path')
+        .datum(chartData)
+        .attr('fill', 'none')
+        .attr('stroke', color)
+        .attr('stroke-width', 2)
+        .attr('d', line)
+
+      // Axes
+      svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x).ticks(5).tickFormat(d3.timeFormat('%m/%d')))
+        .selectAll('text')
+        .attr('fill', 'currentColor')
+        .style('font-size', '10px')
+
+      svg.append('g')
+        .call(d3.axisLeft(y).ticks(5))
+        .selectAll('text')
+        .attr('fill', 'currentColor')
+        .style('font-size', '10px')
+    }
+  },
+
   // Syncs audio autoplay preference from localStorage to server
   // Note: Not all LiveViews handle this event - only PracticeLive cares about it.
   // The push is fire-and-forget; we catch errors to avoid timeout noise.

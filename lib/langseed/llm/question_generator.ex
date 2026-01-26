@@ -289,7 +289,10 @@ defmodule Langseed.LLM.QuestionGenerator do
         case length(valid_indices) do
           0 ->
             # No valid options found - unusual, but let it pass to avoid blocking
-            Logger.warning("Validation returned no valid options for question: #{result.sentence}")
+            Logger.warning(
+              "Validation returned no valid options for question: #{result.sentence}"
+            )
+
             :ok
 
           1 ->
